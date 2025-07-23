@@ -136,7 +136,7 @@ class XPathConfig:
 
     # 23.搜索框长期有效
     SEARCH_INPUT = [
-        '//input[@id="markets-grid-search-input"]',
+        '//input[@id="homepage-search-input"]',
         '/html/body/div[1]/div[2]/div/div/main/div/div/div[3]/div/div/div/div[1]/div[2]/div[2]/input'
     ] 
 
