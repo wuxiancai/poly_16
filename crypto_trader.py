@@ -2304,7 +2304,7 @@ class CryptoTrader:
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, "0") 
                             self.yes4_price_entry.configure(foreground='black')
-                            self.logger.info(f"✅ YES4/No4价格已重置为0")
+                            self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             #设置 YES1价格为默认买入价
                             self.yes1_price_entry.configure(foreground='red')
@@ -2380,7 +2380,7 @@ class CryptoTrader:
         self.no2_entry.insert(0, f"{yes2_amount:.2f}")
         
         # 计算并设置 YES3/NO3 金额
-        yes3_amount = self.yes2_amount * (self.n_rebound / 100)
+        yes3_amount = yes2_amount * (self.n_rebound / 100)
         self.yes3_entry = self.yes_frame.grid_slaves(row=5, column=1)[0]
         self.yes3_entry.delete(0, tk.END)
         self.yes3_entry.insert(0, f"{yes3_amount:.2f}")
@@ -2389,7 +2389,7 @@ class CryptoTrader:
         self.no3_entry.insert(0, f"{yes3_amount:.2f}")
 
         # 计算并设置 Yes4/No4金额
-        yes4_amount = self.yes3_amount * (self.n_rebound / 100)
+        yes4_amount = yes3_amount * (self.n_rebound / 100)
         self.yes4_entry = self.yes_frame.grid_slaves(row=7, column=1)[0]
         self.yes4_entry.delete(0, tk.END)
         self.yes4_entry.insert(0, f"{yes4_amount:.2f}")
