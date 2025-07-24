@@ -132,8 +132,7 @@ class CryptoTrader:
         
         # 默认买价
         self.default_target_price = 55 # 不修改
-        # 默认反水卖价
-        self.default_sell_price_backwater = 46 # 不修改
+        
         # 默认卖价
         self.default_sell_price = 1 # 不修改
 
@@ -2225,12 +2224,14 @@ class CryptoTrader:
                         if self.Verify_buy_yes():
                             self.yes4_amount = float(self.yes4_amount_entry.get())
                             self.yes4_shares = self.shares # 获取 YES4 的 shares
-                            # 重置Yes4的价格为反水价格也就是 46 
+                            # 设置 YES4/No4的价格为0
+                            self.no4_price_entry.delete(0, tk.END)
+                            self.no4_price_entry.insert(0, "0") 
+                            self.no4_price_entry.configure(foreground='black')
                             self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, str(self.default_sell_price_backwater)) # 设置为反水卖出价格也就是 46
-                            self.yes4_price_entry.configure(foreground='red')
-                            yes4_price = float(self.yes4_price_entry.get())
-                            self.logger.info(f"✅ Yes4价格已重置为{self.default_sell_price_backwater}")
+                            self.yes4_price_entry.insert(0, "0") 
+                            self.yes4_price_entry.configure(foreground='black')
+                            self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             # 设置 NO1 价格为默认值
                             self.no1_price_entry.delete(0, tk.END)
