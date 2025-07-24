@@ -2457,6 +2457,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
+                        self.reset_trade_count = 0
         except Exception as e:
             self.logger.error(f"❌ Sell_yes执行失败: {str(e)}")
             
@@ -2518,6 +2519,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
+                        self.reset_trade_count = 0
         except Exception as e:
             self.logger.error(f"❌ Sell_no执行失败: {str(e)}")
             
