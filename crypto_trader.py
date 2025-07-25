@@ -102,7 +102,7 @@ class CryptoTrader:
         self.buy_count = 0
         self.sell_count = 0 
         self.reset_trade_count = 0
-        
+        self.trade_count = 19
         # 添加定时器
         self.refresh_page_timer = None  # 用于存储定时器ID
         self.url_check_timer = None
@@ -421,6 +421,14 @@ class CryptoTrader:
         self.doubling_weeks_entry.pack(side=tk.LEFT)
         self.doubling_weeks_entry.insert(0, str(self.doubling_weeks))
         
+        # 交易次数设置
+        trade_count_frame = ttk.Frame(amount_frame)
+        trade_count_frame.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
+        self.trade_count_label = ttk.Label(trade_count_frame, text="19", style='Red.TLabel')
+        self.trade_count_label.pack(side=tk.LEFT, padx=(0, 15))
+
         # 监控网站配置
         url_frame = ttk.LabelFrame(scrollable_frame, text="Website Monitoring", padding=(8, 5))
         url_frame.pack(fill="x", padx=8, pady=6)
@@ -485,7 +493,7 @@ class CryptoTrader:
         self.zero_time_cash_label = ttk.Label(main_controls, text="0", style='Red.TLabel')
         self.zero_time_cash_label.pack(side=tk.LEFT)
 
-         # 重启次数显示
+        # 重启次数显示
         ttk.Label(main_controls, text="Reset:", style='Black.TLabel').pack(side=tk.LEFT, padx=(10, 2))
         self.reset_count_label = ttk.Label(main_controls, text="0", style='Red.TLabel')
         self.reset_count_label.pack(side=tk.LEFT, padx=(0, 15))
