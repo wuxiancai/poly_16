@@ -421,7 +421,7 @@ class CryptoTrader:
         self.doubling_weeks_entry.pack(side=tk.LEFT)
         self.doubling_weeks_entry.insert(0, str(self.doubling_weeks))
         
-        # 交易次数设置
+        # 剩余交易次数设置
         trade_count_frame = ttk.Frame(amount_frame)
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
@@ -1756,6 +1756,11 @@ class CryptoTrader:
                             self.yes1_shares = self.shares # 获取 YES1 的 shares
                             # 增加交易次数
                             self.buy_count += 1
+
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
+
                             # 重置Yes1和No1价格为0
                             self.yes1_price_entry.configure(foreground='black')
                             self.yes1_price_entry.delete(0, tk.END)
@@ -1837,6 +1842,11 @@ class CryptoTrader:
                             self.no1_shares = self.shares # 获取 NO1 的 shares
                             # 增加交易次数
                             self.buy_count += 1
+
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
+
                             # 重置Yes1和No1价格为0
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, "0")
@@ -1945,6 +1955,9 @@ class CryptoTrader:
 
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up2",
@@ -2014,6 +2027,9 @@ class CryptoTrader:
                             self.logger.info(f"✅ Yes3价格已重置为{self.default_target_price}")
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             self.send_trade_email(
                                 trade_type="Buy Down2",
                                 price=self.price,
@@ -2096,6 +2112,9 @@ class CryptoTrader:
                             self.logger.info(f"✅ No4价格已重置为{self.default_target_price}")
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up3",
@@ -2168,6 +2187,9 @@ class CryptoTrader:
                             self.logger.info(f"✅ Yes4价格已重置为{self.default_target_price}")
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Down3",
@@ -2254,6 +2276,9 @@ class CryptoTrader:
 
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up4",
@@ -2328,6 +2353,9 @@ class CryptoTrader:
 
                             # 增加交易次数
                             self.buy_count += 1
+                            # 减少剩余交易次数
+                            self.trade_count -= 1
+                            self.trade_count_label.config(text=str(self.trade_count))
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Down4",
