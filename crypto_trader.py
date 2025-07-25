@@ -416,7 +416,7 @@ class CryptoTrader:
         double_frame = ttk.Frame(amount_frame)
         double_frame.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(double_frame, text="DB", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Label(double_frame, text="D.B", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 2))
         self.doubling_weeks_entry = ttk.Entry(double_frame, width=3)
         self.doubling_weeks_entry.pack(side=tk.LEFT)
         self.doubling_weeks_entry.insert(0, str(self.doubling_weeks))
