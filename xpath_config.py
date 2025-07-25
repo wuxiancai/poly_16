@@ -160,3 +160,8 @@ class XPathConfig:
     CLAIM_BUTTON = [
         '//button[contains(text(), "Claim")]'
     ]
+
+    # 28.DAILY_BUTTON
+    DAILY_BUTTON = [
+        '//div[@role="button" and .//p[text()="Daily"]]'
+    ]
