@@ -462,11 +462,6 @@ class CryptoTrader:
         self.set_amount_button.pack(side=tk.LEFT, padx=3)
         self.set_amount_button['state'] = 'disabled'
 
-        # 手动找币按钮
-        self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=5,
-                                           command=lambda: self.find_54_coin(self.selected_coin), style='LeftAligned.TButton')
-        self.find_coin_button.pack(side=tk.LEFT, padx=1)
-
         # 币种选择
         ttk.Label(main_controls, text="Coin:", style='Black.TLabel').pack(side=tk.LEFT, padx=(2, 2))
         self.coin_combobox = ttk.Combobox(main_controls, values=['BTC', 'ETH', 'SOL', 'XRP'], width=3)
@@ -478,6 +473,12 @@ class CryptoTrader:
         
         # 绑定币种选择变化事件
         self.coin_combobox.bind('<<ComboboxSelected>>', self.on_coin_changed)
+        
+        # 手动找币按钮
+        selected_coin = self.coin_combobox.get()
+        self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=5,
+                                           command=lambda: self.find_54_coin(selected_coin), style='LeftAligned.TButton')
+        self.find_coin_button.pack(side=tk.LEFT, padx=1)
         
         # CASH 显示
         ttk.Label(main_controls, text="Cash:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 2))
