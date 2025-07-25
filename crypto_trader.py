@@ -398,7 +398,7 @@ class CryptoTrader:
         settings_items = [
             ("Initial", "initial_amount_entry", self.initial_amount, 2),
             ("Turn-1", "first_rebound_entry", self.first_rebound, 3),
-            ("Turn-N", "n_rebound_entry", self.n_rebound, 4),
+            ("Turn-N", "n_rebound_entry", self.n_rebound, 3),
             ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 4)
         ]
         
@@ -416,7 +416,7 @@ class CryptoTrader:
         double_frame = ttk.Frame(amount_frame)
         double_frame.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(double_frame, text="Double", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Label(double_frame, text="DB", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 2))
         self.doubling_weeks_entry = ttk.Entry(double_frame, width=3)
         self.doubling_weeks_entry.pack(side=tk.LEFT)
         self.doubling_weeks_entry.insert(0, str(self.doubling_weeks))
