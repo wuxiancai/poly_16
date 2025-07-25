@@ -457,7 +457,7 @@ class CryptoTrader:
         self.start_button.pack(side=tk.LEFT, padx=1)
         
         # 设置金额按钮
-        self.set_amount_button = ttk.Button(main_controls, text="S.A", width=3,
+        self.set_amount_button = ttk.Button(main_controls, text="S.AMT", width=5,
                                            command=self.set_yes_no_cash, style='LeftAligned.TButton')
         self.set_amount_button.pack(side=tk.LEFT, padx=3)
         self.set_amount_button['state'] = 'disabled'
@@ -479,7 +479,7 @@ class CryptoTrader:
         self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=5,
                                            command=lambda: self.find_54_coin(selected_coin), style='LeftAligned.TButton')
         self.find_coin_button.pack(side=tk.LEFT, padx=1)
-        
+
         # CASH 显示
         ttk.Label(main_controls, text="Cash:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 2))
         self.zero_time_cash_label = ttk.Label(main_controls, text="0", style='Red.TLabel')
