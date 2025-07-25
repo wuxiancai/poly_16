@@ -462,6 +462,11 @@ class CryptoTrader:
         self.set_amount_button.pack(side=tk.LEFT, padx=3)
         self.set_amount_button['state'] = 'disabled'
 
+        # 手动找币按钮
+        self.find_coin_button = ttk.Button(main_controls, text="FindCoin", width=4,
+                                           command=self.find_54_coin, style='LeftAligned.TButton')
+        self.find_coin_button.pack(side=tk.LEFT, padx=1)
+        
         # 币种选择
         ttk.Label(main_controls, text="Coin:", style='Black.TLabel').pack(side=tk.LEFT, padx=(2, 2))
         self.coin_combobox = ttk.Combobox(main_controls, values=['BTC', 'ETH', 'SOL', 'XRP'], width=3)
@@ -498,11 +503,6 @@ class CryptoTrader:
         
         # 绑定时间选择变化事件
         self.auto_find_time_combobox.bind('<<ComboboxSelected>>', self.on_auto_find_time_changed)
-
-        # 手动找币按钮
-        self.find_coin_button = ttk.Button(main_controls, text="FindCoin", width=4,
-                                           command=self.find_54_coin, style='LeftAligned.TButton')
-        self.find_coin_button.pack(side=tk.LEFT, padx=1)
 
         # 交易币对显示
         pair_container = ttk.Frame(scrollable_frame)
