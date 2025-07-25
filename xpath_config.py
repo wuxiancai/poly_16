@@ -150,3 +150,13 @@ class XPathConfig:
     SPREAD_ELEMENT = [
         '(//*[contains(text(), "Spread")])[2]/ancestor::div[3]/div[contains(., "¢")]'
     ] 
+
+    # 26.Portfolio 按钮
+    PORTFOLIO_BUTTON = [
+        '//a[@href="/portfolio" and .//p[contains(text(), "Portfolio")]]'
+    ]
+
+    # 27.CLAIM 按钮
+    CLAIM_BUTTON = [
+        '//button[contains(text(), "Claim")]'
+    ]

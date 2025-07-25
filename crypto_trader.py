@@ -99,7 +99,7 @@ class CryptoTrader:
         self.retry_interval = 5
 
         # 添加交易次数计数器
-        self.trade_count = 0
+        self.buy_count = 0
         self.sell_count = 0 
         self.reset_trade_count = 0
         
@@ -125,13 +125,13 @@ class CryptoTrader:
 
         # 初始化本金
         self.initial_amount = 1
-        self.first_rebound = 127
-        self.n_rebound = 128
+        self.first_rebound = 120
+        self.n_rebound = 125
         self.profit_rate = 1.1
         self.doubling_weeks = 60
         
         # 默认买价
-        self.default_target_price = 55 # 不修改
+        self.default_target_price = 54 # 不修改
 
         # 默认卖价
         self.default_normal_sell_price = 0 # 不修改
@@ -754,7 +754,7 @@ class CryptoTrader:
         self.start_button.configure(style='Red.TButton')
         
         # 重置交易次数计数器
-        self.trade_count = 0
+        self.buy_count = 0
             
         # 启动浏览器作线程
         threading.Thread(target=self._start_browser_monitoring, args=(target_url,), daemon=True).start()
@@ -1741,7 +1741,7 @@ class CryptoTrader:
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             self.yes1_shares = self.shares # 获取 YES1 的 shares
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 重置Yes1和No1价格为0
                             self.yes1_price_entry.configure(foreground='black')
                             self.yes1_price_entry.delete(0, tk.END)
@@ -1775,11 +1775,11 @@ class CryptoTrader:
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ First_trade执行BUY UP1成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 UP1成功\033[0m")
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
@@ -1798,7 +1798,7 @@ class CryptoTrader:
                             price=up_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
@@ -1822,7 +1822,7 @@ class CryptoTrader:
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
                             self.no1_shares = self.shares # 获取 NO1 的 shares
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 重置Yes1和No1价格为0
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, "0")
@@ -1856,11 +1856,11 @@ class CryptoTrader:
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ First_trade执行BUY DOWN1成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
@@ -1878,7 +1878,7 @@ class CryptoTrader:
                             price=down_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
@@ -1930,18 +1930,18 @@ class CryptoTrader:
                             self.logger.info(f"✅ No3价格已重置为{self.default_target_price}")
 
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up2",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ Second_trade执行BUY UP2成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -1959,7 +1959,7 @@ class CryptoTrader:
                             price=up_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
@@ -1999,17 +1999,17 @@ class CryptoTrader:
 
                             self.logger.info(f"✅ Yes3价格已重置为{self.default_target_price}")
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             self.send_trade_email(
                                 trade_type="Buy Down2",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ Second_trade执行BUY DOWN2成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -2028,7 +2028,7 @@ class CryptoTrader:
                             price=down_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
@@ -2081,18 +2081,18 @@ class CryptoTrader:
 
                             self.logger.info(f"✅ No4价格已重置为{self.default_target_price}")
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up3",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )   
-                            self.logger.info("\033[34m✅ Third_trade执行BUY UP3成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -2112,7 +2112,7 @@ class CryptoTrader:
                             price=up_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )   
@@ -2153,18 +2153,18 @@ class CryptoTrader:
 
                             self.logger.info(f"✅ Yes4价格已重置为{self.default_target_price}")
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Down3",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ Third_trade执行BUY DOWN3成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -2184,7 +2184,7 @@ class CryptoTrader:
                             price=down_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )   
@@ -2239,18 +2239,18 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
 
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Up4",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ Forth_trade执行BUY UP4成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -2270,7 +2270,7 @@ class CryptoTrader:
                             price=up_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
@@ -2313,18 +2313,18 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
 
                             # 增加交易次数
-                            self.trade_count += 1
+                            self.buy_count += 1
                             # 发送交易邮件
                             self.send_trade_email(
                                 trade_type="Buy Down4",
                                 price=self.price,
                                 amount=self.amount,
                                 shares=self.shares,
-                                trade_count=self.trade_count,
+                                trade_count=self.buy_count,
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info("\033[34m✅ Forth_trade执行BUY DOWN4成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             # 增加刷新,因为不刷新,POSITIONS 上不显示刚刚购买的
                             self.root.after(30000, lambda: self.driver.refresh())
 
@@ -2344,7 +2344,7 @@ class CryptoTrader:
                             price=down_price,
                             amount=0,
                             shares=0,
-                            trade_count=self.trade_count,
+                            trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )   
@@ -3029,7 +3029,7 @@ class CryptoTrader:
                 交易价格: {price:.2f}¢
                 交易金额: ${amount:.2f}
                 SHARES: {shares}
-                当前买入次数: {self.trade_count}
+                当前买入次数: {self.buy_count}
                 当前卖出次数: {self.sell_count}
                 当前 CASH 值: {str_cash_value}
                 当前 PORTFOLIO 值: {str_portfolio_value}
@@ -3097,7 +3097,7 @@ class CryptoTrader:
             异常时间: {current_time}
             主机名称: {hostname}
             交易币对: {trading_pair}
-            当前买入次数: {self.trade_count}
+            当前买入次数: {self.buy_count}
             当前卖出次数: {self.sell_count}
             重启次数: {self.reset_trade_count}
             当前 CASH 值: {cash_value}
@@ -3391,7 +3391,7 @@ class CryptoTrader:
                             pair = re.search(r'event/([^?]+)', new_url)
                             self.trading_pair_label.config(text=pair.group(1))
                             self.logger.info(f"\033[34m✅ 新URL已插入到主界面上: {new_url} \033[0m")
-                            self.trade_count = 0
+                            self.buy_count = 0
                             self.sell_count = 0
                     save_new_url(new_url)
 
@@ -3709,8 +3709,59 @@ class CryptoTrader:
             self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
             return False
 
+    def claim_cash(self):
+        """点击CASH值前先CLAIM"""
+        # 先点 PORTFOLIO 按钮
+        try:
+            # 查找并点击CLAIM按钮
+            portfolio_button = self.driver.find_element(By.XPATH, XPathConfig.PORTFOLIO_BUTTON[0])      
+        except NoSuchElementException as e:
+            portfolio_button = self._find_element_with_retry(XPathConfig.PORTFOLIO_BUTTON, timeout=2, silent=True)
+
+        if portfolio_button:
+            portfolio_button.click()
+            self.logger.info("✅ \033[34m点击PORTFOLIO按钮成功!\033[0m")
+
+        # 找到 CLAIM 按钮,并点击
+        try:
+            # 查找并点击CLAIM按钮
+            claim_button = self.driver.find_element(By.XPATH, XPathConfig.CLAIM_BUTTON[0])      
+        except NoSuchElementException as e:
+            claim_button = self._find_element_with_retry(XPathConfig.CLAIM_BUTTON, timeout=2, silent=True)
+
+        if claim_button:
+            claim_button.click()
+            self.logger.info("✅ \033[34m点击CLAIM按钮成功!\033[0m")
+            # 循环等待,直到comfirm按钮出现
+            max_attempts = 100  # 最多检测10次
+            check_interval = 2  # 每2秒检测一次
+            
+            for attempt in range(max_attempts):
+                try:
+                    # 获取CONFIRM按钮
+                    try:
+                        confirm_button = self.driver.find_element(By.XPATH, XPathConfig.CONFIRM_BUTTON[0])
+                    except (NoSuchElementException, StaleElementReferenceException):
+                        confirm_button = self._find_element_with_retry(XPathConfig.CONFIRM_BUTTON, timeout=2, silent=True)
+                        
+                    if confirm_button:
+                        confirm_button.click()
+                        self.logger.info(f"✅ 已找到CONFIRM按钮并点击")
+
+                        break
+                except NoSuchElementException:
+                    self.logger.info(f"⏳ 第{attempt+1}次尝试")
+
     def get_zero_time_cash(self):
         """获取币安BTC实时价格,并在中国时区00:00触发"""
+        # 检查浏览器状态
+        if self.driver is None:
+            self.logger.error("浏览器未初始化,无法获取CASH值")
+            return
+        
+        # 获取 CASH 值前先 CLAIM
+        self.claim_cash()
+        time.sleep(10)
         try:
             # 获取零点CASH值
             try:
