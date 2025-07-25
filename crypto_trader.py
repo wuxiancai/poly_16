@@ -463,7 +463,7 @@ class CryptoTrader:
         self.set_amount_button['state'] = 'disabled'
 
         # 手动找币按钮
-        self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=4,
+        self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=5,
                                            command=lambda: self.find_54_coin(self.selected_coin), style='LeftAligned.TButton')
         self.find_coin_button.pack(side=tk.LEFT, padx=1)
 
