@@ -1783,7 +1783,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
-                            if self.find_position_label_no():
+                            if self.find_position_label_down():
                                     self.logger.info(f"执行自动卖出DOWN4")
                                     self.only_sell_no()
 
@@ -1864,7 +1864,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
-                            if self.find_position_label_yes():
+                            if self.find_position_label_up():
                                     self.logger.info(f"执行自动卖出UP4")
                                     self.only_sell_yes()
 
@@ -1946,7 +1946,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
-                            if self.find_position_label_no():
+                            if self.find_position_label_down():
                                     self.logger.info(f"执行自动卖出DOWN1")
                                     self.only_sell_no()           
                             break
@@ -2014,7 +2014,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
-                            if self.find_position_label_yes():
+                            if self.find_position_label_up():
                                     self.logger.info(f"执行自动卖出UP1")
                                     self.only_sell_yes()
 
@@ -2097,7 +2097,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
-                            if self.find_position_label_no():
+                            if self.find_position_label_down():
                                     self.logger.info(f"执行自动卖出DOWN2")
                                     self.only_sell_no()
 
@@ -2169,7 +2169,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
-                            if self.find_position_label_yes():
+                            if self.find_position_label_up():
                                     self.logger.info(f"执行自动卖出UP2")
                                     self.only_sell_yes()
 
@@ -2255,7 +2255,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
-                            if self.find_position_label_no():
+                            if self.find_position_label_down():
                                     self.logger.info(f"执行自动卖出DOWN3")
                                     self.only_sell_no()
 
@@ -2329,7 +2329,7 @@ class CryptoTrader:
                             self.root.after(30000, lambda: self.driver.refresh())
 
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
-                            if self.find_position_label_yes():
+                            if self.find_position_label_up():
                                     self.logger.info(f"执行自动卖出UP3")
                                     self.only_sell_yes()
 
@@ -2732,7 +2732,7 @@ class CryptoTrader:
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
             
-            position_value = self.find_position_label_yes()
+            position_value = self.find_position_label_up()
             # position_value 的值是true 或 false
             # 根据position_value的值决定点击哪个按钮
             if position_value:
@@ -2773,7 +2773,7 @@ class CryptoTrader:
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
             
-            position_value = self.find_position_label_no()
+            position_value = self.find_position_label_down()
             
             # 根据position_value的值决定点击哪个按钮
             
@@ -3139,7 +3139,7 @@ class CryptoTrader:
                 else:
                     raise
 
-    def find_position_label_yes(self):
+    def find_position_label_up(self):
         """查找Yes持仓标签"""
         max_retries = 2
         retry_delay = 2
@@ -3186,7 +3186,7 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
         
-    def find_position_label_no(self):
+    def find_position_label_down(self):
         """查找Down持仓标签"""
         max_retries = 2
         retry_delay = 2
@@ -3446,10 +3446,9 @@ class CryptoTrader:
             original_handles = set(self.driver.window_handles)
             # 打开新标签页并访问搜索页面
             try:
-                base_url = "https://polymarket.com/markets/crypto?_s=start_date%3Adesc"
+                base_url = "https://polymarket.com/"
                 self.driver.switch_to.new_window('tab')
                 self.driver.get(base_url)
-                time.sleep(2)  # 等待页面加载完成
 
                 # 定义search_tab变量，保存搜索标签页的句柄
                 search_tab = self.driver.current_window_handle
@@ -3459,6 +3458,7 @@ class CryptoTrader:
                     EC.presence_of_element_located((By.TAG_NAME, "body"))
                 )
                 time.sleep(2)  # 等待页面渲染完成
+                    
             except Exception as e:
                 self.logger.error(f"打开搜索页面失败: {str(e)}")
                 # 关闭可能打开的新标签页
@@ -3759,8 +3759,13 @@ class CryptoTrader:
             self.logger.error("浏览器未初始化,无法获取CASH值")
             return
         
-        # 获取 CASH 值前先 CLAIM
-        self.claim_cash()
+        # 获取 CASH 值前先 卖出仓位
+        if self.find_position_label_up():
+            self.only_sell_yes
+
+        if self.find_position_label_down():
+            self.only_sell_no
+
         time.sleep(10)
         try:
             # 获取零点CASH值
