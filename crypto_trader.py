@@ -388,17 +388,17 @@ class CryptoTrader:
 
         # 创建主要设置容器
         settings_container = ttk.Frame(amount_settings_frame)
-        settings_container.pack(fill=tk.X, pady=5)
+        settings_container.pack(fill=tk.X, pady=1)
         
         # 金额设置区域
         amount_frame = ttk.Frame(settings_container)
-        amount_frame.pack(fill=tk.X, pady=2)
+        amount_frame.pack(fill=tk.X, pady=1)
 
         # 设置金额配置
         settings_items = [
-            ("Initial", "initial_amount_entry", self.initial_amount, 3),
-            ("Turn-1", "first_rebound_entry", self.first_rebound, 4),
-            ("Turn-N", "n_rebound_entry", self.n_rebound, 5),
+            ("Initial", "initial_amount_entry", self.initial_amount, 2),
+            ("Turn-1", "first_rebound_entry", self.first_rebound, 3),
+            ("Turn-N", "n_rebound_entry", self.n_rebound, 4),
             ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 4)
         ]
         
