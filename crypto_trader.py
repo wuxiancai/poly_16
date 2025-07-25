@@ -499,6 +499,11 @@ class CryptoTrader:
         # 绑定时间选择变化事件
         self.auto_find_time_combobox.bind('<<ComboboxSelected>>', self.on_auto_find_time_changed)
 
+        # 手动找币按钮
+        self.find_coin_button = ttk.Button(main_controls, text="Find Coin", width=8,
+                                           command=self.find_54_coin, style='LeftAligned.TButton')
+        self.find_coin_button.pack(side=tk.LEFT, padx=3)
+
         # 交易币对显示
         pair_container = ttk.Frame(scrollable_frame)
         pair_container.pack(fill="x", pady=2)
