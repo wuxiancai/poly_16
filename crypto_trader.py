@@ -464,7 +464,7 @@ class CryptoTrader:
 
         # 手动找币按钮
         self.find_coin_button = ttk.Button(main_controls, text="Find Coin", width=8,
-                                           command=self.find_54_coin, style='LeftAligned.TButton')
+                                           command=lambda: self.find_54_coin(self.selected_coin), style='LeftAligned.TButton')
         self.find_coin_button.pack(side=tk.LEFT, padx=1)
 
         # 币种选择
