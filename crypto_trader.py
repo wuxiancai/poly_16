@@ -799,7 +799,7 @@ class CryptoTrader:
         # 启动自动找币
         self.root.after(30000, self.schedule_auto_find_coin)
 
-        # 启动设置 YES1/NO1价格为 52
+        # 启动设置 YES1/NO1价格为 54
         self.schedule_price_setting_timer = self.root.after(36000, self.schedule_price_setting)
         
         # 启动页面刷新
@@ -1319,7 +1319,7 @@ class CryptoTrader:
                 self.no_price_label.config(text="Down: N/A")
                 self.up_shares_label.config(text="Up Shares: N/A")
                 self.down_shares_label.config(text="Down Shares: N/A")
-                
+                self.driver.refresh()
         except Exception as e:
             
             if "'NoneType' object has no attribute" in str(e):
@@ -1330,6 +1330,7 @@ class CryptoTrader:
             self.no_price_label.config(text="Down: Fail")
             self.up_shares_label.config(text="Up Shares: Fail")
             self.down_shares_label.config(text="Down Shares: Fail")
+            self.driver.refresh()
             time.sleep(1)
             
     def check_balance(self):
@@ -2082,6 +2083,10 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
+                        if self.buy_count > 14:
+                            self.only_sell_no()
+
                         # 执行交易操作
                         self.amount_yes3_button.event_generate('<Button-1>')
                         time.sleep(0.5)
@@ -2153,6 +2158,10 @@ class CryptoTrader:
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
+                        if self.buy_count > 14:
+                            self.only_sell_yes()
+
                         # 执行交易操作
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
@@ -2245,6 +2254,10 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
+                        if self.buy_count > 14:
+                            self.only_sell_no()
+
                         # 执行交易操作
                         self.amount_yes4_button.event_generate('<Button-1>')
                         time.sleep(0.5)
@@ -2317,6 +2330,10 @@ class CryptoTrader:
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
+                        if self.buy_count > 14:
+                            self.only_sell_yes()
+
                         # 执行交易操作
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
@@ -2478,7 +2495,7 @@ class CryptoTrader:
 
                             # 设置 YES1 和 NO1 价格为默认值
                             self.set_yes1_no1_default_target_price()
-
+                            
                             break
                         except Exception as e:
                             self.logger.warning(f"❌ Sell Yes5=99 第{retry+1}次失败: {str(e)}")
@@ -3304,7 +3321,7 @@ class CryptoTrader:
         hour = int(selected_time.split(':')[0])
         
         # 计算下一个指定时间的时间点（在选择时间的02分执行）
-        next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
+        next_run = now.replace(hour=hour, minute=1, second=0, microsecond=0)
         
         # 如果当前时间已经超过了今天的指定时间，则直接安排到明天
         # 为了确保绝对不会在同一天重复执行，我们检查当前时间是否已经过了指定的小时
@@ -3334,11 +3351,11 @@ class CryptoTrader:
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
         self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, "54")
+        self.yes1_price_entry.insert(0, "0")
         self.yes1_price_entry.configure(foreground='red')
 
         self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, "54")
+        self.no1_price_entry.insert(0, "0")
         self.no1_price_entry.configure(foreground='red')
         self.logger.info(f"\033[34m✅ 设置买入价格52成功\033[0m")
         self.close_windows()
@@ -3935,7 +3952,7 @@ class CryptoTrader:
 
         # 设置定时器,每天00:00获取一次币安价格
         now = datetime.now()
-        next_run_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        next_run_time = now.replace(hour=0, minute=0, second=1, microsecond=0)
         if now >= next_run_time:
             next_run_time += timedelta(days=1)
 
