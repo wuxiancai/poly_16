@@ -425,7 +425,7 @@ class CryptoTrader:
         trade_count_frame = ttk.Frame(amount_frame)
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
+        ttk.Label(trade_count_frame, text="剩", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
         self.trade_count_label = ttk.Label(trade_count_frame, text="19", style='Red.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 15))
 
@@ -2568,7 +2568,7 @@ class CryptoTrader:
     def only_sell_yes(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(4):
+        for retry in range(3):
             self.logger.info("\033[32m执行only_sell_yes\033[0m")
             self.position_sell_yes_button.invoke()
             time.sleep(0.5)
@@ -2683,7 +2683,7 @@ class CryptoTrader:
         try:
             for attempt in range(2):
                 self.logger.info(f"开始第{attempt + 1}次验证尝试（基于次数重试）")
-                # 检查 4次,每次等待1秒检查交易记录
+                # 检查 3次,每次等待1秒检查交易记录
                 max_retries = 3  # 最大重试次数
                 wait_interval = 1  # 检查间隔
                 
@@ -2737,13 +2737,13 @@ class CryptoTrader:
                         
                         time.sleep(wait_interval)
                     
-                # 4次重试结束，刷新页面
-                # self.logger.info(f"第{attempt + 1}次尝试的4次重试结束,刷新页面")
+                # 3次重试结束，刷新页面
+                # self.logger.info(f"第{attempt + 1}次尝试的3次重试结束,刷新页面")
                 self.driver.refresh()
-                time.sleep(2)  # 刷新后等待页面加载
+                time.sleep(1)  # 刷新后等待页面加载
             
             # 超时未找到匹配的交易记录
-            self.logger.warning(f"❌ 交易验证失败: 未找到 {action_type} {direction} (已尝试2轮,每轮4次重试)")
+            self.logger.warning(f"❌ 交易验证失败: 未找到 {action_type} {direction} (已尝试2轮,每轮3次重试)")
             return False, 0, 0
                 
         except Exception as e:
@@ -3058,7 +3058,7 @@ class CryptoTrader:
                 
                 msg = MIMEMultipart()
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                subject = f'{hostname}重启{self.reset_trade_count}次第{count_in_subject}次{trade_type}-{trading_pair}'
+                subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
                 msg['Subject'] = Header(subject, 'utf-8')
                 msg['From'] = sender
                 msg['To'] = ', '.join(receivers)
