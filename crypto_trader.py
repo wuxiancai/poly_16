@@ -503,7 +503,7 @@ class CryptoTrader:
         auto_find_frame.pack(fill="x", pady=2)
         
         #ttk.Label(auto_find_frame, text="Auto Find Coin Time:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 5))
-        self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00'], width=5, state='readonly')
+        self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00'], width=5, state='readonly')
         self.auto_find_time_combobox.pack(side=tk.LEFT, padx=2)
         
         # 从配置文件加载保存的时间设置
