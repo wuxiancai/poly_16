@@ -503,7 +503,7 @@ class CryptoTrader:
         auto_find_frame.pack(fill="x", pady=2)
         
         #ttk.Label(auto_find_frame, text="Auto Find Coin Time:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 5))
-        self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00'], width=5, state='readonly')
+        self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00', '9:00'], width=5, state='readonly')
         self.auto_find_time_combobox.pack(side=tk.LEFT, padx=2)
         
         # 从配置文件加载保存的时间设置
@@ -3321,7 +3321,7 @@ class CryptoTrader:
         hour = int(selected_time.split(':')[0])
         
         # 计算下一个指定时间的时间点（在选择时间的02分执行）
-        next_run = now.replace(hour=hour, minute=1, second=0, microsecond=0)
+        next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
         
         # 如果当前时间已经超过了今天的指定时间，则直接安排到明天
         # 为了确保绝对不会在同一天重复执行，我们检查当前时间是否已经过了指定的小时
@@ -3350,14 +3350,16 @@ class CryptoTrader:
     
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
+        # 设置价格为默认价格前再次获取 CASH 值
+
         self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, "0")
+        self.yes1_price_entry.insert(0, "54")
         self.yes1_price_entry.configure(foreground='red')
 
         self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, "0")
+        self.no1_price_entry.insert(0, "54")
         self.no1_price_entry.configure(foreground='red')
-        self.logger.info(f"\033[34m✅ 设置买入价格52成功\033[0m")
+        self.logger.info(f"\033[34m✅ 设置卖出价格54成功\033[0m")
         self.close_windows()
         
         # 价格设置完成后，重新安排下一次的价格设置定时任务
@@ -3794,22 +3796,24 @@ class CryptoTrader:
             # 循环等待,直到comfirm按钮出现
             max_attempts = 100  # 最多检测10次
             check_interval = 2  # 每2秒检测一次
-            
-            for attempt in range(max_attempts):
-                try:
-                    # 获取CONFIRM按钮
+            try:
+                pyautogui.press('enter')
+            except:
+                for attempt in range(max_attempts):
                     try:
-                        confirm_button = self.driver.find_element(By.XPATH, XPathConfig.CONFIRM_BUTTON[0])
-                    except (NoSuchElementException, StaleElementReferenceException):
-                        confirm_button = self._find_element_with_retry(XPathConfig.CONFIRM_BUTTON, timeout=2, silent=True)
-                        
-                    if confirm_button:
-                        confirm_button.click()
-                        self.logger.info(f"✅ 已找到CONFIRM按钮并点击")
+                        # 获取CONFIRM按钮
+                        try:
+                            claim_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.CLAIM_CONFIRM_BUTTON[0])
+                        except (NoSuchElementException, StaleElementReferenceException):
+                            claim_confirm_button = self._find_element_with_retry(XPathConfig.CLAIM_CONFIRM_BUTTON, timeout=2, silent=True)
+                            
+                        if claim_confirm_button:
+                            claim_confirm_button.click()
+                            self.logger.info(f"✅ 已找到CLAIM CONFIRM按钮并点击")
 
-                        break
-                except NoSuchElementException:
-                    self.logger.info(f"⏳ 第{attempt+1}次尝试")
+                            break
+                    except NoSuchElementException:
+                        self.logger.info(f"⏳ 第{attempt+1}次尝试")
 
     def get_zero_time_cash(self):
         """获取币安BTC实时价格,并在中国时区00:00触发"""
@@ -3818,14 +3822,12 @@ class CryptoTrader:
             self.logger.error("浏览器未初始化,无法获取CASH值")
             return
         
-        # 获取 CASH 值前先 卖出仓位
-        if self.find_position_label_up():
-            self.only_sell_yes
-
-        if self.find_position_label_down():
-            self.only_sell_no
+        # 先 CLAIM
+        self.claim_cash()
 
         time.sleep(10)
+        self.driver.refresh()
+
         try:
             # 获取零点CASH值
             try:
