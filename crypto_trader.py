@@ -1480,8 +1480,8 @@ class CryptoTrader:
                     # 更新GUI价格显示
                     self.yes_price_label.config(text=f"Up: {up_price_val:.1f}¢")
                     self.no_price_label.config(text=f"Down: {down_price_val:.1f}¢")
-                    self.up_shares_label.config(text=f"Up Shares: {asks_shares_val:.1f}")
-                    self.down_shares_label.config(text=f"Down Shares: {bids_shares_val:.1f}")
+                    self.up_shares_label.config(text=f"Up Shares: {asks_shares_val:.2f}")
+                    self.down_shares_label.config(text=f"Down Shares: {bids_shares_val:.2f}")
                     
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
