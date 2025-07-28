@@ -1583,11 +1583,15 @@ class CryptoTrader:
                     google_login_button = self._find_element_with_retry(XPathConfig.LOGIN_WITH_GOOGLE_BUTTON, timeout=2, silent=True)
                     
                 if google_login_button:
-                    google_login_button.click()
-                    self.logger.info("✅ 已点击Google登录按钮")
+                    try:
+                        google_login_button.click()
+                        self.logger.info("✅ 已点击Google登录按钮")
+                    except Exception as e:
+                        self.logger.info(f"点击Google登录按钮失败,使用坐标法点击")
+                        self.click_google_login_button()
                     
                     # 不再固定等待15秒，而是循环检测CASH值
-                    max_attempts = 10  # 最多检测10次
+                    max_attempts = 15 # 最多检测15次
                     check_interval = 2  # 每2秒检测一次
                     cash_value = None
                     
@@ -1618,6 +1622,35 @@ class CryptoTrader:
         finally:
             # 每15秒检查一次登录状态
             self.login_check_timer = self.root.after(15000, self.start_login_monitoring)
+
+    def click_google_login_button(self):
+        """点击Google登录按钮"""
+        self.logger.info("使用坐标法开始执行点击Google登录按钮")
+        try:
+            screen_width, screen_height = pyautogui.size()
+            
+            target_x = 0
+            target_y = 0
+
+            if platform.system() == "Linux": # 分辨率 2560X1600
+                # Linux 系统下的特定坐标
+                target_x = screen_width - 781
+                target_y = 589
+                
+            else:
+                # 其他操作系统的默认坐标分辨率 1920x1080
+                target_x = screen_width - 460
+                target_y = 548
+                
+            # 移动鼠标到目标位置并点击
+            pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选，平滑移动
+            pyautogui.click(target_x, target_y)
+            
+            self.logger.info("✅ 点击ACCEPT成功")
+            self.driver.refresh()
+
+        except Exception as e:
+            self.logger.error(f"执行 click_accept 点击操作失败: {str(e)}")
 
     def find_accept_button(self):
         """查找 ACCEPT_BUTTON"""
