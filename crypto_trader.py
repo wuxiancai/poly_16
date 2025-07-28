@@ -1320,6 +1320,7 @@ class CryptoTrader:
                 self.no_price_label.config(text="Down: N/A")
                 self.up_shares_label.config(text="Up Shares: N/A")
                 self.down_shares_label.config(text="Down Shares: N/A")
+                time.sleep(2)
                 self.driver.refresh()
         except Exception as e:
             
@@ -1332,7 +1333,7 @@ class CryptoTrader:
             self.up_shares_label.config(text="Up Shares: Fail")
             self.down_shares_label.config(text="Down Shares: Fail")
             self.driver.refresh()
-            time.sleep(1)
+            time.sleep(2)
             
     def check_balance(self):
         """获取Portfolio和Cash值"""
