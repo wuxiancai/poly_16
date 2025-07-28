@@ -1233,34 +1233,133 @@ class CryptoTrader:
             self.logger.error(f"恢复监控状态失败: {e}")
 
     def get_nearby_cents(self):
-        """获取份额"""
+        """获取份额 - 增强版本，支持多种获取方式"""
         try:
+            # 方法1: 使用主要XPath
             try:
                 up_shares_element = self.driver.find_element(By.XPATH, XPathConfig.ASKS_SHARES[0])
                 up_shares_text = up_shares_element.text
             except (NoSuchElementException, StaleElementReferenceException):
-                
-                return None, None
+                up_shares_text = None
             
             try:
                 down_shares_element = self.driver.find_element(By.XPATH, XPathConfig.BIDS_SHARES[0])
                 down_shares_text = down_shares_element.text
             except (NoSuchElementException, StaleElementReferenceException):
-                
-                return None, None
+                down_shares_text = None
+            
+            # 方法2: 如果主要XPath失败，尝试备用方法
+            if not up_shares_text or not down_shares_text:
+                try:
+                    # 使用JavaScript查找包含数字的相邻元素
+                    shares_data = self.driver.execute_script("""
+                        function findShares() {
+                            const result = {up: null, down: null};
+                            
+                            // 查找所有包含"Spread"的元素
+                            const spreadElements = Array.from(document.querySelectorAll('*')).filter(el => 
+                                el.textContent.includes('Spread') || el.textContent.includes('spread')
+                            );
+                            
+                            for (let spreadEl of spreadElements) {
+                                const parent = spreadEl.closest('div');
+                                if (parent) {
+                                    // 查找父元素中的所有数字
+                                    const allDivs = parent.querySelectorAll('div');
+                                    for (let div of allDivs) {
+                                        const text = div.textContent.trim();
+                                        // 匹配纯数字（可能包含逗号）
+                                        if (/^[\\d,]+$/.test(text) && !text.includes('¢')) {
+                                            const num = parseFloat(text.replace(/,/g, ''));
+                                            if (num > 0 && num < 1000000) {
+                                                if (!result.up) {
+                                                    result.up = text;
+                                                } else if (!result.down) {
+                                                    result.down = text;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (result.up && result.down) break;
+                            }
+                            
+                            return result;
+                        }
+                        return findShares();
+                    """)
+                    
+                    if not up_shares_text and shares_data.get('up'):
+                        up_shares_text = shares_data['up']
+                    if not down_shares_text and shares_data.get('down'):
+                        down_shares_text = shares_data['down']
+                        
+                except Exception as js_e:
+                    self.logger.warning(f"JavaScript获取份额失败: {str(js_e)}")
+            
+            # 方法3: 如果还是失败，尝试查找所有可能的数字元素
+            if not up_shares_text or not down_shares_text:
+                try:
+                    # 查找所有包含纯数字的元素
+                    number_elements = self.driver.find_elements(By.XPATH, "//div[matches(text(), '^[0-9,]+$')]")
+                    
+                    valid_numbers = []
+                    for elem in number_elements[:10]:  # 限制检查前10个元素
+                        try:
+                            text = elem.text.strip()
+                            if text and re.match(r'^[\d,]+$', text):
+                                num = float(text.replace(',', ''))
+                                if 0 < num < 1000000:  # 合理的份额范围
+                                    valid_numbers.append(text)
+                        except:
+                            continue
+                    
+                    if len(valid_numbers) >= 2:
+                        if not up_shares_text:
+                            up_shares_text = valid_numbers[0]
+                        if not down_shares_text:
+                            down_shares_text = valid_numbers[1]
+                            
+                except Exception as xpath_e:
+                    self.logger.warning(f"XPath查找数字元素失败: {str(xpath_e)}")
             
             # 解析份额
-            up_shares_val = float(up_shares_text.replace(',', '')) if up_shares_text else None
-            down_shares_val = float(down_shares_text.replace(',', '')) if down_shares_text else None
+            up_shares_val = None
+            down_shares_val = None
+            
+            if up_shares_text:
+                try:
+                    up_shares_val = float(up_shares_text.replace(',', ''))
+                except (ValueError, AttributeError):
+                    self.logger.warning(f"解析Up份额失败: {up_shares_text}")
+            
+            if down_shares_text:
+                try:
+                    down_shares_val = float(down_shares_text.replace(',', ''))
+                except (ValueError, AttributeError):
+                    self.logger.warning(f"解析Down份额失败: {down_shares_text}")
+            
+            # 数据合理性检查
+            if up_shares_val is not None and (up_shares_val < 0 or up_shares_val > 1000000):
+                self.logger.warning(f"Up份额数据异常: {up_shares_val}")
+                up_shares_val = None
+                
+            if down_shares_val is not None and (down_shares_val < 0 or down_shares_val > 1000000):
+                self.logger.warning(f"Down份额数据异常: {down_shares_val}")
+                down_shares_val = None
+            
+            if up_shares_val is not None or down_shares_val is not None:
+                self.logger.debug(f"成功获取份额 - Up: {up_shares_val}, Down: {down_shares_val}")
             
             return up_shares_val, down_shares_val
             
         except Exception as e:
-            self.logger.error(f"获取价格数据失败: {str(e)}")
+            self.logger.error(f"获取份额数据失败: {str(e)}")
             return None, None
 
     def check_prices(self):
-        """检查价格变化"""
+        """检查价格变化 - 增强版本，支持多种获取方式和更好的错误处理"""
         # 直接检查driver是否存在，不存在就重启
         if not self.driver and not self.is_restarting:
             self.logger.warning("浏览器未初始化，尝试重启...")
@@ -1271,58 +1370,153 @@ class CryptoTrader:
         try:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
+            
+            # 等待页面完全加载
+            WebDriverWait(self.driver, 5).until(
+                lambda driver: driver.execute_script('return document.readyState') == 'complete'
+            )
 
-            # 使用JavaScript直接获取价格
+            # 方法1: 使用改进的JavaScript获取价格（增加等待和多种匹配模式）
             prices = self.driver.execute_script("""
-                function getPrices() {
+                function getPricesEnhanced() {
                     const prices = {up: null, down: null};
-                    const elements = document.getElementsByTagName('span');
                     
-                    for (let el of elements) {
-                        const text = el.textContent.trim();
-                        if (text.includes('Up') && text.includes('¢')) {
-                            const match = text.match(/(\\d+\\.?\\d*)¢/);
-                            if (match) prices.up = parseFloat(match[1]);
+                    // 等待一小段时间确保DOM完全渲染
+                    const startTime = Date.now();
+                    while (Date.now() - startTime < 1000) {
+                        // 方法1: 查找所有span元素
+                        const spans = document.getElementsByTagName('span');
+                        for (let el of spans) {
+                            const text = el.textContent.trim();
+                            
+                            // 匹配Up价格的多种模式
+                            if ((text.includes('Up') || text.includes('Yes')) && text.includes('¢')) {
+                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                if (match && !prices.up) {
+                                    prices.up = parseFloat(match[1]);
+                                }
+                            }
+                            
+                            // 匹配Down价格的多种模式
+                            if ((text.includes('Down') || text.includes('No')) && text.includes('¢')) {
+                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                if (match && !prices.down) {
+                                    prices.down = parseFloat(match[1]);
+                                }
+                            }
                         }
-                        if (text.includes('Down') && text.includes('¢')) {
-                            const match = text.match(/(\\d+\\.?\\d*)¢/);
-                            if (match) prices.down = parseFloat(match[1]);
+                        
+                        // 方法2: 查找按钮元素
+                        if (!prices.up || !prices.down) {
+                            const buttons = document.getElementsByTagName('button');
+                            for (let btn of buttons) {
+                                const text = btn.textContent.trim();
+                                
+                                if ((text.includes('Up') || text.includes('Yes')) && text.includes('¢')) {
+                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                    if (match && !prices.up) {
+                                        prices.up = parseFloat(match[1]);
+                                    }
+                                }
+                                
+                                if ((text.includes('Down') || text.includes('No')) && text.includes('¢')) {
+                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                    if (match && !prices.down) {
+                                        prices.down = parseFloat(match[1]);
+                                    }
+                                }
+                            }
                         }
+                        
+                        // 如果找到了价格，提前退出
+                        if (prices.up !== null && prices.down !== null) {
+                            break;
+                        }
+                        
+                        // 短暂等待
+                        const now = Date.now();
+                        while (Date.now() - now < 50) {}
                     }
+                    
                     return prices;
                 }
-                return getPrices();
+                return getPricesEnhanced();
             """)
+            
+            # 获取份额数据
             asks_shares_val, bids_shares_val = self.get_nearby_cents()
+            
+            # 方法2: 如果JavaScript方法失败，尝试使用XPath直接获取
+            if (prices['up'] is None or prices['down'] is None) and not self.is_restarting:
+                self.logger.warning("JavaScript方法获取价格失败，尝试XPath方法...")
+                try:
+                    # 尝试使用XPath获取价格按钮
+                    up_buttons = self.driver.find_elements(By.XPATH, '//button[.//span[contains(text(), "Up") or contains(text(), "Yes")] and .//span[contains(text(), "¢")]]')
+                    down_buttons = self.driver.find_elements(By.XPATH, '//button[.//span[contains(text(), "Down") or contains(text(), "No")] and .//span[contains(text(), "¢")]]')
+                    
+                    if up_buttons and prices['up'] is None:
+                        up_text = up_buttons[0].text
+                        up_match = re.search(r'(\d+(?:\.\d+)?)¢', up_text)
+                        if up_match:
+                            prices['up'] = float(up_match.group(1))
+                            
+                    if down_buttons and prices['down'] is None:
+                        down_text = down_buttons[0].text
+                        down_match = re.search(r'(\d+(?:\.\d+)?)¢', down_text)
+                        if down_match:
+                            prices['down'] = float(down_match.group(1))
+                            
+                except Exception as xpath_e:
+                    self.logger.warning(f"XPath方法也失败: {str(xpath_e)}")
 
+            # 验证获取到的数据
             if prices['up'] is not None and prices['down'] is not None and asks_shares_val is not None and bids_shares_val is not None:
                 # 获取价格
                 up_price_val = float(prices['up'])
                 down_price_val = float(prices['down'])
-
-                # 更新GUI价格显示
-                self.yes_price_label.config(text=f"Up: {up_price_val:.1f}¢")
-                self.no_price_label.config(text=f"Down: {down_price_val:.1f}¢")
-                self.up_shares_label.config(text=f"Up Shares: {asks_shares_val:.1f}")
-                self.down_shares_label.config(text=f"Down Shares: {bids_shares_val:.1f}")
                 
-                # 执行所有交易检查函数（仅在没有交易进行时）
-                if not self.trading:
-                    self.First_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                    self.Second_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                    self.Third_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                    self.Forth_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                    self.Sell_yes(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                    self.Sell_no(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                # 数据合理性检查
+                if 0 <= up_price_val <= 100 and 0 <= down_price_val <= 100:
+                    # 更新GUI价格显示
+                    self.yes_price_label.config(text=f"Up: {up_price_val:.1f}¢")
+                    self.no_price_label.config(text=f"Down: {down_price_val:.1f}¢")
+                    self.up_shares_label.config(text=f"Up Shares: {asks_shares_val:.1f}")
+                    self.down_shares_label.config(text=f"Down Shares: {bids_shares_val:.1f}")
                     
+                    # 执行所有交易检查函数（仅在没有交易进行时）
+                    if not self.trading:
+                        self.First_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.Second_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.Third_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.Forth_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.Sell_yes(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.Sell_no(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                else:
+                    self.logger.warning(f"价格数据异常: Up={up_price_val}, Down={down_price_val}")
+                    self.yes_price_label.config(text="Up: Invalid")
+                    self.no_price_label.config(text="Down: Invalid")
+                    self.up_shares_label.config(text="Up Shares: Invalid")
+                    self.down_shares_label.config(text="Down Shares: Invalid")
             else:
+                # 显示具体的缺失信息
+                missing_info = []
+                if prices['up'] is None:
+                    missing_info.append("Up价格")
+                if prices['down'] is None:
+                    missing_info.append("Down价格")
+                if asks_shares_val is None:
+                    missing_info.append("Up份额")
+                if bids_shares_val is None:
+                    missing_info.append("Down份额")
+                    
+                self.logger.warning(f"数据获取不完整，缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
                 self.up_shares_label.config(text="Up Shares: N/A")
                 self.down_shares_label.config(text="Down Shares: N/A")
-                time.sleep(2)
-                self.driver.refresh()
+                
         except Exception as e:
+            self.logger.error(f"价格检查异常: {str(e)}")
             
             if "'NoneType' object has no attribute" in str(e):
                 if not self.is_restarting:
@@ -1332,8 +1526,13 @@ class CryptoTrader:
             self.no_price_label.config(text="Down: Fail")
             self.up_shares_label.config(text="Up Shares: Fail")
             self.down_shares_label.config(text="Down Shares: Fail")
-            self.driver.refresh()
-            time.sleep(2)
+            
+            # 尝试刷新页面
+            try:
+                self.driver.refresh()
+                time.sleep(2)
+            except:
+                pass
             
     def check_balance(self):
         """获取Portfolio和Cash值"""
