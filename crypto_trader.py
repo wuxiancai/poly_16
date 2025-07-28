@@ -1350,9 +1350,9 @@ class CryptoTrader:
                 down_shares_val = None
             
             if up_shares_val is not None or down_shares_val is not None:
-                self.logger.debug(f"成功获取份额 - Up: {up_shares_val}, Down: {down_shares_val}")
+                # self.logger.debug(f"成功获取份额 - Up: {up_shares_val}, Down: {down_shares_val}")
             
-            return up_shares_val, down_shares_val
+                return up_shares_val, down_shares_val
             
         except Exception as e:
             self.logger.error(f"获取份额数据失败: {str(e)}")
