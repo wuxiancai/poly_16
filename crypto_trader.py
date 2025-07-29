@@ -365,7 +365,7 @@ class CryptoTrader:
             'Black.TButton': {'foreground': '#212529', 'font': base_font},
             'Blue.TButton': {'foreground': '#0d6efd', 'font': base_font},
             'Red.TLabel': {'foreground': '#dc3545', 'font': large_font},
-            'Red_bold.TLabel': {'foreground': '#dc3545', 'font': large_font, 'bold': True},
+            'Red_bold.TLabel': {'foreground': '#dc3545', 'font': title_font},
             'Black.TLabel': {'foreground': '#212529', 'font': base_font},
             'Top.TLabel': {'foreground': '#212529', 'font': base_font},
             'Warning.TLabelframe': {'font': title_font, 'foreground': '#FF0000', 'anchor': 'center'},
@@ -4134,7 +4134,7 @@ class CryptoTrader:
             # 计算上涨或下跌幅度
             price_change = round(((now_price - zero_time_price) / zero_time_price) * 100,3)
             # 比较价格
-            if 0 <= price_change <= 0.01 or -0.01 <= price_change <= 0:
+            if 0 <= price_change <= 0.004 or -0.004 <= price_change <= 0:
                 price_change = f"{round(price_change,3)}%"
                 self.logger.info(f"✅ \033[34m{selected_coin}USDT当前价格上涨或下跌幅度小于{price_change},请立即关注\033[0m")
                 self.send_trade_email(
@@ -4142,6 +4142,7 @@ class CryptoTrader:
                                 price=zero_time_price,
                                 amount=now_price,
                                 trade_count=price_change,
+                                shares=0,
                                 cash_value=0,
                                 portfolio_value=0
                             )
