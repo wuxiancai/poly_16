@@ -125,10 +125,10 @@ class CryptoTrader:
 
         # 初始化本金
         self.initial_amount = 1
-        self.first_rebound = 132
+        self.first_rebound = 128
         self.n_rebound = 123
-        self.profit_rate = 1.1
-        self.doubling_weeks = 60
+        self.profit_rate = 1
+        self.doubling_weeks = 66
         
         # 默认买价
         self.default_target_price = 54 # 不修改
@@ -137,7 +137,7 @@ class CryptoTrader:
         self.default_normal_sell_price = 0 # 不修改
 
         # 买入价格冗余
-        self.price_premium = 2 # 不修改
+        self.price_premium = 3 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
@@ -1366,7 +1366,7 @@ class CryptoTrader:
                 # 尝试刷新页面
                 try:
                     self.driver.refresh()
-                    time.sleep(3)
+                    time.sleep(2)
                 except:
                     pass
 
