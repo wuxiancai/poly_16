@@ -3535,6 +3535,16 @@ class CryptoTrader:
             
             self.stop_url_monitoring()
             self.stop_refresh_page()
+
+            # 找币之前先查看是否有持仓
+            if self.find_position_label_down():
+                self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
+                self.only_sell_no()
+            
+            if self.find_position_label_up():
+                self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
+                self.only_sell_yes()
+
             # 保存原始窗口句柄，确保在整个过程中有一个稳定的引用
             self.original_window = self.driver.current_window_handle
             
@@ -3963,7 +3973,8 @@ class CryptoTrader:
 
             # 设置 YES/NO 金额,延迟5秒确保数据稳定
             self.root.after(5000, self.schedule_update_amount)
-            self.logger.info("✅ 设置 YES/NO 金额成功!")
+            self.logger.info("✅ \033[34m零点 10 分设置 YES/NO 金额成功!\033[0m")
+
             # 设置 YES1/NO1价格为 0
             self.yes1_price_entry.delete(0, tk.END)
             self.yes1_price_entry.insert(0, "0")
@@ -3975,7 +3986,7 @@ class CryptoTrader:
         finally:
             # 计算下一个00:10的时间
             now = datetime.now()
-            tomorrow = now.replace(hour=0, minute=3, second=0, microsecond=0) + timedelta(days=1)
+            tomorrow = now.replace(hour=0, minute=10, second=0, microsecond=0) + timedelta(days=1)
             seconds_until_midnight = (tomorrow - now).total_seconds()
 
             # 取消已有的定时器（如果存在）
