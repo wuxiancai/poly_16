@@ -125,8 +125,8 @@ class CryptoTrader:
 
         # 初始化本金
         self.initial_amount = 1
-        self.first_rebound = 124
-        self.n_rebound = 125
+        self.first_rebound = 132
+        self.n_rebound = 123
         self.profit_rate = 1.1
         self.doubling_weeks = 60
         
@@ -138,10 +138,6 @@ class CryptoTrader:
 
         # 买入价格冗余
         self.price_premium = 2 # 不修改
-
-        # 买入触发条件之一:最少成交数量SHARES
-        self.asks_shares = 10 # 不修改
-        self.bids_shares = 10 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
@@ -583,16 +579,6 @@ class CryptoTrader:
                                    font=(base_font[0], 16, 'bold'), foreground='#9370DB')
             price_label.pack()
             setattr(self, attr_name, price_label)
-            
-            # 份额显示
-            shares_frame_item = ttk.Frame(item_container)
-            shares_frame_item.pack(fill="x", pady=1)
-            
-            shares_attr = "up_shares_label" if "yes_price_label" == attr_name else "down_shares_label"
-            shares_label = ttk.Label(shares_frame_item, text="Shares: waiting...",
-                                   font=(base_font[0], 14, 'normal'), foreground='#9370DB')
-            shares_label.pack()
-            setattr(self, shares_attr, shares_label)
 
         # 资金显示区域
         balance_frame = ttk.LabelFrame(scrollable_frame, text="Account Balance", padding=(8, 5))
@@ -1232,132 +1218,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"恢复监控状态失败: {e}")
 
-    def get_nearby_cents(self):
-        """获取份额 - 增强版本，支持多种获取方式"""
-        try:
-            # 方法1: 使用主要XPath
-            try:
-                up_shares_element = self.driver.find_element(By.XPATH, XPathConfig.ASKS_SHARES[0])
-                up_shares_text = up_shares_element.text
-            except (NoSuchElementException, StaleElementReferenceException):
-                up_shares_text = None
-            
-            try:
-                down_shares_element = self.driver.find_element(By.XPATH, XPathConfig.BIDS_SHARES[0])
-                down_shares_text = down_shares_element.text
-            except (NoSuchElementException, StaleElementReferenceException):
-                down_shares_text = None
-            
-            # 方法2: 如果主要XPath失败，尝试备用方法
-            if not up_shares_text or not down_shares_text:
-                try:
-                    # 使用JavaScript查找包含数字的相邻元素
-                    shares_data = self.driver.execute_script("""
-                        function findShares() {
-                            const result = {up: null, down: null};
-                            
-                            // 查找所有包含"Spread"的元素
-                            const spreadElements = Array.from(document.querySelectorAll('*')).filter(el => 
-                                el.textContent.includes('Spread') || el.textContent.includes('spread')
-                            );
-                            
-                            for (let spreadEl of spreadElements) {
-                                const parent = spreadEl.closest('div');
-                                if (parent) {
-                                    // 查找父元素中的所有数字
-                                    const allDivs = parent.querySelectorAll('div');
-                                    for (let div of allDivs) {
-                                        const text = div.textContent.trim();
-                                        // 匹配纯数字（可能包含逗号）
-                                        if (/^[\\d,]+$/.test(text) && !text.includes('¢')) {
-                                            const num = parseFloat(text.replace(/,/g, ''));
-                                            if (num > 0 && num < 1000000) {
-                                                if (!result.up) {
-                                                    result.up = text;
-                                                } else if (!result.down) {
-                                                    result.down = text;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if (result.up && result.down) break;
-                            }
-                            
-                            return result;
-                        }
-                        return findShares();
-                    """)
-                    
-                    if not up_shares_text and shares_data.get('up'):
-                        up_shares_text = shares_data['up']
-                    if not down_shares_text and shares_data.get('down'):
-                        down_shares_text = shares_data['down']
-                        
-                except Exception as js_e:
-                    self.logger.warning(f"JavaScript获取份额失败: {str(js_e)}")
-            
-            # 方法3: 如果还是失败，尝试查找所有可能的数字元素
-            if not up_shares_text or not down_shares_text:
-                try:
-                    # 查找所有包含纯数字的元素
-                    number_elements = self.driver.find_elements(By.XPATH, "//div[matches(text(), '^[0-9,]+$')]")
-                    
-                    valid_numbers = []
-                    for elem in number_elements[:10]:  # 限制检查前10个元素
-                        try:
-                            text = elem.text.strip()
-                            if text and re.match(r'^[\d,]+$', text):
-                                num = float(text.replace(',', ''))
-                                if 0 < num < 1000000:  # 合理的份额范围
-                                    valid_numbers.append(text)
-                        except:
-                            continue
-                    
-                    if len(valid_numbers) >= 2:
-                        if not up_shares_text:
-                            up_shares_text = valid_numbers[0]
-                        if not down_shares_text:
-                            down_shares_text = valid_numbers[1]
-                            
-                except Exception as xpath_e:
-                    self.logger.warning(f"XPath查找数字元素失败: {str(xpath_e)}")
-            
-            # 解析份额
-            up_shares_val = None
-            down_shares_val = None
-            
-            if up_shares_text:
-                try:
-                    up_shares_val = float(up_shares_text.replace(',', ''))
-                except (ValueError, AttributeError):
-                    self.logger.warning(f"解析Up份额失败: {up_shares_text}")
-            
-            if down_shares_text:
-                try:
-                    down_shares_val = float(down_shares_text.replace(',', ''))
-                except (ValueError, AttributeError):
-                    self.logger.warning(f"解析Down份额失败: {down_shares_text}")
-            
-            # 数据合理性检查
-            if up_shares_val is not None and (up_shares_val < 0 or up_shares_val > 1000000):
-                self.logger.warning(f"Up份额数据异常: {up_shares_val}")
-                up_shares_val = None
-                
-            if down_shares_val is not None and (down_shares_val < 0 or down_shares_val > 1000000):
-                self.logger.warning(f"Down份额数据异常: {down_shares_val}")
-                down_shares_val = None
-            
-            if up_shares_val is not None or down_shares_val is not None:
-                # self.logger.debug(f"成功获取份额 - Up: {up_shares_val}, Down: {down_shares_val}")
-            
-                return up_shares_val, down_shares_val
-            
-        except Exception as e:
-            self.logger.error(f"获取份额数据失败: {str(e)}")
-            return None, None
-
     def check_prices(self):
         """检查价格变化 - 增强版本，支持多种获取方式和更好的错误处理"""
         # 直接检查driver是否存在，不存在就重启
@@ -1443,9 +1303,6 @@ class CryptoTrader:
                 return getPricesEnhanced();
             """)
             
-            # 获取份额数据
-            asks_shares_val, bids_shares_val = self.get_nearby_cents()
-            
             # 方法2: 如果JavaScript方法失败，尝试使用XPath直接获取
             if (prices['up'] is None or prices['down'] is None) and not self.is_restarting:
                 self.logger.warning("JavaScript方法获取价格失败，尝试XPath方法...")
@@ -1470,7 +1327,7 @@ class CryptoTrader:
                     self.logger.warning(f"XPath方法也失败: {str(xpath_e)}")
 
             # 验证获取到的数据
-            if prices['up'] is not None and prices['down'] is not None and asks_shares_val is not None and bids_shares_val is not None:
+            if prices['up'] is not None and prices['down'] is not None:
                 # 获取价格
                 up_price_val = float(prices['up'])
                 down_price_val = float(prices['down'])
@@ -1480,23 +1337,20 @@ class CryptoTrader:
                     # 更新GUI价格显示
                     self.yes_price_label.config(text=f"Up: {up_price_val:.1f}¢")
                     self.no_price_label.config(text=f"Down: {down_price_val:.1f}¢")
-                    self.up_shares_label.config(text=f"Up Shares: {asks_shares_val:.2f}")
-                    self.down_shares_label.config(text=f"Down Shares: {bids_shares_val:.2f}")
                     
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
-                        self.First_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                        self.Second_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                        self.Third_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                        self.Forth_trade(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                        self.Sell_yes(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
-                        self.Sell_no(up_price_val, down_price_val, asks_shares_val, bids_shares_val)
+                        self.First_trade(up_price_val, down_price_val)
+                        self.Second_trade(up_price_val, down_price_val)
+                        self.Third_trade(up_price_val, down_price_val)
+                        self.Forth_trade(up_price_val, down_price_val)
+                        self.Sell_yes(up_price_val, down_price_val)
+                        self.Sell_no(up_price_val, down_price_val)
                 else:
                     self.logger.warning(f"价格数据异常: Up={up_price_val}, Down={down_price_val}")
                     self.yes_price_label.config(text="Up: Invalid")
                     self.no_price_label.config(text="Down: Invalid")
-                    self.up_shares_label.config(text="Up Shares: Invalid")
-                    self.down_shares_label.config(text="Down Shares: Invalid")
+                    
             else:
                 # 显示具体的缺失信息
                 missing_info = []
@@ -1504,16 +1358,10 @@ class CryptoTrader:
                     missing_info.append("Up价格")
                 if prices['down'] is None:
                     missing_info.append("Down价格")
-                if asks_shares_val is None:
-                    missing_info.append("Up份额")
-                if bids_shares_val is None:
-                    missing_info.append("Down份额")
                     
                 self.logger.warning(f"数据获取不完整，缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
-                self.up_shares_label.config(text="Up Shares: N/A")
-                self.down_shares_label.config(text="Down Shares: N/A")
                 
         except Exception as e:
             self.logger.error(f"价格检查异常: {str(e)}")
@@ -1524,8 +1372,6 @@ class CryptoTrader:
                 return
             self.yes_price_label.config(text="Up: Fail")
             self.no_price_label.config(text="Down: Fail")
-            self.up_shares_label.config(text="Up Shares: Fail")
-            self.down_shares_label.config(text="Down Shares: Fail")
             
             # 尝试刷新页面
             try:
@@ -1967,7 +1813,7 @@ class CryptoTrader:
             self.refresh_page_running = False
             self.logger.info("\033[31m❌ 刷新状态已停止\033[0m")
  
-    def First_trade(self, up_price, down_price, up_shares, down_shares):
+    def First_trade(self, up_price, down_price):
         """第一次交易价格设置为 0.52 买入,最多重试3次,失败发邮件"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):
@@ -1975,9 +1821,13 @@ class CryptoTrader:
                 no1_price = float(self.no1_price_entry.get())
                 self.trading = True
                 # 检查Yes1价格匹配
-                if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
+                if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
+                            self.only_sell_no()
+
                         self.amount_yes1_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
@@ -1988,7 +1838,7 @@ class CryptoTrader:
                         time.sleep(2)
                         if self.Verify_buy_yes():
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
-                            self.yes1_shares = self.shares # 获取 YES1 的 shares
+                            
                             # 增加交易次数
                             self.buy_count += 1
 
@@ -2057,9 +1907,13 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
 
-                elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
+                elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 1: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
+                            self.only_sell_yes()
+                            
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
                         self.amount_no1_button.event_generate('<Button-1>')
@@ -2074,7 +1928,7 @@ class CryptoTrader:
                         time.sleep(2)
                         if self.Verify_buy_no():
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
-                            self.no1_shares = self.shares # 获取 NO1 的 shares
+                            
                             # 增加交易次数
                             self.buy_count += 1
 
@@ -2136,7 +1990,7 @@ class CryptoTrader:
                             trade_type="Buy Down1失败",
                             price=down_price,
                             amount=0,
-                            shares=0,
+                            
                             trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
@@ -2148,7 +2002,7 @@ class CryptoTrader:
         finally:
             self.trading = False
             
-    def Second_trade(self, up_price, down_price, up_shares, down_shares):
+    def Second_trade(self, up_price, down_price):
         """处理Yes2/No2的自动交易"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):
@@ -2157,9 +2011,12 @@ class CryptoTrader:
                 no2_price = float(self.no2_price_entry.get())
                 self.trading = True
                 # 检查Yes2价格匹配
-                if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
+                if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅  \033[32mUp 2: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
+                            self.only_sell_no()
                         self.amount_yes2_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
@@ -2170,7 +2027,7 @@ class CryptoTrader:
                         time.sleep(2)
                         if self.Verify_buy_yes():
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
-                            self.yes2_shares = self.shares # 获取 YES2 的 shares
+                            
                             # 重置Yes2和No2价格为0
                             self.yes2_price_entry.delete(0, tk.END)
                             self.yes2_price_entry.insert(0, "0")
@@ -2226,9 +2083,13 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                 # 检查No2价格匹配
-                elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
+                elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 2: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
+                            self.only_sell_yes()
+
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
                         self.amount_no2_button.event_generate('<Button-1>')
@@ -2244,7 +2105,7 @@ class CryptoTrader:
 
                         if self.Verify_buy_no():
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
-                            self.no2_shares = self.shares # 获取 NO2 的 shares
+                            
                             # 重置Yes2和No2价格为0
                             self.yes2_price_entry.delete(0, tk.END)
                             self.yes2_price_entry.insert(0, "0")
@@ -2304,7 +2165,7 @@ class CryptoTrader:
         finally:
             self.trading = False
     
-    def Third_trade(self, up_price, down_price, up_shares, down_shares):
+    def Third_trade(self, up_price, down_price):
         """处理Yes3/No3的自动交易"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):              
@@ -2314,11 +2175,11 @@ class CryptoTrader:
                 self.trading = True  # 开始交易
             
                 # 检查Yes3价格匹配
-                if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
+                if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
                             self.only_sell_no()
 
                         # 执行交易操作
@@ -2333,7 +2194,7 @@ class CryptoTrader:
                         if self.Verify_buy_yes():
                             # 获取 YES3 的金额
                             self.buy_yes3_amount = float(self.yes3_amount_entry.get())
-                            self.yes3_shares = self.shares # 获取 YES3 的 shares
+                            
                             # 重置Yes3和No3价格为0
                             self.yes3_price_entry.delete(0, tk.END)
                             self.yes3_price_entry.insert(0, "0")
@@ -2389,11 +2250,11 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )   
                 # 检查No3价格匹配
-                elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
+                elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
                             self.only_sell_yes()
 
                         # 执行交易操作
@@ -2410,7 +2271,7 @@ class CryptoTrader:
                         self.buy_yes_button.invoke()
                         time.sleep(2)
                         if self.Verify_buy_no():
-                            self.no3_shares = self.shares # 获取 NO3 的 shares
+                            
                             self.buy_no3_amount = float(self.no3_amount_entry.get())
                             
                             # 重置Yes3和No3价格为0
@@ -2475,7 +2336,7 @@ class CryptoTrader:
         finally:
             self.trading = False
 
-    def Forth_trade(self, up_price, down_price, up_shares, down_shares):
+    def Forth_trade(self, up_price, down_price):
         """处理Yes4/No4的自动交易"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):  
@@ -2485,11 +2346,11 @@ class CryptoTrader:
                 self.trading = True  # 开始交易
             
                 # 检查Yes4价格匹配
-                if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and (up_shares > self.asks_shares) and up_price > 50:
+                if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        if self.buy_count > 15:
                             self.only_sell_no()
 
                         # 执行交易操作
@@ -2503,7 +2364,7 @@ class CryptoTrader:
                         time.sleep(2)
                         if self.Verify_buy_yes():
                             self.yes4_amount = float(self.yes4_amount_entry.get())
-                            self.yes4_shares = self.shares # 获取 YES4 的 shares
+                            
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, "0") 
@@ -2561,11 +2422,11 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                 # 检查No4价格匹配
-                elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and (down_shares > self.bids_shares) and down_price > 50:
+                elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        # 如果买入次数大于 15 次,那么先卖出,后买入
+                        if self.buy_count > 15:
                             self.only_sell_yes()
 
                         # 执行交易操作
@@ -2583,7 +2444,7 @@ class CryptoTrader:
 
                         time.sleep(2)
                         if self.Verify_buy_no():
-                            self.no4_shares = self.shares # 获取 NO4 的 shares
+                            
                             self.no4_amount = float(self.no4_amount_entry.get())
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
@@ -2689,13 +2550,13 @@ class CryptoTrader:
         self.no4_entry.insert(0, f"{yes4_amount:.2f}")
         self.logger.info("设置 YES/NO金额成功")
 
-    def Sell_yes(self, up_price, down_price, up_shares, down_shares):
+    def Sell_yes(self, up_price, down_price):
         """当YES5价格等于实时Yes价格时自动卖出"""
         try:
             if not self.driver and not self.is_restarting:
                 self.restart_browser(force_restart=True)
               
-            if up_price is not None and down_price is not None and up_shares is not None and down_shares is not None:
+            if up_price is not None and down_price is not None:
                 
                 # 获取Up5价格
                 up5_price = float(self.yes5_price_entry.get())
@@ -2703,8 +2564,8 @@ class CryptoTrader:
 
                 price_diff = round(up_price - up5_price, 2) # 47-47=0;;46-47=-1;
 
-                # 增加一个当 YES1==99 时,自动卖出 YES1 的shares
-                if up5_price >= 70 and 0 <= price_diff <= 1 and (up_shares > self.asks_shares):
+                
+                if up5_price >= 70 and 0 <= price_diff <= 1:
                     self.logger.info(f"✅ \033[32mUp 5: {up_price}¢\033[0m 价格匹配,执行自动卖出")
    
                     for retry in range(3):
@@ -2754,20 +2615,20 @@ class CryptoTrader:
         finally:
             self.trading = False
        
-    def Sell_no(self, up_price, down_price, up_shares, down_shares):
+    def Sell_no(self, up_price, down_price):
         """当NO4价格等于实时No价格时自动卖出"""    
         try:
             if not self.driver and not self.is_restarting:
                 self.restart_browser(force_restart=True)
             
-            if up_price is not None and down_price is not None and up_shares is not None and down_shares is not None:
+            if up_price is not None and down_price is not None:
                 # 获取价格
                 down5_price = float(self.no5_price_entry.get())
                 self.trading = True  # 开始交易
                 price_diff = round(down_price - down5_price, 2)
 
                 # 增加一个当 NO1==46 时,自动卖出 NO1 的金额 
-                if down5_price >= 70 and (0 <= price_diff <= 1) and (down_shares > self.bids_shares):
+                if down5_price >= 70 and (0 <= price_diff <= 1):
                     self.logger.info(f"✅ \033[31mDown 5: {down_price}¢\033[0m 价格匹配,执行自动卖出")
                     
                     for retry in range(3):
