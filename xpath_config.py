@@ -170,3 +170,8 @@ class XPathConfig:
     CLAIM_CONFIRM_BUTTON = [
         '//button[contains(text(), "Confirm")]'
     ]
+
+    # 30. portfolio_sell_button
+    PORTFOLIO_SELL_BUTTON = [
+        '//button[contains(text(), "Sell")]'
+    ]
