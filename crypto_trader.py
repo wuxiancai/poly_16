@@ -1363,7 +1363,13 @@ class CryptoTrader:
                 self.logger.warning(f"数据获取不完整，缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
-                
+                # 尝试刷新页面
+                try:
+                    self.driver.refresh()
+                    time.sleep(3)
+                except:
+                    pass
+
         except Exception as e:
             self.logger.error(f"价格检查异常: {str(e)}")
             
@@ -2564,7 +2570,6 @@ class CryptoTrader:
                 self.trading = True  # 开始交易
 
                 price_diff = round(up_price - up5_price, 2) # 47-47=0;;46-47=-1;
-
                 
                 if up5_price >= 70 and 0 <= price_diff <= 1:
                     self.logger.info(f"✅ \033[32mUp 5: {up_price}¢\033[0m 价格匹配,执行自动卖出")
@@ -2591,7 +2596,10 @@ class CryptoTrader:
 
                             # 设置 YES1 和 NO1 价格为默认值
                             self.set_yes1_no1_default_target_price()
-                            
+
+                            # 交易次数恢复到初始值
+                            self.trade_count = 19
+                            self.trade_count_label.config(text=str(self.trade_count))
                             break
                         except Exception as e:
                             self.logger.warning(f"❌ Sell Yes5=99 第{retry+1}次失败: {str(e)}")
@@ -2653,6 +2661,10 @@ class CryptoTrader:
 
                             # 设置 YES1 和 NO1 价格为默认值
                             self.set_yes1_no1_default_target_price()
+
+                            # 交易次数恢复到初始值
+                            self.trade_count = 19
+                            self.trade_count_label.config(text=str(self.trade_count))
                             
                             break
                         except Exception as e:
