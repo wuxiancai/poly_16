@@ -1832,7 +1832,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_no()
 
                         self.amount_yes1_button.event_generate('<Button-1>')
@@ -1918,7 +1918,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 1: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_yes()
                             
                         self.buy_no_button.invoke()
@@ -2022,7 +2022,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅  \033[32mUp 2: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_no()
                         self.amount_yes2_button.event_generate('<Button-1>')
                         time.sleep(0.5)
@@ -2094,7 +2094,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 2: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_yes()
 
                         self.buy_no_button.invoke()
@@ -2186,7 +2186,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_no()
 
                         # 执行交易操作
@@ -2261,7 +2261,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_yes()
 
                         # 执行交易操作
@@ -2357,7 +2357,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_no()
 
                         # 执行交易操作
@@ -2433,7 +2433,7 @@ class CryptoTrader:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 15 次,那么先卖出,后买入
-                        if self.buy_count > 15:
+                        if self.buy_count > 17:
                             self.only_sell_yes()
 
                         # 执行交易操作
