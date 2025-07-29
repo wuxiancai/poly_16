@@ -365,6 +365,7 @@ class CryptoTrader:
             'Black.TButton': {'foreground': '#212529', 'font': base_font},
             'Blue.TButton': {'foreground': '#0d6efd', 'font': base_font},
             'Red.TLabel': {'foreground': '#dc3545', 'font': large_font},
+            'Red_bold.TLabel': {'foreground': '#dc3545', 'font': large_font, 'bold': True},
             'Black.TLabel': {'foreground': '#212529', 'font': base_font},
             'Top.TLabel': {'foreground': '#212529', 'font': base_font},
             'Warning.TLabelframe': {'font': title_font, 'foreground': '#FF0000', 'anchor': 'center'},
@@ -422,7 +423,7 @@ class CryptoTrader:
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(trade_count_frame, text="剩", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
-        self.trade_count_label = ttk.Label(trade_count_frame, text="19", style='Red.TLabel')
+        self.trade_count_label = ttk.Label(trade_count_frame, text="19", style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
         ttk.Label(trade_count_frame, text="次", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
 
