@@ -125,8 +125,8 @@ class CryptoTrader:
 
         # 初始化本金
         self.initial_amount = 1
-        self.first_rebound = 128
-        self.n_rebound = 123
+        self.first_rebound = 118
+        self.n_rebound = 124
         self.profit_rate = 1
         self.doubling_weeks = 66
         
