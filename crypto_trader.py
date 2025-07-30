@@ -1336,8 +1336,8 @@ class CryptoTrader:
                 # 数据合理性检查
                 if 0 <= up_price_val <= 100 and 0 <= down_price_val <= 100:
                     # 更新GUI价格显示
-                    self.yes_price_label.config(text=f"Up: {up_price_val:.1f}¢")
-                    self.no_price_label.config(text=f"Down: {down_price_val:.1f}¢")
+                    self.yes_price_label.config(text=f"Up: {up_price_val:.1f}")
+                    self.no_price_label.config(text=f"Down: {down_price_val:.1f}")
                     
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
@@ -3459,15 +3459,17 @@ class CryptoTrader:
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
         # 设置价格为默认价格前再次获取 CASH 值
+        up_price = float(self.yes_price_label.cget("text"))
+        if up_price > 53:
+            self.no1_price_entry.delete(0, tk.END)
+            self.no1_price_entry.insert(0, "54")
+            self.no1_price_entry.configure(foreground='red')
+        else:
+            self.yes1_price_entry.delete(0, tk.END)
+            self.yes1_price_entry.insert(0, "54")
+            self.yes1_price_entry.configure(foreground='red')
 
-        self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, "54")
-        self.yes1_price_entry.configure(foreground='red')
-
-        self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, "54")
-        self.no1_price_entry.configure(foreground='red')
-        self.logger.info(f"\033[34m✅ 设置卖出价格54成功\033[0m")
+        self.logger.info(f"\033[34m✅ 设置价格54成功\033[0m")
         self.close_windows()
         
         # 价格设置完成后，重新安排下一次的价格设置定时任务
