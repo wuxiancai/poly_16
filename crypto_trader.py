@@ -396,10 +396,10 @@ class CryptoTrader:
 
         # 设置金额配置
         settings_items = [
-            ("Initial", "initial_amount_entry", self.initial_amount, 2),
+            ("Initial", "initial_amount_entry", self.initial_amount, 3),
             ("Turn-1", "first_rebound_entry", self.first_rebound, 3),
             ("Turn-N", "n_rebound_entry", self.n_rebound, 3),
-            ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 4)
+            ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 3)
         ]
         
         for i, (label_text, entry_attr, default_value, width) in enumerate(settings_items):
@@ -425,10 +425,9 @@ class CryptoTrader:
         trade_count_frame = ttk.Frame(amount_frame)
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(trade_count_frame, text="剩", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
+        ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
         self.trade_count_label = ttk.Label(trade_count_frame, text="22", style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
-        ttk.Label(trade_count_frame, text="次", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
 
         # 监控网站配置
         url_frame = ttk.LabelFrame(scrollable_frame, text="Website Monitoring", padding=(8, 5))
