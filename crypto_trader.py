@@ -123,13 +123,18 @@ class CryptoTrader:
         self.first_rebound = 124
         self.n_rebound = 127
         self.profit_rate = 1
-        self.doubling_weeks = 66
-        
+        self.doubling_weeks = 60
+
+        # 交易次数
+        self.trade_count = 22
+
         # 默认买价
         self.default_target_price = 54 # 不修改
 
-        # 默认卖价
-        self.default_normal_sell_price = 0 # 不修改
+        # 添加交易次数计数器
+        self.buy_count = 0
+        self.sell_count = 0 
+        self.reset_trade_count = 0
 
         # 买入价格冗余
         self.price_premium = 3 # 不修改
@@ -753,12 +758,6 @@ class CryptoTrader:
         
         # 重置交易次数计数器
         self.buy_count = 0
-
-        # 添加交易次数计数器
-        self.buy_count = 0
-        self.sell_count = 0 
-        self.reset_trade_count = 0
-        self.trade_count = 22
 
         # 启动浏览器作线程
         threading.Thread(target=self._start_browser_monitoring, args=(target_url,), daemon=True).start()
