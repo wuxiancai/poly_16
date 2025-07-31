@@ -811,6 +811,9 @@ class CryptoTrader:
                 os.system('rm -f ~/ChromeDebug/SingletonLock')
                 os.system('rm -f ~/ChromeDebug/SingletonCookie')
                 os.system('rm -f ~/ChromeDebug/SingletonSocket')
+                os.system('rm -f ~/ChromeDebug/Default/Recovery/*')
+                os.system('rm -f ~/ChromeDebug/Default/Sessions/*')
+                os.system('rm -f ~/ChromeDebug/Default/Last*')
 
                 system = platform.system()
                 if system == 'Linux':
@@ -1022,6 +1025,9 @@ class CryptoTrader:
                     os.system('rm -f ~/ChromeDebug/SingletonLock')
                     os.system('rm -f ~/ChromeDebug/SingletonCookie')
                     os.system('rm -f ~/ChromeDebug/SingletonSocket')
+                    os.system('rm -f ~/ChromeDebug/Default/Recovery/*')
+                    os.system('rm -f ~/ChromeDebug/Default/Sessions/*')
+                    os.system('rm -f ~/ChromeDebug/Default/Last*')
 
                     # Linux特定配置
                     if platform.system() == 'Linux':
