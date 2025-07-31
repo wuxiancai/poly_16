@@ -797,8 +797,7 @@ class CryptoTrader:
         
         # 11.启动夜间自动卖出检查（每30分钟检查一次）
         self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
-        
-        
+           
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
         try:
@@ -1695,8 +1694,6 @@ class CryptoTrader:
                     self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
                     self.refresh_page_timer = self.root.after(240000, self.refresh_page)
                     self.logger.info("✅ 已重新启用URL监控和页面刷新")
-            else:
-                self.logger.info("❌ 未发现登录按钮,已经登录")
 
         except NoSuchElementException:
             # 未找到登录按钮，可能已经登录
