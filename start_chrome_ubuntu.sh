@@ -16,8 +16,10 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/chrome_update.log"
 # 清理旧配置
-rm -f ~/ChromeDebug/Default/Preferences
-rm -f ~/ChromeDebug/Singleton*
+rm -f ~/ChromeDebug/SingletonLock
+rm -f ~/ChromeDebug/SingletonCookie
+rm -f ~/ChromeDebug/SingletonSocket
+echo "清理旧配置完成"
 
 # 显示使用说明
 show_usage() {
@@ -621,7 +623,6 @@ if command -v google-chrome-stable &> /dev/null; then
         --disable-renderer-backgrounding \
         --disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins \
         --noerrdialogs \
-        
         --disable-notifications \
         --test-type \
         --user-data-dir="$HOME/ChromeDebug" \

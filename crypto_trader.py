@@ -808,8 +808,9 @@ class CryptoTrader:
                 chrome_options.add_argument('--disable-dev-shm-usage')
 
                 # 清理旧配置
-                os.system('rm -f ~/ChromeDebug/Default/Preferences')
-                os.system('rm -f ~/ChromeDebug/Singleton*')
+                os.system('rm -f ~/ChromeDebug/SingletonLock')
+                os.system('rm -f ~/ChromeDebug/SingletonCookie')
+                os.system('rm -f ~/ChromeDebug/SingletonSocket')
 
                 system = platform.system()
                 if system == 'Linux':
@@ -1020,8 +1021,9 @@ class CryptoTrader:
                     chrome_options.add_argument('--disable-dev-shm-usage')
 
                     # 清理旧配置
-                    os.system('rm -f ~/ChromeDebug/Default/Preferences')
-                    os.system('rm -f ~/ChromeDebug/Singleton*')
+                    os.system('rm -f ~/ChromeDebug/SingletonLock')
+                    os.system('rm -f ~/ChromeDebug/SingletonCookie')
+                    os.system('rm -f ~/ChromeDebug/SingletonSocket')
 
                     # Linux特定配置
                     if platform.system() == 'Linux':
@@ -1049,7 +1051,7 @@ class CryptoTrader:
                         chrome_options.add_argument('--test-type')
                         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
                         chrome_options.add_experimental_option('useAutomationExtension', False)
-                        
+
                     self.driver = webdriver.Chrome(options=chrome_options)
                     
                     # 验证连接
