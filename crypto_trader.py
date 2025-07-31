@@ -137,7 +137,7 @@ class CryptoTrader:
         self.reset_trade_count = 0
 
         # 买入价格冗余
-        self.price_premium = 3 # 不修改
+        self.price_premium = 10 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
@@ -1510,7 +1510,7 @@ class CryptoTrader:
             first_rebound_percent = float(self.first_rebound_entry.get()) / 100  # 反水一次百分比
             n_rebound_percent = float(self.n_rebound_entry.get()) / 100  # 反水N次百分比
 
-            # 设置 Yes1 和 No1金额
+            # 设置 UP1 和 DOWN1金额
             base_amount = cash_value * initial_percent
             self.yes1_entry = self.yes_frame.grid_slaves(row=1, column=1)[0]
             self.yes1_amount_entry.delete(0, tk.END)
@@ -1519,7 +1519,7 @@ class CryptoTrader:
             self.no1_amount_entry.delete(0, tk.END)
             self.no1_amount_entry.insert(0, f"{base_amount:.2f}")
             
-            # 计算并设置 Yes2/No2金额
+            # 计算并设置 UP2/DOWN2金额
             self.yes2_amount = base_amount * first_rebound_percent
             self.yes2_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
             self.yes2_entry.delete(0, tk.END)
@@ -1528,7 +1528,7 @@ class CryptoTrader:
             self.no2_entry.delete(0, tk.END)
             self.no2_entry.insert(0, f"{self.yes2_amount:.2f}")
             
-            # 计算并设置 YES3/NO3 金额
+            # 计算并设置 UP3/DOWN3 金额
             self.yes3_amount = self.yes2_amount * n_rebound_percent
             self.yes3_entry = self.yes_frame.grid_slaves(row=5, column=1)[0]
             self.yes3_entry.delete(0, tk.END)
@@ -1537,7 +1537,7 @@ class CryptoTrader:
             self.no3_entry.delete(0, tk.END)
             self.no3_entry.insert(0, f"{self.yes3_amount:.2f}")
 
-            # 计算并设置 Yes4/No4金额
+            # 计算并设置 UP4/DOWN4金额
             self.yes4_amount = self.yes3_amount * n_rebound_percent
             self.yes4_entry = self.yes_frame.grid_slaves(row=7, column=1)[0]
             self.yes4_entry.delete(0, tk.END)
@@ -1665,7 +1665,7 @@ class CryptoTrader:
                         google_login_button.click()
                         self.logger.info("✅ 已点击Google登录按钮")
                     except Exception as e:
-                        self.logger.info(f"点击Google登录按钮失败,使用坐标法点击")
+                        self.logger.info(f"❌ 点击Google登录按钮失败,使用坐标法点击")
                         self.click_google_login_button()
                     
                     # 不再固定等待15秒，而是循环检测CASH值
@@ -1691,9 +1691,13 @@ class CryptoTrader:
                             self.logger.info(f"⏳ 第{attempt+1}次尝试: 等待登录完成...")                       
                         # 等待指定时间后再次检测
                         time.sleep(check_interval)
+
                     self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
                     self.refresh_page_timer = self.root.after(240000, self.refresh_page)
                     self.logger.info("✅ 已重新启用URL监控和页面刷新")
+            else:
+                self.logger.info("❌ 未发现登录按钮,已经登录")
+
         except NoSuchElementException:
             # 未找到登录按钮，可能已经登录
             pass          
@@ -1859,10 +1863,12 @@ class CryptoTrader:
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
                             self.only_sell_down()
+
                         # 买入 UP1
                         self.amount_yes1_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
+
                         if self.find_accept_button():
                             self.entry_accept()
                             self.buy_confirm_button.invoke()
@@ -1906,7 +1912,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 UP1成功\033[0m")
 
-                            # 检查是否有 POSITON NO标签,如果有,则卖 NO
+                            # 检查是否有 POSITON DOWN标签,如果有,则卖 DOWN
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN4")
                                 self.only_sell_down()
@@ -1984,7 +1990,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
 
-                            # 检查是否有 POSITON YES标签,如果有,则卖 YES
+                            # 检查是否有 POSITON UP标签,如果有,则卖 UP
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP4")
                                 self.only_sell_up()
@@ -2072,7 +2078,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
                             
-                            # 检查是否有 POSITON NO标签,如果有,则卖 NO
+                            # 检查是否有 POSITON DOWN标签,如果有,则卖 DOWN
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN1")
                                 self.only_sell_down()           
@@ -2145,7 +2151,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             
-                            # 检查是否有 POSITON YES标签,如果有,则卖 YES
+                            # 检查是否有 POSITON UP标签,如果有,则卖 UP
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP1")
                                 self.only_sell_up()
@@ -2192,6 +2198,7 @@ class CryptoTrader:
                         self.amount_yes3_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
+
                         if self.find_accept_button():
                             self.entry_accept()
                             self.buy_confirm_button.invoke()
@@ -2235,7 +2242,7 @@ class CryptoTrader:
                             )   
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             
-                            # 检查是否有 POSITON NO标签,如果有,则卖 NO
+                            # 检查是否有 POSITON DOWN标签,如果有,则卖 DOWN
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN2")
                                 self.only_sell_down()
@@ -2255,6 +2262,7 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )   
+
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 50:
                     for retry in range(3):
@@ -2269,6 +2277,7 @@ class CryptoTrader:
                         self.amount_no3_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
+
                         if self.find_accept_button():
                             self.entry_accept()
                             self.buy_confirm_button.invoke()
@@ -2311,7 +2320,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             
-                            # 检查是否有 POSITON YES标签,如果有,则卖 YES
+                            # 检查是否有 POSITON UP标签,如果有,则卖 UP
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP2")
                                 self.only_sell_up()
@@ -2383,7 +2392,7 @@ class CryptoTrader:
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
 
-                            #设置 YES1/NO1金额为yes4的self.n_rebound
+                            # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
 
                             # 增加交易次数
@@ -2405,7 +2414,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             
-                            # 检查是否有 POSITON NO标签,如果有,则卖 NO
+                            # 检查是否有 POSITON DOWN标签,如果有,则卖 DOWN
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN3")
                                 self.only_sell_down()
@@ -2439,6 +2448,7 @@ class CryptoTrader:
                         self.amount_no4_button.event_generate('<Button-1>')
                         time.sleep(0.5)
                         self.buy_confirm_button.invoke()
+
                         if self.find_accept_button():
                             self.entry_accept()
                             self.buy_confirm_button.invoke()
@@ -2460,7 +2470,7 @@ class CryptoTrader:
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, str(self.default_target_price))
 
-                            #设置 YES1/NO1金额为yes4的self.n_rebound
+                            # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
 
                             # 增加交易次数
@@ -2482,7 +2492,7 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
-                            # 检查是否有 POSITON YES标签,如果有,则卖 YES
+                            # 检查是否有 POSITON UP标签,如果有,则卖 UP
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP3")
                                 self.only_sell_up()
@@ -2512,8 +2522,7 @@ class CryptoTrader:
 
     def reset_yes_no_amount(self):
         """重置 YES/NO ENTRY 金额"""
-        
-        # 设置 Yes1 和 No1金额
+        # 设置 UP1 和 DOWN1金额
         yes1_amount = float(self.yes4_amount_entry.get()) * (self.n_rebound / 100)
         self.yes1_entry = self.yes_frame.grid_slaves(row=1, column=1)[0]
         self.yes1_amount_entry.delete(0, tk.END)
@@ -2522,7 +2531,7 @@ class CryptoTrader:
         self.no1_amount_entry.delete(0, tk.END)
         self.no1_amount_entry.insert(0, f"{yes1_amount:.2f}")
         
-        # 计算并设置 Yes2/No2金额
+        # 计算并设置 UP2/DOWN2金额
         yes2_amount = yes1_amount * (self.n_rebound / 100)
         self.yes2_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
         self.yes2_entry.delete(0, tk.END)
@@ -2531,7 +2540,7 @@ class CryptoTrader:
         self.no2_entry.delete(0, tk.END)
         self.no2_entry.insert(0, f"{yes2_amount:.2f}")
         
-        # 计算并设置 YES3/NO3 金额
+        # 计算并设置 UP3/DOWN3 金额
         yes3_amount = yes2_amount * (self.n_rebound / 100)
         self.yes3_entry = self.yes_frame.grid_slaves(row=5, column=1)[0]
         self.yes3_entry.delete(0, tk.END)
@@ -2540,7 +2549,7 @@ class CryptoTrader:
         self.no3_entry.delete(0, tk.END)
         self.no3_entry.insert(0, f"{yes3_amount:.2f}")
 
-        # 计算并设置 Yes4/No4金额
+        # 计算并设置 UP4/DOWN4金额
         yes4_amount = yes3_amount * (self.n_rebound / 100)
         self.yes4_entry = self.yes_frame.grid_slaves(row=7, column=1)[0]
         self.yes4_entry.delete(0, tk.END)
