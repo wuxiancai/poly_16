@@ -567,8 +567,8 @@ class CryptoTrader:
         
         # Up/Down 价格和份额显示
         price_items = [
-            ("Up:", "yes_price_label", "Up: waiting..."),
-            ("Down:", "no_price_label", "Down: waiting...")
+            ("Up:", "yes_price_label", "Up: --"),
+            ("Down:", "no_price_label", "Down: --")
         ]
         
         for i, (icon_text, attr_name, default_text) in enumerate(price_items):
@@ -593,8 +593,8 @@ class CryptoTrader:
         
         # Portfolio 和 Cash 显示
         balance_items = [
-            ("Portfolio:", "portfolio_label", "Portfolio: waiting..."),
-            ("Cash:", "cash_label", "Cash: waiting...")
+            ("Portfolio:", "portfolio_label", "Portfolio: --"),
+            ("Cash:", "cash_label", "Cash: --")
         ]
         
         for i, (label_text, attr_name, default_text) in enumerate(balance_items):
