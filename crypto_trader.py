@@ -98,12 +98,6 @@ class CryptoTrader:
         self.retry_count = 3
         self.retry_interval = 5
 
-        # 添加交易次数计数器
-        self.buy_count = 0
-        self.sell_count = 0 
-        self.reset_trade_count = 0
-        self.trade_count = 22
-
         # 添加定时器
         self.refresh_page_timer = None  # 用于存储定时器ID
         self.url_check_timer = None
@@ -426,7 +420,7 @@ class CryptoTrader:
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
-        self.trade_count_label = ttk.Label(trade_count_frame, text="22", style='Red_bold.TLabel')
+        self.trade_count_label = ttk.Label(trade_count_frame, text="--", style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
 
         # 监控网站配置
@@ -759,44 +753,50 @@ class CryptoTrader:
         
         # 重置交易次数计数器
         self.buy_count = 0
-            
+
+        # 添加交易次数计数器
+        self.buy_count = 0
+        self.sell_count = 0 
+        self.reset_trade_count = 0
+        self.trade_count = 22
+
         # 启动浏览器作线程
         threading.Thread(target=self._start_browser_monitoring, args=(target_url,), daemon=True).start()
 
         self.running = True
 
-        # 启用设置金额按钮
+        # 1.启用设置金额按钮
         self.set_amount_button['state'] = 'normal'
 
-        # 检查是否登录
+        # 2.检查是否登录
         self.login_check_timer = self.root.after(4000, self.start_login_monitoring)
 
-        # 启动URL监控
+        # 3.启动URL监控
         self.url_check_timer = self.root.after(8000, self.start_url_monitoring)
 
-        # 启动零点 CASH 监控
+        # 4.启动零点 CASH 监控
         self.get_zero_time_cash_timer = self.root.after(3000, self.get_zero_time_cash)
 
-        # 启动币安零点时价格监控
+        # 5.启动币安零点时价格监控
         self.get_binance_zero_time_price_timer = self.root.after(14000, self.get_binance_zero_time_price)
         
-        # 启动币安实时价格监控
+        # 6.启动币安实时价格监控
         self.get_binance_price_websocket_timer = self.root.after(16000, self.get_binance_price_websocket)
 
-        # 启动币安价格对比
+        # 7.启动币安价格对比
         self.comparison_binance_price_timer = self.root.after(20000, self.comparison_binance_price)
 
-        # 启动自动找币
+        # 8.启动自动找币
         self.root.after(30000, self.schedule_auto_find_coin)
 
-        # 启动设置 YES1/NO1价格为 54
+        # 9.启动设置 YES1/NO1价格为 54
         self.schedule_price_setting_timer = self.root.after(36000, self.schedule_price_setting)
         
-        # 启动页面刷新
+        # 10.启动页面刷新
         self.refresh_page_timer = self.root.after(40000, self.refresh_page)
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
-        # 启动夜间自动卖出检查（每30分钟检查一次）
+        # 11.启动夜间自动卖出检查（每30分钟检查一次）
         #self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
         #self.logger.info("\033[34m✅ 45秒后启动夜间自动卖出检查!\033[0m")
         
