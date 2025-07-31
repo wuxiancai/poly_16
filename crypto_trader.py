@@ -796,6 +796,10 @@ class CryptoTrader:
         self.refresh_page_timer = self.root.after(40000, self.refresh_page)
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
+        # 启动夜间自动卖出检查（每30分钟检查一次）
+        #self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
+        #self.logger.info("\033[34m✅ 45秒后启动夜间自动卖出检查!\033[0m")
+        
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
         try:
@@ -1188,6 +1192,11 @@ class CryptoTrader:
             if hasattr(self,'schedule_auto_find_coin_timer') and self.schedule_auto_find_coin_timer:
                 self.root.after_cancel(self.schedule_auto_find_coin_timer)
             self.schedule_auto_find_coin()
+            
+            # 8.重新启动夜间自动卖出检查
+            if hasattr(self,'night_auto_sell_timer') and self.night_auto_sell_timer:
+                self.root.after_cancel(self.night_auto_sell_timer)
+            self.schedule_night_auto_sell_check()
             
             # 智能恢复时间敏感类定时器
             current_time = datetime.now()
@@ -1835,7 +1844,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_no()
+                            self.only_sell_down()
                         # 买入 UP1
                         self.amount_yes1_button.event_generate('<Button-1>')
                         time.sleep(0.5)
@@ -1845,7 +1854,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
 
                         time.sleep(2)
-                        if self.Verify_buy_yes():
+                        if self.Verify_buy_up():
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             
                             # 增加交易次数
@@ -1886,7 +1895,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN4")
-                                self.only_sell_no()
+                                self.only_sell_down()
 
                             break
                         else:
@@ -1909,7 +1918,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[31mDown 1: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_yes()
+                            self.only_sell_up()
                             
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
@@ -1923,7 +1932,7 @@ class CryptoTrader:
                         time.sleep(0.5)
                         self.buy_yes_button.invoke()
                         time.sleep(2)
-                        if self.Verify_buy_no():
+                        if self.Verify_buy_down():
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
                             
                             # 增加交易次数
@@ -1964,7 +1973,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP4")
-                                self.only_sell_yes()
+                                self.only_sell_up()
 
                             break
                         else:
@@ -2002,7 +2011,7 @@ class CryptoTrader:
                         self.logger.info(f"✅  \033[32mUp 2: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_no()
+                            self.only_sell_down()
 
                         self.amount_yes2_button.event_generate('<Button-1>')
                         time.sleep(0.5)
@@ -2012,7 +2021,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
 
                         time.sleep(2)
-                        if self.Verify_buy_yes():
+                        if self.Verify_buy_up():
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
                             
                             # 重置Yes2和No2价格为0
@@ -2052,7 +2061,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN1")
-                                self.only_sell_no()           
+                                self.only_sell_down()           
                             break
                         else:
                             self.logger.warning(f"❌  Buy Up2 交易失败,第{retry+1}次,等待1秒后重试")
@@ -2073,7 +2082,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[31mDown 2: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_yes()
+                            self.only_sell_up()
 
                         self.buy_no_button.invoke()
                         time.sleep(0.5)
@@ -2085,7 +2094,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
 
                         time.sleep(2)
-                        if self.Verify_buy_no():
+                        if self.Verify_buy_down():
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
                             
                             # 重置Yes2和No2价格为0
@@ -2125,7 +2134,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP1")
-                                self.only_sell_yes()
+                                self.only_sell_up()
 
                             break
                         else:
@@ -2163,7 +2172,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_no()
+                            self.only_sell_down()
 
                         # 执行交易操作
                         self.amount_yes3_button.event_generate('<Button-1>')
@@ -2174,7 +2183,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
 
                         time.sleep(2)
-                        if self.Verify_buy_yes():
+                        if self.Verify_buy_up():
                             # 获取 YES3 的金额
                             self.buy_yes3_amount = float(self.yes3_amount_entry.get())
                             
@@ -2215,7 +2224,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN2")
-                                self.only_sell_no()
+                                self.only_sell_down()
 
                             break
                         else:
@@ -2238,7 +2247,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_yes()
+                            self.only_sell_up()
 
                         # 执行交易操作
                         self.buy_no_button.invoke()
@@ -2251,7 +2260,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
                         
                         time.sleep(2)
-                        if self.Verify_buy_no():
+                        if self.Verify_buy_down():
                             self.buy_no3_amount = float(self.no3_amount_entry.get())
                             
                             # 重置Yes3和No3价格为0
@@ -2291,7 +2300,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP2")
-                                self.only_sell_yes()
+                                self.only_sell_up()
 
                             break
                         else:
@@ -2331,7 +2340,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_no()
+                            self.only_sell_down()
 
                         # 执行交易操作
                         self.amount_yes4_button.event_generate('<Button-1>')
@@ -2343,7 +2352,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
                             
                         time.sleep(2)
-                        if self.Verify_buy_yes():
+                        if self.Verify_buy_up():
                             self.yes4_amount = float(self.yes4_amount_entry.get())
                             
                             # 设置 YES4/No4的价格为0
@@ -2385,7 +2394,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON NO标签,如果有,则卖 NO
                             if self.find_position_label_down():
                                 self.logger.info(f"执行自动卖出DOWN3")
-                                self.only_sell_no()
+                                self.only_sell_down()
 
                             break
                         else:
@@ -2408,7 +2417,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 18:
-                            self.only_sell_yes()
+                            self.only_sell_up()
 
                         # 执行交易操作
                         self.buy_no_button.invoke()
@@ -2421,7 +2430,7 @@ class CryptoTrader:
                             self.buy_confirm_button.invoke()
                         
                         time.sleep(2)
-                        if self.Verify_buy_no():
+                        if self.Verify_buy_down():
                             self.no4_amount = float(self.no4_amount_entry.get())
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
@@ -2462,7 +2471,7 @@ class CryptoTrader:
                             # 检查是否有 POSITON YES标签,如果有,则卖 YES
                             if self.find_position_label_up():
                                 self.logger.info(f"执行自动卖出UP3")
-                                self.only_sell_yes()
+                                self.only_sell_up()
 
                             break
                         else:
@@ -2527,11 +2536,11 @@ class CryptoTrader:
         self.no4_entry.insert(0, f"{yes4_amount:.2f}")
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
-    def only_sell_yes(self):
+    def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3):
-            self.logger.info("\033[32m执行only_sell_yes\033[0m")
+            self.logger.info("\033[32m执行only_sell_up\033[0m")
             self.position_sell_yes_button.invoke()
             time.sleep(0.5)
             self.sell_confirm_button.invoke()
@@ -2558,14 +2567,14 @@ class CryptoTrader:
                 self.driver.refresh()
                 break
             else:
-                self.logger.warning(f"❌ 卖出only_sell_yes第{retry+1}次验证失败,重试")
+                self.logger.warning(f"❌ 卖出only_sell_up第{retry+1}次验证失败,重试")
                 time.sleep(1)
       
-    def only_sell_no(self):
+    def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3): 
-            self.logger.info("\033[32m执行only_sell_no\033[0m")
+            self.logger.info("\033[32m执行only_sell_down\033[0m")
             self.position_sell_no_button.invoke()
             time.sleep(0.5)
             self.sell_confirm_button.invoke()
@@ -2593,10 +2602,10 @@ class CryptoTrader:
                 self.driver.refresh()
                 break
             else:
-                self.logger.warning(f"❌ 卖出only_sell_no第{retry+1}次验证失败,重试")
+                self.logger.warning(f"❌ 卖出only_sell_down第{retry+1}次验证失败,重试")
                 time.sleep(1)
 
-    def Verify_buy_yes(self):
+    def Verify_buy_up(self):
         """
         验证买入YES交易是否成功完成
         
@@ -2605,7 +2614,7 @@ class CryptoTrader:
         """
         return self._verify_trade('Bought', 'Up')[0]
         
-    def Verify_buy_no(self):
+    def Verify_buy_down(self):
         """
         验证买入NO交易是否成功完成
         
@@ -2614,7 +2623,7 @@ class CryptoTrader:
         """
         return self._verify_trade('Bought', 'Down')[0]
     
-    def Verify_sold_yes(self):
+    def Verify_sold_up(self):
         """
         验证卖出YES交易是否成功完成
         
@@ -2623,7 +2632,7 @@ class CryptoTrader:
         """
         return self._verify_trade('Sold', 'Up')[0]
         
-    def Verify_sold_no(self):
+    def Verify_sold_down(self):
         """
         验证卖出NO交易是否成功完成
         
@@ -3380,11 +3389,11 @@ class CryptoTrader:
             # 找币之前先查看是否有持仓
             if self.find_position_label_down():
                 self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
-                self.only_sell_no()
+                self.only_sell_down()
             
             if self.find_position_label_up():
                 self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
-                self.only_sell_yes()
+                self.only_sell_up()
 
             # 保存原始窗口句柄，确保在整个过程中有一个稳定的引用
             self.original_window = self.driver.current_window_handle
@@ -3739,11 +3748,11 @@ class CryptoTrader:
         # 找币之前先查看是否有持仓
         if self.find_position_label_down():
             self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
-            self.only_sell_no()
+            self.only_sell_down()
         
         if self.find_position_label_up():
             self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
-            self.only_sell_yes()
+            self.only_sell_up()
 
         # 交易次数恢复到初始值
         self.trade_count = 22
@@ -3991,6 +4000,96 @@ class CryptoTrader:
             pass
         finally:
             self.comparison_binance_price()
+
+    def night_auto_sell_check(self):
+        """
+        夜间自动卖出检查函数
+        在1点到上午6点时间内，如果self.trade_count小于等于11，则执行self.only_sell_up
+        """
+        try:
+            # 获取当前时间
+            now = datetime.now()
+            current_hour = now.hour
+            
+            # 检查是否在1点到6点之间（包含1点，不包含6点）
+            if 1 <= current_hour < 6:
+                self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-06:00)内")
+                
+                # 检查交易次数是否小于等于10
+                if self.trade_count <= 11:
+                    self.logger.info(f"✅ 交易次数 {self.trade_count} <= 11,执行夜间自动卖出仓位")
+                    
+                    # 执行卖出仓位操作
+                    try:
+                        if find_position_label_up():
+                            self.only_sell_up()
+
+                        if find_position_label_down():
+                            self.only_sell_down()
+                        self.logger.info(f"✅ 夜间自动卖出YES/NO执行完成")
+
+                        # 设置 YES1-4/NO1-4 价格为 0
+                        for i in range(1,6):  # 1-5
+                            yes_entry = getattr(self, f'yes{i}_price_entry', None)
+                            no_entry = getattr(self, f'no{i}_price_entry', None)
+
+                            if yes_entry:
+                                yes_entry.delete(0, tk.END)
+                                yes_entry.insert(0, "0")
+                                yes_entry.configure(foreground='black')
+                            if no_entry:
+                                no_entry.delete(0, tk.END)
+                                no_entry.insert(0, "0")
+                                no_entry.configure(foreground='black')
+
+                        # 设置 YES1/NO1 价格为默认值
+                        up_price = float(self.yes_price_label.cget("text"))
+                        if up_price > 53:
+                            self.no1_price_entry.delete(0, tk.END)
+                            self.no1_price_entry.insert(0, "54")
+                            self.no1_price_entry.configure(foreground='red')
+                        else:
+                            self.yes1_price_entry.delete(0, tk.END)
+                            self.yes1_price_entry.insert(0, "54")
+                            self.yes1_price_entry.configure(foreground='red')
+
+                        self.logger.info(f"\033[34m✅ 设置YES1/NO1价格54成功\033[0m")
+
+                        # 交易次数恢复到初始值
+                        self.trade_count = 22
+                        self.trade_count_label.config(text=str(self.trade_count))
+                        self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
+
+                    except Exception as e:
+                        self.logger.error(f"❌ 夜间自动卖出YES执行失败: {str(e)}")
+                        
+                else:
+                    self.logger.info(f"ℹ️ 交易次数 {self.trade_count} > 11，不执行夜间自动卖出")
+            else:
+                self.logger.info(f"ℹ️ 当前时间 {now.strftime('%H:%M:%S')} 不在夜间时段(01:00-06:00)内，不执行夜间自动卖出")
+                
+        except Exception as e:
+            self.logger.error(f"❌ 夜间自动卖出检查失败: {str(e)}")
+
+    def schedule_night_auto_sell_check(self):
+        """
+        调度夜间自动卖出检查
+        每30分钟执行一次检查
+        """
+        try:
+            # 执行夜间自动卖出检查
+            self.night_auto_sell_check()
+            
+            # 设置下一次检查（30分钟后）
+            if self.running and not self.stop_event.is_set():
+                self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)  # 30分钟 = 30 * 60 * 1000毫秒
+                self.logger.info("✅ 已设置30分钟后进行下一次夜间自动卖出检查")
+                
+        except Exception as e:
+            self.logger.error(f"❌ 调度夜间自动卖出检查失败: {str(e)}")
+            # 即使出错也要设置下一次检查
+            if self.running and not self.stop_event.is_set():
+                 self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)
 
     def comparison_binance_price(self):
         """设置定时器以在每天23点比较币安价格和当前价格"""
