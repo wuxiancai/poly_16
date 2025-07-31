@@ -806,14 +806,17 @@ class CryptoTrader:
                 chrome_options = Options()
                 chrome_options.debugger_address = "127.0.0.1:9222"
                 chrome_options.add_argument('--disable-dev-shm-usage')
-                
+
+                # 清理旧配置
+                os.system('rm -f ~/ChromeDebug/Default/Preferences')
+                os.system('rm -f ~/ChromeDebug/Singleton*')
+
                 system = platform.system()
                 if system == 'Linux':
                     # 添加与启动脚本一致的所有参数
                     chrome_options.add_argument('--no-sandbox')
                     chrome_options.add_argument('--disable-gpu')
                     chrome_options.add_argument('--disable-software-rasterizer')
-                    chrome_options.add_argument('--disable-dev-shm-usage')
                     chrome_options.add_argument('--disable-background-networking')
                     chrome_options.add_argument('--disable-default-apps')
                     chrome_options.add_argument('--disable-extensions')
@@ -830,6 +833,8 @@ class CryptoTrader:
                     chrome_options.add_argument('--disable-infobars')
                     chrome_options.add_argument('--disable-notifications')
                     chrome_options.add_argument('--test-type')
+                    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
+                    chrome_options.add_experimental_option('useAutomationExtension', False)
 
                 self.driver = webdriver.Chrome(options=chrome_options)
             try:
@@ -1013,7 +1018,11 @@ class CryptoTrader:
                     chrome_options = Options()
                     chrome_options.debugger_address = "127.0.0.1:9222"
                     chrome_options.add_argument('--disable-dev-shm-usage')
-                    
+
+                    # 清理旧配置
+                    os.system('rm -f ~/ChromeDebug/Default/Preferences')
+                    os.system('rm -f ~/ChromeDebug/Singleton*')
+
                     # Linux特定配置
                     if platform.system() == 'Linux':
                         
@@ -1038,6 +1047,8 @@ class CryptoTrader:
                         chrome_options.add_argument('--disable-infobars')
                         chrome_options.add_argument('--disable-notifications')
                         chrome_options.add_argument('--test-type')
+                        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
+                        chrome_options.add_experimental_option('useAutomationExtension', False)
                         
                     self.driver = webdriver.Chrome(options=chrome_options)
                     

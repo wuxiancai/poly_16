@@ -15,6 +15,9 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/chrome_update.log"
+# 清理旧配置
+rm -f ~/ChromeDebug/Default/Preferences
+rm -f ~/ChromeDebug/Singleton*
 
 # 显示使用说明
 show_usage() {
@@ -604,11 +607,12 @@ if command -v google-chrome-stable &> /dev/null; then
         --disable-gpu \
         --disable-software-rasterizer \
         --disable-dev-shm-usage \
+        --disable-extensions \
         --disable-background-networking \
         --disable-default-apps \
-        --disable-extensions \
         --disable-sync \
         --metrics-recording-only \
+        --disable-infobars \
         --no-first-run \
         --disable-session-crashed-bubble \
         --disable-translate \
@@ -617,7 +621,7 @@ if command -v google-chrome-stable &> /dev/null; then
         --disable-renderer-backgrounding \
         --disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins \
         --noerrdialogs \
-        --disable-infobars \
+        
         --disable-notifications \
         --test-type \
         --user-data-dir="$HOME/ChromeDebug" \
