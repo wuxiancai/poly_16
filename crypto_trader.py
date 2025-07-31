@@ -834,9 +834,7 @@ class CryptoTrader:
                     chrome_options.add_argument('--disable-infobars')
                     chrome_options.add_argument('--disable-notifications')
                     chrome_options.add_argument('--test-type')
-                    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
-                    chrome_options.add_experimental_option('useAutomationExtension', False)
-
+                    
                 self.driver = webdriver.Chrome(options=chrome_options)
             try:
                 # 在当前标签页打开URL
@@ -1049,9 +1047,7 @@ class CryptoTrader:
                         chrome_options.add_argument('--disable-infobars')
                         chrome_options.add_argument('--disable-notifications')
                         chrome_options.add_argument('--test-type')
-                        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
-                        chrome_options.add_experimental_option('useAutomationExtension', False)
-
+                        
                     self.driver = webdriver.Chrome(options=chrome_options)
                     
                     # 验证连接
