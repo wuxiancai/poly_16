@@ -1822,7 +1822,7 @@ class CryptoTrader:
             self.logger.info("\033[31m❌ 刷新状态已停止\033[0m")
  
     def First_trade(self, up_price, down_price):
-        """第一次交易价格设置为 0.52 买入,最多重试3次,失败发邮件"""
+        """第一次交易价格设置为 0.54 买入,最多重试3次,失败发邮件"""
         try:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):
                 yes1_price = float(self.yes1_price_entry.get())
@@ -3281,7 +3281,7 @@ class CryptoTrader:
         
         # 设置定时器
         self.set_yes1_no1_default_target_price_timer = self.root.after(int(wait_time), lambda: self.set_yes1_no1_default_target_price())
-        self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后开始设置 YES1/NO1 价格为52")
+        self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后开始设置 YES1/NO1 价格为54")
 
     def on_auto_find_time_changed(self, event=None):
         """当时间选择改变时的处理函数"""
@@ -3557,7 +3557,7 @@ class CryptoTrader:
                         self.logger.info(f"✅ 成功获取URL: {new_url}")
                         time.sleep(8)
 
-                        # 这里如果价格是 52,那么会触发自动交易
+                        # 这里如果价格是 54,那么会触发自动交易
                         if self.trading == True:
                             time.sleep(5)
                             
