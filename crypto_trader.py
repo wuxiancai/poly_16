@@ -796,8 +796,8 @@ class CryptoTrader:
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
         # 11.启动夜间自动卖出检查（每30分钟检查一次）
-        #self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
-        #self.logger.info("\033[34m✅ 45秒后启动夜间自动卖出检查!\033[0m")
+        self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
+        
         
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -1831,7 +1831,7 @@ class CryptoTrader:
                         self.logger.error(f"取消旧定时器失败")
             finally:
                 self.refresh_page_timer = self.root.after(self.refresh_interval, self.refresh_page)
-                #self.logger.info(f"\033[34m{round(refresh_time, 2)} 分钟后再次刷新\033[0m")
+                self.logger.info(f"\033[34m{round(refresh_time, 2)} 分钟后再次刷新\033[0m")
 
     def stop_refresh_page(self):
         """停止页面刷新"""
@@ -3107,7 +3107,7 @@ class CryptoTrader:
         try:
             hostname = socket.gethostname()
             sender = 'huacaihuijin@126.com'
-            receiver = 'huacaihuijin@126.com'
+            receiver = '2049330@qq.com'
             app_password = 'PUaRF5FKeKJDrYH7'
             
             # 获取交易币对信息
@@ -3335,12 +3335,13 @@ class CryptoTrader:
             self.no1_price_entry.delete(0, tk.END)
             self.no1_price_entry.insert(0, "54")
             self.no1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ 设置UP1价格为54成功")
         else:
             self.yes1_price_entry.delete(0, tk.END)
             self.yes1_price_entry.insert(0, "54")
             self.yes1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ 设置DOWN1价格为54成功")
 
-        self.logger.info(f"\033[34m✅ 设置价格54成功\033[0m")
         self.close_windows()
         
         # 价格设置完成后，重新安排下一次的价格设置定时任务
@@ -4059,11 +4060,11 @@ class CryptoTrader:
             now = datetime.now()
             current_hour = now.hour
             
-            # 检查是否在1点到6点之间（包含1点，不包含6点）
-            if 1 <= current_hour < 6:
-                self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-06:00)内")
+            # 检查是否在1点到6点之间（包含1点，不包含8点）
+            if 1 <= current_hour < 8:
+                self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
                 
-                # 检查交易次数是否小于等于10
+                # 检查交易次数是否小于等于11
                 if self.trade_count <= 11:
                     self.logger.info(f"✅ 交易次数 {self.trade_count} <= 11,执行夜间自动卖出仓位")
                     
@@ -4071,10 +4072,10 @@ class CryptoTrader:
                     try:
                         if find_position_label_up():
                             self.only_sell_up()
-
+                            self.logger.info(f"✅ 夜间自动卖出UP执行完成")
                         if find_position_label_down():
                             self.only_sell_down()
-                        self.logger.info(f"✅ 夜间自动卖出YES/NO执行完成")
+                            self.logger.info(f"✅ 夜间自动卖出DOWN执行完成")
 
                         # 设置 YES1-4/NO1-4 价格为 0
                         for i in range(1,6):  # 1-5
@@ -4096,12 +4097,12 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "54")
                             self.no1_price_entry.configure(foreground='red')
+                            self.logger.info(f"\033[34m✅ 设置UP1价格54成功\033[0m")
                         else:
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, "54")
                             self.yes1_price_entry.configure(foreground='red')
-
-                        self.logger.info(f"\033[34m✅ 设置YES1/NO1价格54成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 设置DOWN1价格54成功\033[0m")
 
                         # 交易次数恢复到初始值
                         self.trade_count = 22
@@ -4124,6 +4125,7 @@ class CryptoTrader:
         调度夜间自动卖出检查
         每30分钟执行一次检查
         """
+        self.logger.info("\033[34m✅ 启动夜间自动卖出检查!\033[0m")
         try:
             # 执行夜间自动卖出检查
             self.night_auto_sell_check()
