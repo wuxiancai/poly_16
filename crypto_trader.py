@@ -4165,7 +4165,6 @@ class CryptoTrader:
             if self.running and not self.stop_event.is_set():
                  self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)
 
-    
 if __name__ == "__main__":
     try:
         # 打印启动参数，用于调试
