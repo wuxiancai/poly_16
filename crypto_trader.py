@@ -3946,6 +3946,18 @@ class CryptoTrader:
         coin_form_websocket = selected_coin.lower() + 'usdt'
         # 获取币安价格
         ws_url = f"wss://stream.binance.com:9443/ws/{coin_form_websocket}@ticker"
+        
+        # 添加连接状态跟踪
+        connection_attempts = 0
+        first_connection = True
+
+        def on_open(ws):
+            nonlocal connection_attempts, first_connection
+            if first_connection:
+                self.logger.info(f"✅ WebSocket 连接成功建立 - {coin_form_websocket.upper()}")
+                first_connection = False
+            else:
+                self.logger.info(f"🔄 WebSocket 重连成功 - {coin_form_websocket.upper()} (第{connection_attempts}次重连)")
 
         def on_message(ws, message):
             try:
@@ -3984,13 +3996,24 @@ class CryptoTrader:
             self.logger.info("WebSocket 连接已关闭")
 
         def run_ws():
+            nonlocal connection_attempts
             while self.running and not self.stop_event.is_set():
                 try:
-                    ws = websocket.WebSocketApp(ws_url, on_message=on_message, on_error=on_error, on_close=on_close)
+                    if connection_attempts > 0:
+                        self.logger.info(f"🔄 尝试重连 WebSocket - {coin_form_websocket.upper()} (第{connection_attempts}次)")
+                    
+                    ws = websocket.WebSocketApp(ws_url, 
+                                              on_open=on_open,
+                                              on_message=on_message, 
+                                              on_error=on_error, 
+                                              on_close=on_close)
                     ws.run_forever()
                 except Exception as e:
                     self.logger.warning(f"WebSocket 主循环异常: {e}")
-                time.sleep(5)  # 出错后延迟重连
+                
+                connection_attempts += 1
+                if self.running and not self.stop_event.is_set():
+                    time.sleep(5)  # 出错后延迟重连
 
         self.ws_thread = threading.Thread(target=run_ws, daemon=True)
         self.ws_thread.start()
@@ -4117,8 +4140,6 @@ class CryptoTrader:
                         
                 else:
                     self.logger.info(f"ℹ️ 交易次数 {self.trade_count} > 11，不执行夜间自动卖出")
-            else:
-                self.logger.info(f"ℹ️ 当前时间 {now.strftime('%H:%M:%S')} 不在夜间时段(01:00-06:00)内，不执行夜间自动卖出")
                 
         except Exception as e:
             self.logger.error(f"❌ 夜间自动卖出检查失败: {str(e)}")
@@ -4136,7 +4157,7 @@ class CryptoTrader:
             # 设置下一次检查（30分钟后）
             if self.running and not self.stop_event.is_set():
                 self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)  # 30分钟 = 30 * 60 * 1000毫秒
-                self.logger.info("✅ 已设置30分钟后进行下一次夜间自动卖出检查")
+                #self.logger.info("✅ 已设置30分钟后进行下一次夜间自动卖出检查")
                 
         except Exception as e:
             self.logger.error(f"❌ 调度夜间自动卖出检查失败: {str(e)}")
