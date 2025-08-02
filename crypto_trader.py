@@ -4080,7 +4080,7 @@ class CryptoTrader:
             
             # 检查是否在1点到6点之间（包含1点，不包含8点）
             if 1 <= current_hour < 8:
-                self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
+                #self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
                 
                 # 检查交易次数是否小于等于11
                 if self.trade_count <= 11:
@@ -4144,7 +4144,7 @@ class CryptoTrader:
         调度夜间自动卖出检查
         每30分钟执行一次检查
         """
-        self.logger.info("\033[34m✅ 启动夜间自动卖出检查!\033[0m")
+        #self.logger.info("\033[34m✅ 启动夜间自动卖出检查!\033[0m")
         try:
             # 执行夜间自动卖出检查
             self.night_auto_sell_check()
