@@ -32,7 +32,7 @@ import logging
 from xpath_config import XPathConfig
 import random
 import websocket
-
+import subprocess
 
 class Logger:
     def __init__(self, name):
@@ -797,6 +797,9 @@ class CryptoTrader:
         
         # 11.启动夜间自动卖出检查（每30分钟检查一次）
         self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
+        
+        # 12.启动自动Swap检查（每30分钟检查一次）
+        self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -935,9 +938,6 @@ class CryptoTrader:
         # 彻底关闭所有Chrome进程
         if force_restart:
             try:
-                import platform
-                import subprocess
-                
                 system = platform.system()
                 if system == "Windows":
                     subprocess.run("taskkill /f /im chrome.exe", shell=True)
@@ -1210,6 +1210,11 @@ class CryptoTrader:
             if hasattr(self,'night_auto_sell_timer') and self.night_auto_sell_timer:
                 self.root.after_cancel(self.night_auto_sell_timer)
             self.schedule_night_auto_sell_check()
+            
+            # 9.重新启动自动Swap检查
+            if hasattr(self,'auto_use_swap_timer') and self.auto_use_swap_timer:
+                self.root.after_cancel(self.auto_use_swap_timer)
+            self.schedule_auto_use_swap()
             
             # 智能恢复时间敏感类定时器
             current_time = datetime.now()
@@ -4159,6 +4164,123 @@ class CryptoTrader:
             # 即使出错也要设置下一次检查
             if self.running and not self.stop_event.is_set():
                  self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)
+
+    def auto_use_swap(self):
+        """
+        自动Swap管理功能
+        当系统可用内存少于400MB时自动启动swap
+        """
+        try:
+            # 检查操作系统，只在Linux系统上执行
+            if platform.system() != 'Linux':
+                self.logger.debug("🔍 非Linux系统，跳过Swap检查")
+                return
+            
+            # 设置触发阈值（单位：KB）
+            THRESHOLD_KB = 400 * 1024  # 400MB
+            
+            # 检查当前是否已有swap
+            try:
+                result = subprocess.run(['swapon', '--noheadings', '--show'], 
+                                      capture_output=True, text=True, timeout=10)
+                if '/swapfile' in result.stdout:
+                    self.logger.debug("🔍 Swap已启用，跳过配置")
+                    return
+            except Exception as e:
+                self.logger.warning(f"检查Swap状态失败: {e}")
+            
+            # 获取当前可用内存（单位：KB）
+            try:
+                with open('/proc/meminfo', 'r') as f:
+                    for line in f:
+                        if line.startswith('MemAvailable:'):
+                            available_kb = int(line.split()[1])
+                            break
+                    else:
+                        self.logger.warning("无法获取MemAvailable信息")
+                        return
+                        
+                available_mb = available_kb // 1024
+                self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
+                
+                # 判断是否小于阈值
+                if available_kb < THRESHOLD_KB:
+                    self.logger.info(f"⚠️ 可用内存低于400MB，开始创建Swap...")
+                    
+                    # 创建swap文件
+                    commands = [
+                        ['sudo', 'fallocate', '-l', '2G', '/swapfile'],
+                        ['sudo', 'chmod', '600', '/swapfile'],
+                        ['sudo', 'mkswap', '/swapfile'],
+                        ['sudo', 'swapon', '/swapfile']
+                    ]
+                    
+                    for cmd in commands:
+                        try:
+                            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                            if result.returncode != 0:
+                                self.logger.error(f"命令执行失败: {' '.join(cmd)}, 错误: {result.stderr}")
+                                return
+                        except subprocess.TimeoutExpired:
+                            self.logger.error(f"命令执行超时: {' '.join(cmd)}")
+                            return
+                        except Exception as e:
+                            self.logger.error(f"命令执行异常: {' '.join(cmd)}, 错误: {e}")
+                            return
+                    
+                    # 检查/etc/fstab中是否已有swap配置
+                    try:
+                        with open('/etc/fstab', 'r') as f:
+                            fstab_content = f.read()
+                        
+                        if '/swapfile' not in fstab_content:
+                            # 添加开机自动挂载
+                            subprocess.run(['sudo', 'sh', '-c', 
+                                          'echo "/swapfile none swap sw 0 0" >> /etc/fstab'], 
+                                         timeout=10)
+                            self.logger.info("✅ 已添加Swap到/etc/fstab")
+                    except Exception as e:
+                        self.logger.warning(f"配置/etc/fstab失败: {e}")
+                    
+                    # 调整swappiness
+                    try:
+                        subprocess.run(['sudo', 'sysctl', 'vm.swappiness=10'], timeout=10)
+                        subprocess.run(['sudo', 'sh', '-c', 
+                                      'echo "vm.swappiness=10" >> /etc/sysctl.conf'], 
+                                     timeout=10)
+                        self.logger.info("✅ 已调整vm.swappiness=10")
+                    except Exception as e:
+                        self.logger.warning(f"调整swappiness失败: {e}")
+                    
+                    self.logger.info("🎉 Swap启用完成，共2GB")
+                    
+                else:
+                    self.logger.debug(f"✅ 当前可用内存{available_mb}MB大于400MB，暂不启用Swap")
+                    
+            except Exception as e:
+                self.logger.error(f"获取内存信息失败: {e}")
+                
+        except Exception as e:
+            self.logger.error(f"❌ 自动Swap管理失败: {str(e)}")
+
+    def schedule_auto_use_swap(self):
+        """
+        调度自动Swap检查
+        每30分钟执行一次检查
+        """
+        try:
+            # 执行Swap检查
+            self.auto_use_swap()
+            
+            # 设置下一次检查（30分钟后）
+            if self.running:
+                self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
+                
+        except Exception as e:
+            self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
+            # 即使出错也要设置下一次检查
+            if self.running:
+                self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)
 
 if __name__ == "__main__":
     try:
