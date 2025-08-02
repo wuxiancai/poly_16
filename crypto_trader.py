@@ -1828,7 +1828,7 @@ class CryptoTrader:
                         self.logger.error(f"取消旧定时器失败")
             finally:
                 self.refresh_page_timer = self.root.after(self.refresh_interval, self.refresh_page)
-                self.logger.info(f"\033[34m{round(refresh_time, 2)} 分钟后再次刷新\033[0m")
+                #self.logger.info(f"\033[34m{round(refresh_time, 2)} 分钟后再次刷新\033[0m")
 
     def stop_refresh_page(self):
         """停止页面刷新"""
