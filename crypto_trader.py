@@ -4184,7 +4184,12 @@ class CryptoTrader:
                 result = subprocess.run(['swapon', '--noheadings', '--show'], 
                                       capture_output=True, text=True, timeout=10)
                 if '/swapfile' in result.stdout:
-                    self.logger.debug("🔍 Swap已启用，跳过配置")
+                    self.logger.info("✅ Swap已启用，停止定时检查")
+                    # 取消定时器，停止继续检查
+                    if hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer:
+                        self.root.after_cancel(self.auto_use_swap_timer)
+                        self.auto_use_swap_timer = None
+                        self.logger.info("🛑 已停止自动Swap检查定时器")
                     return
             except Exception as e:
                 self.logger.warning(f"检查Swap状态失败: {e}")
@@ -4201,7 +4206,7 @@ class CryptoTrader:
                         return
                         
                 available_mb = available_kb // 1024
-                self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
+                #self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
                 
                 # 判断是否小于阈值
                 if available_kb < THRESHOLD_KB:
@@ -4254,9 +4259,6 @@ class CryptoTrader:
                     
                     self.logger.info("🎉 Swap启用完成，共2GB")
                     
-                else:
-                    self.logger.debug(f"✅ 当前可用内存{available_mb}MB大于400MB，暂不启用Swap")
-                    
             except Exception as e:
                 self.logger.error(f"获取内存信息失败: {e}")
                 
@@ -4272,14 +4274,16 @@ class CryptoTrader:
             # 执行Swap检查
             self.auto_use_swap()
             
-            # 设置下一次检查（30分钟后）
-            if self.running:
+            # 只有在定时器未被取消的情况下才设置下一次检查
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
                 self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
                 
         except Exception as e:
             self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
-            # 即使出错也要设置下一次检查
-            if self.running:
+            # 即使出错也要设置下一次检查（但要检查定时器状态）
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
                 self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)
 
 if __name__ == "__main__":
