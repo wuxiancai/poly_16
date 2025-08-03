@@ -3331,7 +3331,7 @@ class CryptoTrader:
     
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
-        # 设置价格为默认价格前再次获取 CASH 值
+        
         self.no1_price_entry.delete(0, tk.END)
         self.no1_price_entry.insert(0, "54")
         self.no1_price_entry.configure(foreground='red')
