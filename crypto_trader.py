@@ -3822,7 +3822,7 @@ class CryptoTrader:
         finally:
             # 计算下一个00:10的时间
             now = datetime.now()
-            tomorrow = now.replace(hour=0, minute=10, second=0, microsecond=0) + timedelta(days=1)
+            tomorrow = now.replace(hour=0, minute=20, second=0, microsecond=0) + timedelta(days=1)
             seconds_until_midnight = (tomorrow - now).total_seconds()
 
             # 取消已有的定时器（如果存在）
@@ -4083,22 +4083,33 @@ class CryptoTrader:
             now = datetime.now()
             current_hour = now.hour
             
-            # 检查是否在1点到6点之间（包含1点，不包含8点）
-            if 1 <= current_hour < 8:
+            # 检查是否在1点到8点之间（包含1点，不包含8点）
+            if 1 <= current_hour <= 8:
                 #self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
                 
-                # 检查交易次数是否小于等于11
-                if self.trade_count <= 11:
-                    self.logger.info(f"✅ 交易次数 {self.trade_count} <= 11,执行夜间自动卖出仓位")
+                # 检查交易次数是否小于等于9
+                if self.trade_count <= 9:
+                    self.logger.info(f"✅ 交易次数 {self.trade_count} <= 9,执行夜间自动卖出仓位")
                     
                     # 执行卖出仓位操作
                     try:
                         if find_position_label_up():
-                            self.only_sell_up()
-                            self.logger.info(f"✅ 夜间自动卖出UP执行完成")
+                            up_price_text = self.yes_price_label.cget("text")
+                            match = re.search(r'[-+]?\d+(?:\.\d+)?', up_price_text)
+                            if match:
+                                up_price = float(match.group())
+                                if up_price <= 60:
+                                    self.only_sell_up()
+                                    self.logger.info(f"✅ 夜间自动卖出UP执行完成")
+
                         if find_position_label_down():
-                            self.only_sell_down()
-                            self.logger.info(f"✅ 夜间自动卖出DOWN执行完成")
+                            down_price_text = self.no_price_label.cget("text")
+                            match = re.search(r'[-+]?\d+(?:\.\d+)?', down_price_text)
+                            if match:
+                                down_price = float(match.group())
+                                if down_price <= 60:
+                                    self.only_sell_down()
+                                self.logger.info(f"✅ 夜间自动卖出DOWN执行完成")
 
                         # 设置 YES1-4/NO1-4 价格为 0
                         for i in range(1,6):  # 1-5
@@ -4115,20 +4126,15 @@ class CryptoTrader:
                                 no_entry.configure(foreground='black')
 
                         # 设置 YES1/NO1 价格为默认值
-                        up_price_text = self.yes_price_label.cget("text")
-                        match = re.search(r'[-+]?\d*\.?\d+', up_price_text)
-                        if match:
-                            up_price = float(match.group())
-                            if up_price > 53:
-                                self.no1_price_entry.delete(0, tk.END)
-                                self.no1_price_entry.insert(0, "54")
-                                self.no1_price_entry.configure(foreground='red')
-                                self.logger.info(f"\033[34m✅ 设置UP1价格54成功\033[0m")
-                            else:
-                                self.yes1_price_entry.delete(0, tk.END)
-                                self.yes1_price_entry.insert(0, "54")
-                                self.yes1_price_entry.configure(foreground='red')
-                                self.logger.info(f"\033[34m✅ 设置DOWN1价格54成功\033[0m")
+                        self.no1_price_entry.delete(0, tk.END)
+                        self.no1_price_entry.insert(0, "54")
+                        self.no1_price_entry.configure(foreground='red')
+                        self.logger.info(f"\033[34m✅ 设置UP1价格54成功\033[0m")
+                    
+                        self.yes1_price_entry.delete(0, tk.END)
+                        self.yes1_price_entry.insert(0, "54")
+                        self.yes1_price_entry.configure(foreground='red')
+                        self.logger.info(f"\033[34m✅ 设置DOWN1价格54成功\033[0m")
 
                         # 交易次数恢复到初始值
                         self.trade_count = 22
