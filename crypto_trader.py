@@ -33,6 +33,7 @@ from xpath_config import XPathConfig
 import random
 import websocket
 import subprocess
+import shutil
 
 class Logger:
     def __init__(self, name):
@@ -802,7 +803,7 @@ class CryptoTrader:
         self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
 
         # 13.启动自动清除缓存
-        self.clear_chrome_mem_cache_timer = self.root.after(120000, self.clear_chrome_mem_cache)
+        self.clear_chrome_mem_cache_timer = self.root.after(120000, self.schedule_clear_chrome_mem_cache)
            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -4222,7 +4223,7 @@ class CryptoTrader:
                         self.logger.warning("无法获取MemAvailable信息")
                         return
                         
-                available_mb = available_kb // 1024
+                #available_mb = available_kb // 1024
                 #self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
                 
                 # 判断是否小于阈值
@@ -4295,7 +4296,7 @@ class CryptoTrader:
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
                 self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
-                
+            
         except Exception as e:
             self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
             # 即使出错也要设置下一次检查（但要检查定时器状态）
@@ -4303,18 +4304,59 @@ class CryptoTrader:
                 hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
                 self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)
 
-    def clear_chrome_mem_cache():
+    def schedule_clear_chrome_mem_cache(self):
+        """
+        调度清除Chrome内存缓存
+        每30分钟执行一次检查
+        """
+        try:
+            # 执行清除内存缓存
+            self.clear_chrome_mem_cache()
+            
+            # 只有在定时器未被取消的情况下才设置下一次检查
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
+                self.clear_chrome_mem_cache_timer = self.root.after(30 * 60 * 1000, self.schedule_clear_chrome_mem_cache)  # 30分钟 = 30 * 60 * 1000毫秒
+            
+        except Exception as e:
+            self.logger.error(f"❌ 调度清除Chrome内存缓存失败: {str(e)}")
+            # 即使出错也要设置下一次检查（但要检查定时器状态）
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
+                self.clear_chrome_mem_cache_timer = self.root.after(30 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
+
+    def clear_chrome_mem_cache(self):
         # 关闭所有 Chrome 和 chromedriver 进程
-        system = platform.system()
-        if system == "Windows":
-            subprocess.run("taskkill /f /im chrome.exe", shell=True)
-            subprocess.run("taskkill /f /im chromedriver.exe", shell=True)
-        elif system == "Darwin":  # macOS
-            subprocess.run("pkill -9 'Google Chrome'", shell=True)
-            subprocess.run("pkill -9 chromedriver", shell=True)
-        else:  # Linux
-            subprocess.run("pkill -9 chrome", shell=True)
-            subprocess.run("pkill -9 chromedriver", shell=True)
+        # 设置触发阈值（单位：KB）
+        THRESHOLD_KB = 200 * 1024  # 200MB
+
+        # 获取当前可用内存（单位：KB）
+        try:
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    if line.startswith('MemAvailable:'):
+                        available_kb = int(line.split()[1])
+                        break
+                else:
+                    self.logger.warning("无法获取MemAvailable信息")
+                    return
+            
+            # 判断是否小于阈值
+            if available_kb < THRESHOLD_KB:
+                self.logger.info(f"\033[31m可用内存低于{THRESHOLD_KB / 1024}MB,重启 CHROME\033[0m")
+
+                system = platform.system()
+                if system == "Windows":
+                    subprocess.run("taskkill /f /im chrome.exe", shell=True)
+                    subprocess.run("taskkill /f /im chromedriver.exe", shell=True)
+                elif system == "Darwin":  # macOS
+                    subprocess.run("pkill -9 'Google Chrome'", shell=True)
+                    subprocess.run("pkill -9 chromedriver", shell=True)
+                else:  # Linux
+                    subprocess.run("pkill -9 chrome", shell=True)
+                    subprocess.run("pkill -9 chromedriver", shell=True)
+        except Exception as e:
+            self.logger.error(f"❌ 关闭Chrome进程失败: {str(e)}")
 
         # 删除真正的缓存文件夹：Cache/Cache_Data
         cache_data_path = os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data")
@@ -4323,9 +4365,6 @@ class CryptoTrader:
             print("✅ 已删除 Cache_Data 缓存")
         else:
             print("ℹ️ 未找到 Cache_Data 缓存目录")
-
-        # 每天凌晨 0:40 执行
-        schedule.every().day.at("00:40").do(clear_chrome_mem_cache)
 
 if __name__ == "__main__":
     try:
