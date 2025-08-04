@@ -800,6 +800,9 @@ class CryptoTrader:
         
         # 12.启动自动Swap检查（每30分钟检查一次）
         self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
+
+        # 13.启动自动清除缓存
+        self.clear_chrome_mem_cache_timer = self.root.after(120000, self.clear_chrome_mem_cache)
            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -1215,6 +1218,11 @@ class CryptoTrader:
             if hasattr(self,'auto_use_swap_timer') and self.auto_use_swap_timer:
                 self.root.after_cancel(self.auto_use_swap_timer)
             self.schedule_auto_use_swap()
+            
+            # 重新启动自动清除缓存
+            if hasattr(self,'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer:
+                self.root.after_cancel(self.clear_chrome_mem_cache_timer)
+            self.clear_chrome_mem_cache()
             
             # 智能恢复时间敏感类定时器
             current_time = datetime.now()
@@ -3784,7 +3792,7 @@ class CryptoTrader:
         # 清除 SWAP
         os.system("sudo swapoff -a")
         os.system("sudo swapon -a")
-        
+
         try:
             # 获取零点CASH值
             try:
@@ -4186,7 +4194,7 @@ class CryptoTrader:
                 return
             
             # 设置触发阈值（单位：KB）
-            THRESHOLD_KB = 400 * 1024  # 400MB
+            THRESHOLD_KB = 200 * 1024  # 200MB
             
             # 检查当前是否已有swap
             try:
@@ -4294,6 +4302,30 @@ class CryptoTrader:
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
                 self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)
+
+    def clear_chrome_mem_cache():
+        # 关闭所有 Chrome 和 chromedriver 进程
+        system = platform.system()
+        if system == "Windows":
+            subprocess.run("taskkill /f /im chrome.exe", shell=True)
+            subprocess.run("taskkill /f /im chromedriver.exe", shell=True)
+        elif system == "Darwin":  # macOS
+            subprocess.run("pkill -9 'Google Chrome'", shell=True)
+            subprocess.run("pkill -9 chromedriver", shell=True)
+        else:  # Linux
+            subprocess.run("pkill -9 chrome", shell=True)
+            subprocess.run("pkill -9 chromedriver", shell=True)
+
+        # 删除真正的缓存文件夹：Cache/Cache_Data
+        cache_data_path = os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data")
+        if os.path.exists(cache_data_path):
+            shutil.rmtree(cache_data_path)
+            print("✅ 已删除 Cache_Data 缓存")
+        else:
+            print("ℹ️ 未找到 Cache_Data 缓存目录")
+
+        # 每天凌晨 0:40 执行
+        schedule.every().day.at("00:40").do(clear_chrome_mem_cache)
 
 if __name__ == "__main__":
     try:
