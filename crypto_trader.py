@@ -3378,7 +3378,6 @@ class CryptoTrader:
     def find_54_coin(self, coin_type, retry_count=0):
         """自动找币"""
         self.logger.info("✅ 开始自动找币")
-
         # 设置 YES1/NO1价格为 0
         self.yes1_price_entry.configure(foreground='black')
         self.yes1_price_entry.delete(0, tk.END)
@@ -3782,6 +3781,10 @@ class CryptoTrader:
         self.trade_count = 22
         self.trade_count_label.config(text=str(self.trade_count))
 
+        # 清除 SWAP
+        os.system("sudo swapoff -a")
+        os.system("sudo swapon -a")
+        
         try:
             # 获取零点CASH值
             try:
