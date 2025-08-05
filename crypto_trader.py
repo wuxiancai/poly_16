@@ -800,7 +800,7 @@ class CryptoTrader:
         self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
         
         # 12.启动自动Swap检查（每30分钟检查一次）
-        #self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
+        self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
 
         # 13.启动自动清除缓存
         self.clear_chrome_mem_cache_timer = self.root.after(120000, self.schedule_clear_chrome_mem_cache)
@@ -4310,14 +4310,14 @@ class CryptoTrader:
             # 只有在定时器未被取消的情况下才设置下一次检查
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
-                self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
+                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
             
         except Exception as e:
             self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
             # 即使出错也要设置下一次检查（但要检查定时器状态）
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
-                self.auto_use_swap_timer = self.root.after(30 * 60 * 1000, self.schedule_auto_use_swap)
+                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)
 
     def schedule_clear_chrome_mem_cache(self):
         """
