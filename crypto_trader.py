@@ -1265,7 +1265,9 @@ class CryptoTrader:
             if not self.restart_browser(force_restart=True):
                 self.logger.error("浏览器重启失败，跳过本次检查")
                 return
-
+        if self.driver is None:
+            return
+            
         try:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
@@ -1429,7 +1431,9 @@ class CryptoTrader:
         if not self.driver and not self.is_restarting:
             self.restart_browser(force_restart=True)
             return
-
+        if self.driver is None:
+            return
+            
         try:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
@@ -1575,6 +1579,9 @@ class CryptoTrader:
     
     def start_url_monitoring(self):
         """启动URL监控"""
+        if self.driver is None:
+            return
+            
         with self.url_monitoring_lock:
             if getattr(self, 'is_url_monitoring', False):
                 self.logger.debug("URL监控已在运行中")
@@ -1627,6 +1634,7 @@ class CryptoTrader:
 
     def stop_url_monitoring(self):
         """停止URL监控"""
+        
         with self.url_monitoring_lock:
             # 检查是否有正在运行的URL监控
             if not hasattr(self, 'url_monitoring_running') or not self.url_monitoring_running:
@@ -1650,7 +1658,8 @@ class CryptoTrader:
         """监控登录状态"""
         if not self.driver and not self.is_restarting:
             self.restart_browser(force_restart=True)
-
+        if self.driver is None:
+            return
         # 检查是否已经登录
         try:
             # 查找登录按钮
@@ -3850,6 +3859,9 @@ class CryptoTrader:
     
     def get_binance_zero_time_price(self):
         """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""
+        if self.driver is None:
+            return
+            
         # 先把所有 YES/NO 价格设置为 0
         for i in range(1,6):  # 1-5
             yes_entry = getattr(self, f'yes{i}_price_entry', None)
@@ -3953,6 +3965,9 @@ class CryptoTrader:
     
     def get_binance_price_websocket(self):
         """获取币安价格,并计算上涨或下跌幅度"""
+        if self.driver is None:
+            return
+            
         # 获取币种信息
         selected_coin = self.coin_combobox.get()
         coin_form_websocket = selected_coin.lower() + 'usdt'
