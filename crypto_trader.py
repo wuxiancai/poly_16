@@ -138,7 +138,7 @@ class CryptoTrader:
         self.reset_trade_count = 0
 
         # 买入价格冗余
-        self.price_premium = 10 # 不修改
+        self.price_premium = 6 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
@@ -4238,7 +4238,7 @@ class CryptoTrader:
                         self.logger.warning("无法获取MemAvailable信息")
                         return
                         
-                #available_mb = available_kb // 1024
+                available_mb = available_kb // 1024
                 #self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
                 
                 # 判断是否小于阈值
@@ -4322,7 +4322,7 @@ class CryptoTrader:
     def schedule_clear_chrome_mem_cache(self):
         """
         调度清除Chrome内存缓存
-        每30分钟执行一次检查
+        每60分钟执行一次检查
         """
         try:
             # 执行清除内存缓存
@@ -4331,19 +4331,19 @@ class CryptoTrader:
             # 只有在定时器未被取消的情况下才设置下一次检查
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
-                self.clear_chrome_mem_cache_timer = self.root.after(30 * 60 * 1000, self.schedule_clear_chrome_mem_cache)  # 30分钟 = 30 * 60 * 1000毫秒
+                self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)  # 60分钟 = 60 * 60 * 1000毫秒
             
         except Exception as e:
             self.logger.error(f"❌ 调度清除Chrome内存缓存失败: {str(e)}")
             # 即使出错也要设置下一次检查（但要检查定时器状态）
             if (self.running and not self.stop_event.is_set() and 
                 hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
-                self.clear_chrome_mem_cache_timer = self.root.after(30 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
+                self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
 
     def clear_chrome_mem_cache(self):
         # 关闭所有 Chrome 和 chromedriver 进程
         # 设置触发阈值（单位：KB）
-        THRESHOLD_KB = 200 * 1024  # 200MB
+        THRESHOLD_KB = 300 * 1024  # 300MB
 
         # 获取当前可用内存（单位：KB）
         try:
@@ -4359,7 +4359,7 @@ class CryptoTrader:
             # 判断是否小于阈值
             if available_kb < THRESHOLD_KB:
                 self.logger.info(f"\033[31m可用内存低于{THRESHOLD_KB / 1024}MB,重启 CHROME\033[0m")
-
+                
                 system = platform.system()
                 if system == "Windows":
                     subprocess.run("taskkill /f /im chrome.exe", shell=True)
@@ -4370,16 +4370,27 @@ class CryptoTrader:
                 else:  # Linux
                     subprocess.run("pkill -9 chrome", shell=True)
                     subprocess.run("pkill -9 chromedriver", shell=True)
+
+                    # 发送交易邮件
+                    self.send_trade_email(
+                        trade_type="可用内存低于200MB,已经重启 CHROME!",
+                        price=self.price,
+                        amount=self.amount,
+                        shares=self.shares,
+                        trade_count=self.buy_count,
+                        cash_value=self.cash_value,
+                        portfolio_value=self.portfolio_value
+                    )
+                # 删除真正的缓存文件夹：Cache/Cache_Data
+                cache_data_path = os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data")
+                if os.path.exists(cache_data_path):
+                    shutil.rmtree(cache_data_path)
+                    self.logger.info("✅ 已删除 Cache_Data 缓存")
+                else:
+                    self.logger.info("ℹ️ 未找到 Cache_Data 缓存目录")
+
         except Exception as e:
             self.logger.error(f"❌ 关闭Chrome进程失败: {str(e)}")
-
-        # 删除真正的缓存文件夹：Cache/Cache_Data
-        cache_data_path = os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data")
-        if os.path.exists(cache_data_path):
-            shutil.rmtree(cache_data_path)
-            print("✅ 已删除 Cache_Data 缓存")
-        else:
-            print("ℹ️ 未找到 Cache_Data 缓存目录")
 
 if __name__ == "__main__":
     try:
