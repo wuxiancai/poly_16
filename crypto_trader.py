@@ -800,7 +800,7 @@ class CryptoTrader:
         self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
         
         # 12.启动自动Swap检查（每30分钟检查一次）
-        self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
+        #self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
 
         # 13.启动自动清除缓存
         self.clear_chrome_mem_cache_timer = self.root.after(120000, self.schedule_clear_chrome_mem_cache)
@@ -4373,7 +4373,7 @@ class CryptoTrader:
 
                     # 发送交易邮件
                     self.send_trade_email(
-                        trade_type="可用内存低于200MB,已经重启 CHROME!",
+                        trade_type="可用内存低于300MB,已经重启 CHROME!",
                         price=self.price,
                         amount=self.amount,
                         shares=self.shares,
