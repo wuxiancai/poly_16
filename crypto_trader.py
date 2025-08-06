@@ -775,7 +775,7 @@ class CryptoTrader:
         self.url_check_timer = self.root.after(8000, self.start_url_monitoring)
 
         # 4.启动零点 CASH 监控
-        self.get_zero_time_cash_timer = self.root.after(3000, self.get_zero_time_cash)
+        self.root.after(3000, self.schedule_get_zero_time_cash)
 
         # 5.启动币安零点时价格监控
         self.get_binance_zero_time_price_timer = self.root.after(14000, self.get_binance_zero_time_price)
@@ -790,20 +790,20 @@ class CryptoTrader:
         self.root.after(30000, self.schedule_auto_find_coin)
 
         # 9.启动设置 YES1/NO1价格为 54
-        self.schedule_price_setting_timer = self.root.after(36000, self.schedule_price_setting)
+        self.root.after(36000, self.schedule_price_setting)
         
         # 10.启动页面刷新
         self.refresh_page_timer = self.root.after(40000, self.refresh_page)
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
         # 11.启动夜间自动卖出检查（每30分钟检查一次）
-        self.night_auto_sell_timer = self.root.after(45000, self.schedule_night_auto_sell_check)
+        self.root.after(45000, self.schedule_night_auto_sell_check)
         
         # 12.启动自动Swap检查（每30分钟检查一次）
-        self.auto_use_swap_timer = self.root.after(100000, self.schedule_auto_use_swap)
+        self.root.after(100000, self.schedule_auto_use_swap)
 
         # 13.启动自动清除缓存
-        self.clear_chrome_mem_cache_timer = self.root.after(120000, self.schedule_clear_chrome_mem_cache)
+        self.root.after(120000, self.schedule_clear_chrome_mem_cache)
            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -3779,6 +3779,24 @@ class CryptoTrader:
             self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
             return False
 
+    def schedule_get_zero_time_cash(self):
+        """定时获取零点CASH值"""
+        now = datetime.now()
+        self.logger.info(f"当前时间: {now}")
+        # 计算下一个指定时间的时间点
+        next_run = now.replace(hour=0, minute=5, second=0, microsecond=0)
+        self.logger.info(f"获取 0 点 CASH 值下次执行时间: {next_run}")
+        if now >= next_run:
+            next_run += timedelta(days=1)
+        
+        # 计算等待时间(毫秒)
+        wait_time = (next_run - now).total_seconds() * 1000
+        wait_time_hours = wait_time / 3600000
+        
+        # 设置定时器
+        self.get_zero_time_cash_timer = self.root.after(int(wait_time), self.get_zero_time_cash)
+        self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后,开始获取 0 点 CASH 值")
+
     def get_zero_time_cash(self):
         """获取币安BTC实时价格,并在中国时区00:00触发"""
         # 检查浏览器状态
@@ -3843,7 +3861,7 @@ class CryptoTrader:
         finally:
             # 计算下一个00:10的时间
             now = datetime.now()
-            tomorrow = now.replace(hour=0, minute=20, second=0, microsecond=0) + timedelta(days=1)
+            tomorrow = now.replace(hour=0, minute=10, second=0, microsecond=0) + timedelta(days=1)
             seconds_until_midnight = (tomorrow - now).total_seconds()
 
             # 取消已有的定时器（如果存在）
