@@ -426,7 +426,7 @@ class CryptoTrader:
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
-        self.trade_count_label = ttk.Label(trade_count_frame, text="--", style='Red_bold.TLabel')
+        self.trade_count_label = ttk.Label(trade_count_frame, text="22", style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
 
         # 监控网站配置
