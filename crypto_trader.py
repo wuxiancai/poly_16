@@ -804,6 +804,9 @@ class CryptoTrader:
 
         # 13.启动自动清除缓存
         self.root.after(120000, self.schedule_clear_chrome_mem_cache)
+
+        # 14.获取当前CASH值
+        self.root.after(50000, self.get_cash_value)
            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -3779,6 +3782,44 @@ class CryptoTrader:
             self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
             return False
 
+    def get_cash_value(self):
+        """获取当前CASH值"""
+        for i in range(3):
+            try:
+                # 获取当前CASH值
+                self.logger.info(f"尝试获取CASH值,第 {i + 1} 次")
+                try:
+                    cash_element = self.driver.find_element(By.XPATH, XPathConfig.CASH_VALUE[0])
+                except (NoSuchElementException, StaleElementReferenceException):
+                    cash_element = self._find_element_with_retry(XPathConfig.CASH_VALUE, timeout=2, silent=True)
+                    
+                if cash_element:
+                    cash_value = cash_element.text
+                else:
+                    self.logger.warning("无法找到CASH值元素")
+                    return
+                
+                # 使用正则表达式提取数字
+                cash_match = re.search(r'\$?([\d,]+\.?\d*)', cash_value)
+
+                if not cash_match:
+                    self.logger.error("❌ 无法从Cash值中提取数字")
+                    return
+
+                # 移除逗号并转换为浮点数
+                self.zero_time_cash_value = round(float(cash_match.group(1).replace(',', '')), 2)
+                self.zero_time_cash_label.config(text=f"{self.zero_time_cash_value}")
+                self.logger.info(f"✅ 获取到原始CASH值:\033[34m${self.zero_time_cash_value}\033[0m")
+
+                # 设置 YES/NO 金额,延迟5秒确保数据稳定
+                self.root.after(5000, self.schedule_update_amount)
+                self.logger.info("✅ \033[34m设置 YES/NO 金额成功!\033[0m")
+                return
+            except Exception as e:
+                self.logger.warning(f"⚠️ 第 {i + 1} 次尝试失败: {str(e)}")
+                time.sleep(1)
+        self.logger.error("❌ 获取CASH值失败,已重试3次仍未成功")
+
     def schedule_get_zero_time_cash(self):
         """定时获取零点CASH值"""
         now = datetime.now()
@@ -3816,10 +3857,6 @@ class CryptoTrader:
         # 交易次数恢复到初始值
         self.trade_count = 22
         self.trade_count_label.config(text=str(self.trade_count))
-
-        # 清除 SWAP
-        os.system("sudo swapoff -a")
-        os.system("sudo swapon -a")
 
         try:
             # 获取零点CASH值
