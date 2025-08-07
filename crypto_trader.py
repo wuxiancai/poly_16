@@ -4002,7 +4002,7 @@ class CryptoTrader:
 
         # 设置定时器,每天00:00获取一次币安价格
         now = datetime.now()
-        next_run_time = now.replace(hour=0, minute=0, second=1, microsecond=0)
+        next_run_time = now.replace(hour=0, minute=0, second=59, microsecond=0)
         if now >= next_run_time:
             next_run_time += timedelta(days=1)
 
