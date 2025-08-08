@@ -1102,7 +1102,8 @@ class CryptoTrader:
         """重连浏览器后自动检查并更新URL中的日期"""
         try:
             # 从GUI获取当前监控的URL
-            current_url = self.url_entry.get().strip()
+            new_url = self.url_entry.get().strip()
+            current_url = new_url.split('?', 1)[0].split('#', 1)[0]
             if not current_url:
                 self.logger.info("📅 URL为空,跳过日期检查")
                 return
@@ -3606,7 +3607,8 @@ class CryptoTrader:
                         WebDriverWait(self.driver, 40).until(EC.url_contains('/event/'))
                         
                         # 获取当前URL
-                        new_url = self.driver.current_url
+                        new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
+                       
                         self.logger.info(f"✅ 成功获取URL: {new_url}")
                         time.sleep(8)
 
