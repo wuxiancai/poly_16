@@ -3408,6 +3408,10 @@ class CryptoTrader:
         self.no1_price_entry.delete(0, tk.END)
         self.no1_price_entry.insert(0, "0")
 
+        # 交易次数恢复到初始值
+        self.trade_count = 22
+        self.trade_count_label.config(text=str(self.trade_count))
+
         if retry_count > 0:
             self.logger.info(f"这是第 {retry_count}/5 次重试")
             
@@ -3678,7 +3682,9 @@ class CryptoTrader:
                                     self.restart_browser(force_restart=True)
                             
                             self.logger.info(f"✅ find_new_weekly_url return:{new_url}")
+                            
                             return new_url
+
                     except Exception as e:
                         self.logger.error(f"处理新标签页时出错: {str(e)}")
                         # 尝试安全关闭所有新打开的标签页
@@ -3855,10 +3861,6 @@ class CryptoTrader:
         if self.find_position_label_up():
             self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
             self.only_sell_up()
-
-        # 交易次数恢复到初始值
-        self.trade_count = 22
-        self.trade_count_label.config(text=str(self.trade_count))
 
         try:
             # 获取零点CASH值
