@@ -3430,7 +3430,7 @@ class CryptoTrader:
             if daily_button:
                 daily_button.click()
 
-            # 第三步:点击目标 URL 按钮
+            # 第三步:点击目标 URL 按钮,在当前页面打开 URL
             self.click_today_card()
             
             # 第四步:获取当前 URL并保存到 GUI 和配置文件中
