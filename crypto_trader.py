@@ -3515,9 +3515,9 @@ class CryptoTrader:
                 card.click()
                 self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
                 return True
-
-            self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
-            return False
+            else:
+                self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
+                return False
 
         except Exception as e:
             self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
