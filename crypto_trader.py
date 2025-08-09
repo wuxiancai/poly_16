@@ -3382,9 +3382,11 @@ class CryptoTrader:
         """安排每天指定时间执行自动找币"""
         now = datetime.now()
         self.logger.info(f"当前时间: {now}")
+
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=0, minute=1, second=0, microsecond=0)
+        next_run = now.replace(hour=22, minute=30, second=0, microsecond=0)
         self.logger.info(f"自动找币下次执行时间: {next_run}")
+
         if now >= next_run:
             next_run += timedelta(days=1)
         
@@ -3393,349 +3395,67 @@ class CryptoTrader:
         wait_time_hours = wait_time / 3600000
         
         # 设置定时器
-        selected_coin = self.coin_combobox.get()
-        self.schedule_auto_find_coin_timer = self.root.after(int(wait_time), lambda: self.find_54_coin(selected_coin))
+        self.schedule_auto_find_coin_timer = self.root.after(int(wait_time), lambda: self.find_54_coin())
         self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后,开始自动找币")
-        
-    def find_54_coin(self, coin_type, retry_count=0):
-        """自动找币"""
-        self.logger.info("✅ 开始自动找币")
-        # 设置 YES1/NO1价格为 0
-        self.yes1_price_entry.configure(foreground='black')
-        self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, "0")
-        self.no1_price_entry.configure(foreground='black')
-        self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, "0")
-
-        # 交易次数恢复到初始值
-        self.trade_count = 22
-        self.trade_count_label.config(text=str(self.trade_count))
-
-        if retry_count > 0:
-            self.logger.info(f"这是第 {retry_count}/5 次重试")
-            
+    
+    def find_54_coin(self):
         try:
-            # 检查浏览器状态，如果为None则尝试重启
-            if self.driver is None:
-                self.logger.warning("浏览器未初始化，尝试重启...")
-                if not self.restart_browser(force_restart=True):
-                    self.logger.error("浏览器重启失败，无法执行自动找币")
-                    return
-            
-            # 验证浏览器连接是否正常
-            try:
-                self.driver.execute_script("return navigator.userAgent")
-            except Exception as e:
-                self.logger.warning(f"浏览器连接异常: {e}，尝试重启...")
-                if not self.restart_browser(force_restart=True):
-                    self.logger.error("浏览器重启失败，无法执行自动找币")
-                    return
-            
-            self.stop_url_monitoring()
-            self.stop_refresh_page()
-
-            # 找币之前先查看是否有持仓
-            if self.find_position_label_down():
-                self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
-                self.only_sell_down()
-            
-            if self.find_position_label_up():
-                self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
-                self.only_sell_up()
-
-            # 保存原始窗口句柄，确保在整个过程中有一个稳定的引用
-            self.original_window = self.driver.current_window_handle
-            
-            # 设置搜索关键词
-            coins = [coin_type]
-            for coin in coins:
-                try:  # 为每个币种添加单独的异常处理 
-                    new_url = self.find_new_weekly_url(coin)
-
-                    def save_new_url(new_url):
-                        if new_url:
-                            self.driver.get(new_url)
-                            # 保存当前 URL 到 config
-                            self.config['website']['url'] = new_url
-                            self.save_config()
-                            
-                            # 清除url_entry中的url
-                            self.url_entry.delete(0, tk.END)
-                            # 把保存到config的url放到self.url_entry中
-                            self.url_entry.insert(0, new_url)
-
-                            # 获取trader_pair,用于显示在主界面上
-                            pair = re.search(r'event/([^?]+)', new_url)
-                            self.trading_pair_label.config(text=pair.group(1))
-                            self.logger.info(f"\033[34m✅ 新URL已插入到主界面上: {new_url} \033[0m")
-                            self.buy_count = 0
-                            self.sell_count = 0
-                    save_new_url(new_url)
-
-                except Exception as e:
-                    self.logger.error(f"处理{coin}时出错: {str(e)}")
-                    save_new_url(new_url)
-
-            self.start_url_monitoring()
-            self.refresh_page()
-            
-            # 自动找币完成后，重新安排下一次的自动找币定时任务
-            self.logger.info("🔄 自动找币完成，重新安排下一次定时任务")
-            self.schedule_auto_find_coin()
-            # 检查 URL 是否是当天的
-            self.restart_browser_after_auto_find_coin()
-
-        except Exception as e:
-            self.logger.error(f"自动找币异常: {str(e)}")
-            # 避免无限递归，使用延迟重试而不是直接递归调用
-            if retry_count < 10:  # 最多重试10次
-                retry_delay = min(5 * (retry_count + 1), 60)  # 逐渐增加重试间隔，最多60秒
-                self.logger.info(f"{retry_delay}秒后将重试自动找币...")
-                self.root.after(retry_delay * 1000, lambda: self.find_54_coin(coin_type, retry_count + 1))
-            else:
-                self.logger.critical(f"自动找币已达到最大重试次数(10次)，停止重试")
-                # 即使重试失败，也要重新安排下一次的自动找币定时任务
-                self.logger.info("🔄 重试失败，但仍重新安排下一次定时任务")
-                self.schedule_auto_find_coin()
-                
-    def find_new_weekly_url(self, coin, retry_count=0):
-        """在Polymarket市场搜索指定币种的合约地址,只返回URL"""
-        try:
-            if self.trading:
-                return
-
             # 检查浏览器状态
             if self.driver is None:
-                self.logger.error("浏览器未初始化，无法执行搜索")
-                return None
+                self.logger.error("浏览器未初始化，无法点击卡片")
+                return False
             
             # 验证浏览器连接是否正常
             try:
                 self.driver.execute_script("return navigator.userAgent")
             except Exception as e:
-                self.logger.error(f"浏览器连接异常: {e}，无法执行搜索")
-                # 尝试重启浏览器
-                if not self.restart_browser(force_restart=True):
-                    return None
+                self.logger.error(f"浏览器连接异常: {e}，无法点击卡片")
+                return False
 
-            # 保存当前窗口句柄作为局部变量，用于本方法内部使用
-            original_tab = self.driver.current_window_handle
-            original_handles = set(self.driver.window_handles)
-            # 打开新标签页并访问搜索页面
+            # 第一步:先点击 CRYPTO 按钮
             try:
-                base_url = "https://polymarket.com/"
-                self.driver.switch_to.new_window('tab')
-                self.driver.get(base_url)
+                crypto_button = self.driver.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
+            except (NoSuchElementException, StaleElementReferenceException):
+                crypto_button = self._find_element_with_retry(XPathConfig.CRYPTO_BUTTON, timeout=2, silent=True)
 
-                # 定义search_tab变量，保存搜索标签页的句柄
-                search_tab = self.driver.current_window_handle
+            if crypto_button:
+                crypto_button.click()
 
-                # 等待页面加载完成
-                WebDriverWait(self.driver, 20).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "body"))
-                )
-                time.sleep(2)  # 等待页面渲染完成
-                    
-            except Exception as e:
-                self.logger.error(f"打开搜索页面失败: {str(e)}")
-                # 关闭可能打开的新标签页
-                try:
-                    current_handles = set(self.driver.window_handles)
-                    for handle in current_handles - original_handles:
-                        self.driver.switch_to.window(handle)
-                        self.driver.close()
-                    self.driver.switch_to.window(original_tab)
-                except:
-                    pass
-                return None
-
-            # 设置搜索关键词
-            if coin == 'BTC':
-                search_text = 'Bitcoin Up or Down on'
-            elif coin == 'ETH':
-                search_text = 'Ethereum Up or Down on'
-            elif coin == 'SOL':
-                search_text = 'Solana Up or Down on'
-            elif coin == 'XRP':
-                search_text = 'XRP Up or Down on'
-            
+            # 第二步:点击 DAILY 按钮
             try:
-                # 查找搜索框
-                try:
-                    search_box = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_INPUT[0])
-                except (NoSuchElementException, StaleElementReferenceException):
-                    search_box = self._find_element_with_retry(XPathConfig.SEARCH_INPUT, timeout=2, silent=True)
-                    if not search_box:
-                        raise Exception("无法找到搜索框")
-
-                # 创建ActionChains对象
-                actions = ActionChains(self.driver)
-                
-                # 清除搜索框并输入搜索词
-                search_box.clear()
-                search_box.send_keys(search_text)
-                time.sleep(0.5)
-                # 把搜索词保存到self.search_text
-                self.search_text = search_text
-                # 按ENTER键开始搜索
-                actions.send_keys(Keys.RETURN).perform()
-                time.sleep(2)  # 等待搜索结果加载
-                
-                # 点击今天的卡片
-                card_clicked = self.click_today_card()
-                if not card_clicked:
-                    self.logger.warning(f"❌ 未能找到{coin}今天的卡片")
-                    # 关闭搜索标签页
-                    self.driver.close()
-                    # 切换回原始窗口
-                    self.driver.switch_to.window(original_tab)
-                    return None
-                
-                # 切换到新标签页获取完整URL
-                time.sleep(2)  
-        
-                # 获取所有窗口句柄
-                try:
-                    all_handles = self.driver.window_handles
-                except Exception as e:
-                    self.logger.error(f"获取窗口句柄失败: {str(e)}")
-                    # 尝试重启浏览器
-                    self.restart_browser(force_restart=True)
-                    return None
-                
-                # 切换到最新打开的标签页
-                if len(all_handles) > 2:  # 原始窗口 + 搜索标签页 + coin标签页
-                    try:
-                        self.driver.switch_to.window(all_handles[-1])
-                        WebDriverWait(self.driver, 40).until(EC.url_contains('/event/'))
-                        
-                        # 获取当前URL
-                        new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
-                       
-                        self.logger.info(f"✅ 成功获取URL: {new_url}")
-                        time.sleep(8)
-
-                        # 这里如果价格是 54,那么会触发自动交易
-                        if self.trading == True:
-                            time.sleep(5)
-                            
-                            # 保存当前 URL 到 config
-                            self.config['website']['url'] = new_url
-                            self.save_config()
-                            self.logger.info(f"✅ {coin}:符合要求, 正在交易,已保存到 config")
-                            
-                            # 把保存到config的url放到self.url_entry中
-                            # 保存前,先删除现有的url
-                            self.url_entry.delete(0, tk.END)
-                            self.url_entry.insert(0, new_url)
-                            
-                            pair = re.search(r'event/([^?]+)', new_url)
-                            self.trading_pair_label.config(text=pair.group(1))
-                            self.logger.info(f"✅ {new_url}:已插入到主界面上")
-
-                            target_url_window = self.driver.current_window_handle
-                            time.sleep(2)
-
-                            # 安全关闭其他标签页
-                            try:
-                                self.driver.switch_to.window(search_tab)
-                                self.driver.close()
-                                self.driver.switch_to.window(original_tab)
-                                self.driver.close()
-                                self.driver.switch_to.window(target_url_window)
-                            except Exception as e:
-                                self.logger.warning(f"关闭标签页时出错: {str(e)}，尝试恢复")
-                                # 如果出错，尝试切换到目标窗口
-                                try:
-                                    self.driver.switch_to.window(target_url_window)
-                                except:
-                                    # 如果切换失败，尝试重启浏览器并加载URL
-                                    self.restart_browser(force_restart=True)
-                                    if self.driver:
-                                        self.driver.get(new_url)
-
-                            self.start_url_monitoring()
-                            self.refresh_page()
-                            return new_url
-                        else:
-                            # 安全关闭标签页
-                            try:
-                                # 关闭当前详情URL标签页
-                                self.driver.close()
-                                
-                                # 切换回搜索标签页
-                                self.driver.switch_to.window(search_tab)
-                                
-                                # 关闭搜索标签页
-                                self.driver.close()
-                                
-                                # 切换回原始窗口
-                                self.driver.switch_to.window(original_tab)
-                            except Exception as e:
-                                self.logger.warning(f"关闭标签页时出错: {str(e)}")
-                                # 尝试切换回原始窗口
-                                try:
-                                    self.driver.switch_to.window(original_tab)
-                                except:
-                                    # 如果切换失败，尝试重启浏览器
-                                    self.restart_browser(force_restart=True)
-                            
-                            self.logger.info(f"✅ find_new_weekly_url return:{new_url}")
-                            
-                            return new_url
-
-                    except Exception as e:
-                        self.logger.error(f"处理新标签页时出错: {str(e)}")
-                        # 尝试安全关闭所有新打开的标签页
-                        try:
-                            current_handles = set(self.driver.window_handles)
-                            for handle in current_handles - original_handles:
-                                self.driver.switch_to.window(handle)
-                                self.driver.close()
-                            self.driver.switch_to.window(original_tab)
-                        except:
-                            # 如果关闭失败，尝试重启浏览器
-                            self.restart_browser(force_restart=True)
-                        return None
-                else:
-                    self.logger.warning(f"❌未能打开{coin}的详情页")
-                    # 关闭搜索标签页
-                    try:
-                        self.driver.close()
-                        # 切换回原始窗口
-                        self.driver.switch_to.window(original_tab)
-                    except:
-                        # 如果关闭失败，尝试重启浏览器
-                        self.restart_browser(force_restart=True)
-                    return None
-                
-            except NoSuchElementException as e:
-                self.logger.error(f"搜索过程中出错: {str(e)}")
-                # 尝试安全关闭所有新打开的标签页
-                try:
-                    current_handles = set(self.driver.window_handles)
-                    for handle in current_handles - original_handles:
-                        self.driver.switch_to.window(handle)
-                        self.driver.close()
-                    self.driver.switch_to.window(original_tab)
-                except:
-                    # 如果关闭失败，尝试重启浏览器
-                    self.restart_browser(force_restart=True)
-                return None
+                daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
+            except (NoSuchElementException, StaleElementReferenceException):
+                daily_button = self._find_element_with_retry(XPathConfig.DAILY_BUTTON, timeout=2, silent=True)
             
+            if daily_button:
+                daily_button.click()
+
+            # 第三步:点击目标 URL 按钮
+            self.click_today_card()
+            
+            # 第四步:获取当前 URL并保存到 GUI 和配置文件中
+            new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
+            self.logger.info(f"✅ 成功获取到当前URL: {new_url}")
+            time.sleep(8)
+            
+            # 保存当前 URL 到 config
+            self.config['website']['url'] = new_url
+            self.save_config()
+            
+            # 保存前,先删除现有的url
+            self.url_entry.delete(0, tk.END)
+            
+            # 把保存到config的url放到self.url_entry中
+            self.url_entry.insert(0, new_url)
+            
+            # 把保存到config的url放到self.trading_pair_label中  
+            pair = re.search(r'event/([^?]+)', new_url)
+            self.trading_pair_label.config(text=pair.group(1))
+            self.logger.info(f"✅ {new_url}:已插入到主界面上并保存到配置文件")
+
         except Exception as e:
-            self.logger.error(f"操作失败: {str(e)}")
-            # 尝试重启浏览器
-            self.restart_browser(force_restart=True)
-            # 限制最大重试次数为10次，避免无限递归
-            if retry_count < 10:
-                retry_delay = min(5 * (retry_count + 1), 60)  # 逐渐增加重试时间，最多60秒
-                self.logger.info(f"{retry_delay}秒后重试自动找币...")
-                self.root.after(retry_delay * 1000, lambda: self.find_54_coin(coin, retry_count + 1))
-            else:
-                self.logger.critical(f"自动找币已达到最大重试次数(10次)，停止重试")
-                
+            self.logger.error(f"自动找币失败.错误信息:{e}")
+            
     def click_today_card(self):
         """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
         try:
@@ -3758,32 +3478,45 @@ class CryptoTrader:
                 today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式，去掉前导零
             self.logger.info(f"🔍 查找包含日期 [{today_str}] 的链接...")
 
+            coin = self.coin_combobox.get()
+            card = None
+
             # 获取所有含 "Bitcoin Up or Down on" 的卡片元素
             try:
-                cards = self.driver.find_elements(By.XPATH, XPathConfig.SEARCH_CONFIRM_BUTTON[0])
+                if coin == 'BTC':
+                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
+                elif coin == 'ETH':
+                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
+                elif coin == 'SOL':
+                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                
             except NoSuchElementException:
-                cards = self._find_element_with_retry(
-                    XPathConfig.SEARCH_CONFIRM_BUTTON,
-                    timeout=3,
-                    silent=True
-                )
+                try:
+                    if coin == 'BTC':
+                        card = self._find_element_with_retry(XPathConfig.SEARCH_BTC_BUTTON,timeout=3,silent=True)
+                    elif coin == 'ETH':
+                        card = self._find_element_with_retry(XPathConfig.SEARCH_ETH_BUTTON,timeout=3,silent=True)
+                    elif coin == 'SOL':
+                        card = self._find_element_with_retry(XPathConfig.SEARCH_SOL_BUTTON,timeout=3,silent=True)
+                except NoSuchElementException:
+                    card = None
 
-            for card in cards:
-                expected_text = self.search_text + " " + today_str + "?"
-                if card.text.strip() == expected_text:
-                    self.logger.info(f"\033[34m✅ 找到包含日期的卡片: {card.text.strip()}\033[0m")
+            if card and today_str in card.text:
+                self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card.text}\033[0m")
 
-                    # Command 键（macOS）或 Control 键（Windows/Linux）
-                    modifier_key = Keys.COMMAND if sys.platform == 'darwin' else Keys.CONTROL
+                # Command 键（macOS）或 Control 键（Windows/Linux）
+                #modifier_key = Keys.COMMAND if sys.platform == 'darwin' else Keys.CONTROL
 
-                    # 使用 ActionChains 执行 Command/Ctrl + Click
-                    actions = ActionChains(self.driver)
-                    actions.key_down(modifier_key).click(card).key_up(modifier_key).perform()
+                # 使用 ActionChains 执行 Command/Ctrl + Click
+                #actions = ActionChains(self.driver)
+                #actions.key_down(modifier_key).click(card).key_up(modifier_key).perform()
 
-                    self.logger.info("\033[34m🆕 成功用快捷键打开新标签页！\033[0m")
-                    return True
+                # 直接点击元素
+                card.click()
+                self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
+                return True
 
-            self.logger.warning("\033[31m❌ 没有找到包含今天日期的卡片\033[0m")
+            self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
             return False
 
         except Exception as e:

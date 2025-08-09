@@ -175,3 +175,26 @@ class XPathConfig:
     PORTFOLIO_SELL_BUTTON = [
         '//button[contains(text(), "Sell")]'
     ]
+
+    # 31. CRYPTO_BUTTON
+    CRYPTO_BUTTON = [
+        '//a[@href="/crypto"]'
+    ]
+
+    # 32.search_BTC_button长期有效
+    SEARCH_BTC_BUTTON = [
+        '//p[contains(text(), "Bitcoin Up or Down on")]', 
+        '//a//p[contains(text(), "Bitcoin Up or Down on")]' 
+    ]
+
+    # 33.search_ETH_button长期有效
+    SEARCH_ETH_BUTTON = [
+        '//p[contains(text(), "Ethereum Up or Down on")]', 
+        '//a//p[contains(text(), "Ethereum Up or Down on")]' 
+    ]
+
+    # 34.search_SOL_button长期有效
+    SEARCH_SOL_BUTTON = [
+        '//p[contains(text(), "Solana Up or Down on")]', 
+        '//a//p[contains(text(), "Solana Up or Down on")]' 
+    ]
