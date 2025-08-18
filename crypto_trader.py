@@ -291,7 +291,6 @@ class CryptoTrader:
 
     def setup_gui(self):
         """优化后的GUI界面设置"""
-
         self.root = tk.Tk()
         self.root.title("Polymarket Automatic Trading System Power by @wuxiancai")
         
@@ -436,7 +435,7 @@ class CryptoTrader:
         trade_count_frame = ttk.Frame(amount_frame)
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(trade_count_frame, text="NO.", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
+        ttk.Label(trade_count_frame, text="CNT:", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
         self.trade_count_label = ttk.Label(trade_count_frame, text="22", style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
 
