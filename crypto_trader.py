@@ -4971,8 +4971,21 @@ class CryptoTrader:
             self.logger.info("CSV文件不存在，无需修复")
             return
             
+        # 检查是否已经标准化过
+        standardized_flag_file = f"{self.csv_file}.standardized"
+        if os.path.exists(standardized_flag_file):
+            # 检查CSV文件的修改时间是否晚于标记文件
+            csv_mtime = os.path.getmtime(self.csv_file)
+            flag_mtime = os.path.getmtime(standardized_flag_file)
+            if csv_mtime <= flag_mtime:
+                self.logger.info("CSV文件已标准化，跳过检查")
+                return
+            else:
+                self.logger.info("CSV文件已更新，重新检查格式")
+            
         valid_rows = []
         invalid_rows = []
+        has_format_changes = False  # 标记是否有格式变更
         
         try:
             with open(self.csv_file, 'r', encoding='utf-8') as f:
@@ -4983,7 +4996,8 @@ class CryptoTrader:
                     try:
                         if len(row) >= 4:
                             # 验证每个数值字段
-                            date_str = row[0].strip()
+                            original_date_str = row[0].strip()
+                            date_str = original_date_str
                             cash = float(row[1].strip())
                             profit = float(row[2].strip())
                             
@@ -4997,6 +5011,7 @@ class CryptoTrader:
                                 if match:
                                     profit_rate_str = match.group(1)
                                     self.logger.warning(f"第{line_number}行利润率字段包含日期信息，已分离: '{row[3]}' -> '{profit_rate_str}'")
+                                    has_format_changes = True
                             
                             if profit_rate_str.endswith('%'):
                                 profit_rate = float(profit_rate_str.rstrip('%')) / 100
@@ -5013,13 +5028,15 @@ class CryptoTrader:
                                     parsed_date = datetime.strptime(date_str, '%Y/%m/%d')
                                     # 标准化为 YYYY-MM-DD 格式
                                     date_str = parsed_date.strftime('%Y-%m-%d')
-                                    self.logger.info(f"第{line_number}行日期格式已标准化: '{row[0]}' -> '{date_str}'")
+                                    self.logger.info(f"第{line_number}行日期格式已标准化: '{original_date_str}' -> '{date_str}'")
+                                    has_format_changes = True
                                 except ValueError:
                                     try:
                                         # 尝试其他可能的格式
                                         parsed_date = datetime.strptime(date_str, '%Y/%#m/%#d')  # Windows格式
                                         date_str = parsed_date.strftime('%Y-%m-%d')
-                                        self.logger.info(f"第{line_number}行日期格式已标准化: '{row[0]}' -> '{date_str}'")
+                                        self.logger.info(f"第{line_number}行日期格式已标准化: '{original_date_str}' -> '{date_str}'")
+                                        has_format_changes = True
                                     except ValueError:
                                         raise ValueError(f"日期格式不支持: {date_str}")
                             
@@ -5035,6 +5052,7 @@ class CryptoTrader:
                                     if match:
                                         total_profit_rate_str = match.group(1)
                                         self.logger.warning(f"第{line_number}行总利润率字段包含日期信息，已分离: '{row[5]}' -> '{total_profit_rate_str}'")
+                                        has_format_changes = True
                                 
                                 if total_profit_rate_str.endswith('%'):
                                     total_profit_rate = float(total_profit_rate_str.rstrip('%')) / 100
@@ -5054,24 +5072,48 @@ class CryptoTrader:
                     except Exception as e:
                         invalid_rows.append((line_number, row, str(e)))
                         
-            if invalid_rows:
+            # 如果有无效行或格式变更，需要重写文件
+            if invalid_rows or has_format_changes:
                 # 创建备份
                 backup_file = f"{self.csv_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 shutil.copy2(self.csv_file, backup_file)
-                self.logger.info(f"发现{len(invalid_rows)}行无效数据，已创建备份: {backup_file}")
                 
-                # 记录无效行
-                for line_num, row, error in invalid_rows:
-                    self.logger.warning(f"移除第{line_num}行无效数据: {row} - {error}")
+                if invalid_rows:
+                    self.logger.info(f"发现{len(invalid_rows)}行无效数据，已创建备份: {backup_file}")
+                    # 记录无效行
+                    for line_num, row, error in invalid_rows:
+                        self.logger.warning(f"移除第{line_num}行无效数据: {row} - {error}")
+                
+                if has_format_changes:
+                    self.logger.info(f"发现格式需要标准化，已创建备份: {backup_file}")
                 
                 # 重写CSV文件，只保留有效行
                 with open(self.csv_file, 'w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerows(valid_rows)
                     
-                self.logger.info(f"CSV文件修复完成，保留{len(valid_rows)}行有效数据")
+                if invalid_rows and has_format_changes:
+                    self.logger.info(f"CSV文件修复和格式标准化完成，保留{len(valid_rows)}行有效数据")
+                elif invalid_rows:
+                    self.logger.info(f"CSV文件修复完成，保留{len(valid_rows)}行有效数据")
+                elif has_format_changes:
+                    self.logger.info(f"CSV文件格式标准化完成，处理{len(valid_rows)}行数据")
+                    
+                # 创建标准化标记文件
+                try:
+                    with open(standardized_flag_file, 'w', encoding='utf-8') as flag_file:
+                        flag_file.write(f"CSV文件已于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 标准化")
+                    self.logger.info(f"已创建标准化标记文件: {standardized_flag_file}")
+                except Exception as flag_error:
+                    self.logger.warning(f"创建标准化标记文件失败: {flag_error}")
             else:
-                self.logger.info("CSV文件检查完成，未发现无效数据")
+                self.logger.info("CSV文件检查完成，未发现无效数据或格式问题")
+                # 即使没有变更，也创建标记文件避免下次重复检查
+                try:
+                    with open(standardized_flag_file, 'w', encoding='utf-8') as flag_file:
+                        flag_file.write(f"CSV文件已于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 检查，无需标准化")
+                except Exception as flag_error:
+                    self.logger.warning(f"创建标准化标记文件失败: {flag_error}")
                 
         except Exception as e:
             self.logger.error(f"CSV文件修复失败: {e}")
