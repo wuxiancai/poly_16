@@ -1353,31 +1353,69 @@ class CryptoTrader:
 
             # === 使用 JavaScript 获取价格（替代 XPath /原 JS 方法优化） ===
             prices = self.driver.execute_script("""
-                (function(){
+                function getPricesEnhanced() {
                     const prices = {up: null, down: null};
-                    const buttons = Array.from(document.querySelectorAll('button'));
-
-                    for (let btn of buttons) {
-                        const text = (btn.textContent || '').trim();
-
-                        // Up 价格
-                        if (prices.up === null && /^Up\s+\d+/.test(text)) {
-                            const match = text.match(/(\d+(?:\\.\\d+)?)/);
-                            if (match) prices.up = parseFloat(match[1]);
+                    
+                    // 等待一小段时间确保DOM完全渲染
+                    const startTime = Date.now();
+                    while (Date.now() - startTime < 200) {
+                        // 方法1: 查找所有span元素
+                        const spans = document.getElementsByTagName('span');
+                        for (let el of spans) {
+                            const text = el.textContent.trim();
+                            
+                            // 匹配Up价格的多种模式
+                            if ((text.includes('Up')) && text.includes('¢')) {
+                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                if (match && !prices.up) {
+                                    prices.up = parseFloat(match[1]);
+                                }
+                            }
+                            
+                            // 匹配Down价格的多种模式
+                            if ((text.includes('Down')) && text.includes('¢')) {
+                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                if (match && !prices.down) {
+                                    prices.down = parseFloat(match[1]);
+                                }
+                            }
                         }
-
-                        // Down 价格
-                        if (prices.down === null && /^Down\s+\d+/.test(text)) {
-                            const match = text.match(/(\d+(?:\\.\\d+)?)/);
-                            if (match) prices.down = parseFloat(match[1]);
+                        
+                        // 方法2: 查找按钮元素
+                        if (!prices.up || !prices.down) {
+                            const buttons = document.getElementsByTagName('button');
+                            for (let btn of buttons) {
+                                const text = btn.textContent.trim();
+                                
+                                if (text.includes('Up') && text.includes('¢')) {
+                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                    if (match && !prices.up) {
+                                        prices.up = parseFloat(match[1]);
+                                    }
+                                }
+                                
+                                if (text.includes('Down') && text.includes('¢')) {
+                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
+                                    if (match && !prices.down) {
+                                        prices.down = parseFloat(match[1]);
+                                    }
+                                }
+                            }
                         }
-
-                        // 找到两个价格就退出
-                        if (prices.up !== null && prices.down !== null) break;
+                        
+                        // 如果找到了价格，提前退出
+                        if (prices.up !== null && prices.down !== null) {
+                            break;
+                        }
+                        
+                        // 短暂等待
+                        const now = Date.now();
+                        while (Date.now() - now < 10) {}
                     }
-
+                    
                     return prices;
-                })();
+                }
+                return getPricesEnhanced();
             """)
 
             # 验证获取到的数据
