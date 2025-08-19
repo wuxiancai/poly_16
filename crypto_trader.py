@@ -3506,6 +3506,13 @@ class CryptoTrader:
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
 
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
+                                
+                                # 同步交易验证信息到StatusDataManager
+                                self.status_data.update('trade_verification', 'direction', direction_found)
+                                self.status_data.update('trade_verification', 'shares', self.shares)
+                                self.status_data.update('trade_verification', 'price', self.price)
+                                self.status_data.update('trade_verification', 'amount', self.amount)
+                                
                                 return True, self.price, self.amount, self.shares
                     
                     except StaleElementReferenceException:
@@ -4389,7 +4396,7 @@ class CryptoTrader:
         self.logger.info(f"当前时间: {now}")
 
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=0, minute=1, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=10, second=0, microsecond=0)
         self.logger.info(f"自动找币下次执行时间: {next_run}")
 
         if now >= next_run:
@@ -4578,7 +4585,7 @@ class CryptoTrader:
         now = datetime.now()
         self.logger.info(f"当前时间: {now}")
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=0, minute=5, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=15, second=0, microsecond=0)
         self.logger.info(f"获取 0 点 CASH 值下次执行时间: {next_run}")
         if now >= next_run:
             next_run += timedelta(days=1)
