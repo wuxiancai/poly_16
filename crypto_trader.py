@@ -6641,7 +6641,7 @@ class CryptoTrader:
                                             <label>币种:</label>
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
-                                    <div class="info-item time-select-item" style="display: inline-block; padding: 10px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 18px;">
+                                    <div class="info-item time-select-item" style="display: inline-block; padding: 10px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
                                             <label>开始交易时间:</label>
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
