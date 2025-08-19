@@ -1908,7 +1908,7 @@ class CryptoTrader:
     def try_update_amount(self, current_retry=0):
         """尝试设置金额"""
         try:
-            self.set_amount_button.invoke()
+            self.set_yes_no_cash()
             
         except Exception as e:
             self.logger.error(f"更新金额操作失败 (尝试 {current_retry + 1}/15): {str(e)}")
@@ -1978,6 +1978,20 @@ class CryptoTrader:
             self.no4_entry.delete(0, tk.END)
             self.no4_entry.insert(0, f"{self.yes4_amount:.2f}")
 
+            # 同步金额到StatusDataManager
+            self.status_data.update('positions', 'up_positions', [
+                {'price': '0', 'amount': f"{base_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes2_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes3_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes4_amount:.2f}"}
+            ])
+            self.status_data.update('positions', 'down_positions', [
+                {'price': '0', 'amount': f"{base_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes2_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes3_amount:.2f}"},
+                {'price': '0', 'amount': f"{self.yes4_amount:.2f}"}
+            ])
+            
             # 获取当前CASH并显示,此CASH再次点击start按钮时会更新
             self.logger.info("\033[34m✅ YES/NO 金额设置完成\033[0m")
             
@@ -2357,6 +2371,20 @@ class CryptoTrader:
                             self.no1_price_entry.configure(foreground='black')
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
+                            
+                            # 同步UP1和DOWN1价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][0]['amount']},
+                                self.status_data.data['positions']['up_positions'][1],
+                                self.status_data.data['positions']['up_positions'][2],
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][0]['amount']},
+                                self.status_data.data['positions']['down_positions'][1],
+                                self.status_data.data['positions']['down_positions'][2],
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
                             #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
@@ -2369,6 +2397,15 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, str(self.default_target_price))
                             self.no2_price_entry.configure(foreground='red')
+                            
+                            # 同步DOWN2价格到StatusDataManager
+                            self.status_data.update('positions', 'down_positions', [
+                                self.status_data.data['positions']['down_positions'][0],
+                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
+                                self.status_data.data['positions']['down_positions'][2],
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
+                            
                             self.logger.info(f"\033[34m✅ No2价格已重置为默认值{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
@@ -2428,6 +2465,20 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
                             self.no1_price_entry.configure(foreground='black')
+                            
+                            # 同步UP1和DOWN1价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][0]['amount']},
+                                self.status_data.data['positions']['up_positions'][1],
+                                self.status_data.data['positions']['up_positions'][2],
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][0]['amount']},
+                                self.status_data.data['positions']['down_positions'][1],
+                                self.status_data.data['positions']['down_positions'][2],
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
                             #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
@@ -2440,6 +2491,15 @@ class CryptoTrader:
                             self.yes2_price_entry.delete(0, tk.END)
                             self.yes2_price_entry.insert(0, str(self.default_target_price))
                             self.yes2_price_entry.configure(foreground='red')
+                            
+                            # 同步UP2价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                self.status_data.data['positions']['up_positions'][0],
+                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
+                                self.status_data.data['positions']['up_positions'][2],
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            
                             self.logger.info(f"\033[34m✅ Yes2价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
@@ -2509,6 +2569,20 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, "0")
                             self.no2_price_entry.configure(foreground='black')
+                            
+                            # 同步UP2和DOWN2价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                self.status_data.data['positions']['up_positions'][0],
+                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
+                                self.status_data.data['positions']['up_positions'][2],
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                self.status_data.data['positions']['down_positions'][0],
+                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
+                                self.status_data.data['positions']['down_positions'][2],
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
                             #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
                             # 卖出DOWN
@@ -2518,7 +2592,15 @@ class CryptoTrader:
                             self.no3_price_entry = self.no_frame.grid_slaves(row=4, column=1)[0]
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, str(self.default_target_price))
-                            self.no3_price_entry.configure(foreground='red')   
+                            self.no3_price_entry.configure(foreground='red')
+                            
+                            # 同步DOWN3价格到StatusDataManager
+                            self.status_data.update('positions', 'down_positions', [
+                                self.status_data.data['positions']['down_positions'][0],
+                                self.status_data.data['positions']['down_positions'][1],
+                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['down_positions'][2]['amount']},
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
                             #self.logger.info(f"✅ No3价格已重置为{self.default_target_price}")
 
                             # 自动改变交易次数
@@ -2574,6 +2656,20 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, "0")
                             self.no2_price_entry.configure(foreground='black')
+                            
+                            # 同步UP2和DOWN2价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                self.status_data.data['positions']['up_positions'][0],
+                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
+                                self.status_data.data['positions']['up_positions'][2],
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                self.status_data.data['positions']['down_positions'][0],
+                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
+                                self.status_data.data['positions']['down_positions'][2],
+                                self.status_data.data['positions']['down_positions'][3]
+                            ])
                             #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
                             # 卖出UP
@@ -2584,6 +2680,15 @@ class CryptoTrader:
                             self.yes3_price_entry.delete(0, tk.END)
                             self.yes3_price_entry.insert(0, str(self.default_target_price))
                             self.yes3_price_entry.configure(foreground='red')
+                            
+                            # 同步UP3价格到StatusDataManager
+                            self.status_data.update('positions', 'up_positions', [
+                                self.status_data.data['positions']['up_positions'][0],
+                                self.status_data.data['positions']['up_positions'][1],
+                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['up_positions'][2]['amount']},
+                                self.status_data.data['positions']['up_positions'][3]
+                            ])
+                            
                             self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
@@ -2656,6 +2761,24 @@ class CryptoTrader:
                             self.no3_price_entry.configure(foreground='black')
                             #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
+                            # 同步UP3/DOWN3价格重置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": 0},  # UP3重置为0
+                                        {"price": float(self.yes4_price_entry.get())}
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": 0},  # DOWN3重置为0
+                                        {"price": float(self.no4_price_entry.get())}
+                                    ]
+                                }
+                            })
+
                             # 卖出DOWN
                             self.only_sell_down()
 
@@ -2665,6 +2788,24 @@ class CryptoTrader:
                             self.no4_price_entry.insert(0, str(self.default_target_price))
                             self.no4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
+
+                            # 同步DOWN4价格设置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": 0},
+                                        {"price": float(self.yes4_price_entry.get())}
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": 0},
+                                        {"price": self.default_target_price}  # DOWN4设置为默认值
+                                    ]
+                                }
+                            })
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2723,6 +2864,24 @@ class CryptoTrader:
                             self.no3_price_entry.configure(foreground='black')
                             #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
+                            # 同步UP3/DOWN3价格重置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": 0},  # UP3重置为0
+                                        {"price": float(self.yes4_price_entry.get())}
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": 0},  # DOWN3重置为0
+                                        {"price": float(self.no4_price_entry.get())}
+                                    ]
+                                }
+                            })
+
                             # 卖出UP
                             self.only_sell_up()
 
@@ -2732,6 +2891,24 @@ class CryptoTrader:
                             self.yes4_price_entry.insert(0, str(self.default_target_price))
                             self.yes4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
+
+                            # 同步UP4价格设置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": 0},
+                                        {"price": self.default_target_price}  # UP4设置为默认值
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": 0},
+                                        {"price": float(self.no4_price_entry.get())}
+                                    ]
+                                }
+                            })
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2804,6 +2981,24 @@ class CryptoTrader:
                             self.yes4_price_entry.configure(foreground='black')
                             #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
+                            # 同步UP4/DOWN4价格重置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": float(self.yes3_price_entry.get())},
+                                        {"price": 0}  # UP4重置为0
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": float(self.no3_price_entry.get())},
+                                        {"price": 0}  # DOWN4重置为0
+                                    ]
+                                }
+                            })
+
                             # 卖出DOWN
                             self.only_sell_down()
 
@@ -2811,6 +3006,24 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
+
+                            # 同步DOWN1价格设置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": float(self.yes3_price_entry.get())},
+                                        {"price": 0}
+                                    ],
+                                    "down_positions": [
+                                        {"price": self.default_target_price},  # DOWN1设置为默认值
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": float(self.no3_price_entry.get())},
+                                        {"price": 0}
+                                    ]
+                                }
+                            })
 
                             # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
@@ -2871,6 +3084,24 @@ class CryptoTrader:
                             self.yes4_price_entry.configure(foreground='black')
                             #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
+                            # 同步UP4/DOWN4价格重置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": float(self.yes1_price_entry.get())},
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": float(self.yes3_price_entry.get())},
+                                        {"price": 0}  # UP4重置为0
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": float(self.no3_price_entry.get())},
+                                        {"price": 0}  # DOWN4重置为0
+                                    ]
+                                }
+                            })
+
                             # 卖出UP
                             self.only_sell_up()
 
@@ -2878,6 +3109,24 @@ class CryptoTrader:
                             self.yes1_price_entry.configure(foreground='red')
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, str(self.default_target_price))
+
+                            # 同步UP1价格设置到StatusDataManager
+                            self.status_data.update({
+                                "positions": {
+                                    "up_positions": [
+                                        {"price": self.default_target_price},  # UP1设置为默认值
+                                        {"price": float(self.yes2_price_entry.get())},
+                                        {"price": float(self.yes3_price_entry.get())},
+                                        {"price": 0}
+                                    ],
+                                    "down_positions": [
+                                        {"price": float(self.no1_price_entry.get())},
+                                        {"price": float(self.no2_price_entry.get())},
+                                        {"price": float(self.no3_price_entry.get())},
+                                        {"price": 0}
+                                    ]
+                                }
+                            })
 
                             # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
@@ -2957,6 +3206,21 @@ class CryptoTrader:
         self.no4_entry = self.no_frame.grid_slaves(row=7, column=1)[0]
         self.no4_entry.delete(0, tk.END)
         self.no4_entry.insert(0, f"{yes4_amount:.2f}")
+        
+        # 同步金额到StatusDataManager
+        self.status_data.update('positions', 'up_positions', [
+            {'price': '0', 'amount': f"{yes1_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes2_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes3_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes4_amount:.2f}"}
+        ])
+        self.status_data.update('positions', 'down_positions', [
+            {'price': '0', 'amount': f"{yes1_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes2_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes3_amount:.2f}"},
+            {'price': '0', 'amount': f"{yes4_amount:.2f}"}
+        ])
+        
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
     def send_amount_and_click_buy_confirm(self, amount_entry):
@@ -4069,6 +4333,24 @@ class CryptoTrader:
         self.yes1_price_entry.configure(foreground='red')
         self.logger.info(f"✅ 设置UP1价格为54成功")
 
+        # 同步UP1/DOWN1价格设置到StatusDataManager
+        self.status_data.update({
+            "positions": {
+                "up_positions": [
+                    {"price": 54},  # UP1设置为54
+                    {"price": float(self.yes2_price_entry.get())},
+                    {"price": float(self.yes3_price_entry.get())},
+                    {"price": float(self.yes4_price_entry.get())}
+                ],
+                "down_positions": [
+                    {"price": 54},  # DOWN1设置为54
+                    {"price": float(self.no2_price_entry.get())},
+                    {"price": float(self.no3_price_entry.get())},
+                    {"price": float(self.no4_price_entry.get())}
+                ]
+            }
+        })
+
         self.close_windows()
         
         # 价格设置完成后，重新安排下一次的价格设置定时任务
@@ -4089,7 +4371,7 @@ class CryptoTrader:
         self.logger.info(f"当前时间: {now}")
 
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=1, minute=38, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=1, second=0, microsecond=0)
         self.logger.info(f"自动找币下次执行时间: {next_run}")
 
         if now >= next_run:
@@ -4340,6 +4622,24 @@ class CryptoTrader:
             self.no1_price_entry.delete(0, tk.END)
             self.no1_price_entry.insert(0, "0")
             self.logger.info("✅ \033[34m零点 5 分设置 YES/NO 价格为 0 成功!\033[0m")
+
+            # 同步UP1/DOWN1价格重置到StatusDataManager
+            self.status_data.update({
+                "positions": {
+                    "up_positions": [
+                        {"price": 0},  # UP1重置为0
+                        {"price": float(self.yes2_price_entry.get())},
+                        {"price": float(self.yes3_price_entry.get())},
+                        {"price": float(self.yes4_price_entry.get())}
+                    ],
+                    "down_positions": [
+                        {"price": 0},  # DOWN1重置为0
+                        {"price": float(self.no2_price_entry.get())},
+                        {"price": float(self.no3_price_entry.get())},
+                        {"price": float(self.no4_price_entry.get())}
+                    ]
+                }
+            })
 
             # 读取 GUI 上的交易次数
             trade_count = self.trade_count_label.cget("text")
@@ -6352,7 +6652,7 @@ class CryptoTrader:
                                         <label>交易时间:</label>
                                         <span id="timeDisplay" style="display: inline-block;">{{ data.auto_find_time }}</span>
                                     </div>
-                                    <div class="binance-price-item">
+                                    <div class="binance-price-item" style="display: inline-block;">
                                         <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: blue;">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
