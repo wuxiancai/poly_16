@@ -2006,7 +2006,7 @@ class CryptoTrader:
                             self.no1_price_entry.configure(foreground='black')
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
-                            self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
+                            #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
@@ -2077,7 +2077,7 @@ class CryptoTrader:
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
                             self.no1_price_entry.configure(foreground='black')
-                            self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
+                            #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
@@ -2158,7 +2158,7 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, "0")
                             self.no2_price_entry.configure(foreground='black')
-                            self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
+                            #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
                             # 卖出DOWN
                             self.only_sell_down()
@@ -2168,7 +2168,7 @@ class CryptoTrader:
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, str(self.default_target_price))
                             self.no3_price_entry.configure(foreground='red')   
-                            self.logger.info(f"✅ No3价格已重置为{self.default_target_price}")
+                            #self.logger.info(f"✅ No3价格已重置为{self.default_target_price}")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2223,7 +2223,7 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, "0")
                             self.no2_price_entry.configure(foreground='black')
-                            self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
+                            #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
                             # 卖出UP
                             self.only_sell_up()
@@ -2303,7 +2303,7 @@ class CryptoTrader:
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, "0")
                             self.no3_price_entry.configure(foreground='black')
-                            self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
+                            #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
                             # 卖出DOWN
                             self.only_sell_down()
@@ -2313,7 +2313,7 @@ class CryptoTrader:
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, str(self.default_target_price))
                             self.no4_price_entry.configure(foreground='red')
-                            self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
+                            #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2370,7 +2370,7 @@ class CryptoTrader:
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, "0")
                             self.no3_price_entry.configure(foreground='black')
-                            self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
+                            #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
                             # 卖出UP
                             self.only_sell_up()
@@ -2380,7 +2380,7 @@ class CryptoTrader:
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, str(self.default_target_price))
                             self.yes4_price_entry.configure(foreground='red')
-                            self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
+                            #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2451,7 +2451,7 @@ class CryptoTrader:
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, "0") 
                             self.yes4_price_entry.configure(foreground='black')
-                            self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
+                            #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             # 卖出DOWN
                             self.only_sell_down()
@@ -2518,7 +2518,7 @@ class CryptoTrader:
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, "0") 
                             self.yes4_price_entry.configure(foreground='black')
-                            self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
+                            #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             # 卖出UP
                             self.only_sell_up()
@@ -2612,7 +2612,7 @@ class CryptoTrader:
         """改进版买入交易执行 - 使用批量DOM操作并增强错误处理"""
         try:
             amount = amount_entry.get()
-            self.logger.info(f"\033[34m开始执行买入交易,金额: ${amount}\033[0m")
+            #self.logger.info(f"\033[34m开始执行买入交易,金额: ${amount}\033[0m")
             
             # 定义批量操作 - 设置金额并点击确认
             operations = [
@@ -2630,9 +2630,9 @@ class CryptoTrader:
             result = self._execute_batch_dom_operations(operations, fallback_operations)
             
             if result.get('success') or result.get('partial_success'):
-                self.logger.info("✅ \033[34m使用批量操作买入完成\033[0m]")
+                # self.logger.info("✅ \033[34m使用批量操作买入完成\033[0m")
                 # 增加等待时间让交易完成 - 给服务器更多时间处理交易
-                self.logger.info("等待交易处理完成...")
+                # self.logger.info("等待交易处理完成...")
                 time.sleep(2)  # 增加到2秒
             else:
                 self.logger.warning("⚠️ \033[31m批量操作失败，已执行回退操作\033[0m")
@@ -3170,7 +3170,7 @@ class CryptoTrader:
                 try:
                     server.login(sender, app_password)
                     server.sendmail(sender, receivers, msg.as_string())
-                    self.logger.info(f"✅ \033[34m邮件发送成功: {trade_type} -> {', '.join(receivers)}\033[0m")
+                    #self.logger.info(f"✅ \033[34m邮件发送成功: {trade_type} -> {', '.join(receivers)}\033[0m")
                     return  # 发送成功,退出重试循环
                 except Exception as e:
                     self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
@@ -3241,7 +3241,7 @@ class CryptoTrader:
             try:
                 server.login(sender, app_password)
                 server.sendmail(sender, receiver, msg.as_string())
-                self.logger.info(f"✅ Chrome异常警报邮件发送成功")
+                #self.logger.info(f"✅ Chrome异常警报邮件发送成功")
             except Exception as e:
                 self.logger.error(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
             finally:
