@@ -1702,11 +1702,15 @@ class CryptoTrader:
         """监控登录状态"""
         # 检查是否已经登录
         try:
-            # 查找登录按钮
+            # 查找登录按钮 - 使用更安全的方式
+            login_button = None
             try:
                 login_button = self.driver.find_element(By.XPATH, XPathConfig.LOGIN_BUTTON[0])
             except (NoSuchElementException, StaleElementReferenceException):
-                login_button = self._find_element_with_retry(XPathConfig.LOGIN_BUTTON, timeout=2, silent=True)
+                try:
+                    login_button = self._find_element_with_retry(XPathConfig.LOGIN_BUTTON, timeout=2, silent=True)
+                except Exception:
+                    login_button = None
                 
             if login_button:
                 self.logger.info("✅ 已发现登录按钮,尝试登录")
@@ -1758,12 +1762,18 @@ class CryptoTrader:
                     self.refresh_page_timer = self.root.after(240000, self.refresh_page)
                     self.logger.info("✅ 已重新启用URL监控和页面刷新")
 
-        except NoSuchElementException:
+        except NoSuchElementException as e:
             # 未找到登录按钮，可能已经登录
-            pass          
+            self.logger.debug(f"未找到登录按钮，可能已经登录: {str(e)}")
+        except Exception as e:
+            # 处理其他所有异常
+            self.logger.error(f"登录监控过程中发生错误: {str(e)}")
         finally:
             # 每15秒检查一次登录状态
-            self.login_check_timer = self.root.after(15000, self.start_login_monitoring)
+            try:
+                self.login_check_timer = self.root.after(15000, self.start_login_monitoring)
+            except Exception as e:
+                self.logger.error(f"设置登录检查定时器失败: {str(e)}")
 
     def use_x_y_click_google_login_button(self):
         """点击Google登录按钮"""
@@ -3163,21 +3173,30 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
       
-    def _find_element_with_retry(self, xpaths, timeout=1):
+    def _find_element_with_retry(self, xpaths, timeout=1, silent=True):
         """优化版元素查找 - 并行查找多个XPath"""
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError
-        
-        def find_single_xpath(xpath):
-            try:
-                return WebDriverWait(self.driver, timeout).until(
-                    EC.presence_of_element_located((By.XPATH, xpath))
-                )
-            except:
-                return None
-        
-        # 并行查找所有XPath
-        with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
-            futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
+        try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError
+            
+            def find_single_xpath(xpath):
+                try:
+                    return WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.XPATH, xpath))
+                    )
+                except:
+                    return None
+            
+            # 并行查找所有XPath
+            with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
+                futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
+                
+                for future in futures:
+                    try:
+                        result = future.result(timeout=timeout)
+                        if result:
+                            return result
+                    except:
+                        continue
             
             for future in futures:
                 try:
@@ -3187,14 +3206,10 @@ class CryptoTrader:
                 except:
                     continue
         
-        for future in futures:
-            try:
-                result = future.result(timeout=timeout)
-                if result:
-                    return result
-            except:
-                continue
-    
+        except Exception as e:
+            if not silent:
+                self.logger.error(f"元素查找过程中发生错误: {str(e)}")
+        
         return None
 
     def schedule_price_setting(self):
