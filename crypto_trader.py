@@ -6627,7 +6627,7 @@ class CryptoTrader:
                                 <!-- UP和DOWN价格显示 -->
                                 <div class="up-down-prices-container">
                                     <div class="up-price-display" id="upPrice">
-                                        <span class="price-label">UP:</span> {{ data.prices.up_price or 'N/A' }}
+                                        <span class="price-label">RISE:</span> {{ data.prices.up_price or 'N/A' }}
                                     </div>
                                     <div class="down-price-display" id="downPrice">
                                         <span class="price-label">DOWN:</span> {{ data.prices.down_price or 'N/A' }}
