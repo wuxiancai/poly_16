@@ -876,6 +876,16 @@ class CryptoTrader:
                 if 'website' not in self.config:
                     self.config['website'] = {}
                 self.config['website']['url'] = new_url
+                
+                # 更新URL历史记录
+                if 'url_history' not in self.config:
+                    self.config['url_history'] = []
+                if new_url not in self.config['url_history']:
+                    self.config['url_history'].insert(0, new_url)
+                    # 保持历史记录不超过10条
+                    self.config['url_history'] = self.config['url_history'][:10]
+                    self.url_entry['values'] = self.config['url_history']
+                
                 self.save_config()
                 
                 # 更新交易币对显示
