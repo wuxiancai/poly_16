@@ -1703,6 +1703,7 @@ class CryptoTrader:
             self.restart_browser(force_restart=True)
         if self.driver is None:
             return
+
         # 检查是否已经登录
         try:
             # 查找登录按钮
@@ -1731,11 +1732,11 @@ class CryptoTrader:
                         self.logger.info("✅ 已点击Google登录按钮")
                     except Exception as e:
                         self.logger.info(f"❌ 点击Google登录按钮失败,使用坐标法点击")
-                        self.click_google_login_button()
+                        self.use_x_y_click_google_login_button()
                     
                     # 不再固定等待15秒，而是循环检测CASH值
-                    max_attempts = 15 # 最多检测15次
-                    check_interval = 2  # 每2秒检测一次
+                    max_attempts = 20 # 最多检测20次
+                    check_interval = 1 # 每1秒检测一次
                     cash_value = None
                     
                     for attempt in range(max_attempts):
@@ -1768,7 +1769,7 @@ class CryptoTrader:
             # 每15秒检查一次登录状态
             self.login_check_timer = self.root.after(15000, self.start_login_monitoring)
 
-    def click_google_login_button(self):
+    def use_x_y_click_google_login_button(self):
         """点击Google登录按钮"""
         self.logger.info("使用坐标法开始执行点击Google登录按钮")
         try:
@@ -1791,27 +1792,15 @@ class CryptoTrader:
             pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选，平滑移动
             pyautogui.click(target_x, target_y)
             
-            self.logger.info("✅ 点击ACCEPT成功")
+            self.logger.info("✅ \033[34m使用坐标法点击ACCEPT成功\033[0m")
             self.driver.refresh()
 
         except Exception as e:
             self.logger.error(f"执行 click_accept 点击操作失败: {str(e)}")
 
-    def entry_accept(self):
-        """敲击回车键"""
-        try:
-            self.accept_button.click()
-            self.logger.info("✅ 已通过敲击 ENTRY 按键,敲击了ACCEPT按钮")
-            self.root.after(1000, self.driver.refresh())
-        except Exception as e:
-            self.logger.info(f"❌ 敲击 ENTRY 按键失败,重新点击ACCEPT按钮")
-            self.click_accept()
-            self.root.after(2000, self.driver.refresh())
-            self.logger.info("✅ 已使用 坐标法 鼠标点击ACCEPT按钮成功")
-
     def click_accept(self):
-        """点击ACCEPT按钮"""
-        self.logger.info("开始执行点击ACCEPT按钮")
+        """使用坐标法点击ACCEPT按钮"""
+        self.logger.info("✅ \033[34m使用坐标法执行点击ACCEPT按钮\033[0m")
         try:
             screen_width, screen_height = pyautogui.size()
             
@@ -1832,7 +1821,7 @@ class CryptoTrader:
             pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选，平滑移动
             pyautogui.click(target_x, target_y)
             
-            self.logger.info("✅ 点击ACCEPT成功")
+            self.logger.info("✅ \033[34m使用坐标法点击ACCEPT成功\033[0m")
             self.driver.refresh()
 
         except Exception as e:
@@ -2582,7 +2571,7 @@ class CryptoTrader:
 
         except Exception as e:
             self.logger.error(f"交易失败: {str(e)}")
-            
+
     def click_positions_sell_and_sell_confirm_and_accept(self):
         """卖出并点击确认"""
         try:
