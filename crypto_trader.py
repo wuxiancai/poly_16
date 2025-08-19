@@ -6854,18 +6854,18 @@ class CryptoTrader:
                         result = result.replace(/\u001b\[1m/g, '<span style="font-weight: bold">'); // 粗体
                         result = result.replace(/\u001b\[4m/g, '<span style="text-decoration: underline">'); // 下划线
                         
-                        // 也处理\033格式的ANSI码
-                        result = result.replace(/\\033\[30m/g, '<span style="color: #000000">');
-                        result = result.replace(/\\033\[31m/g, '<span style="color: #dc3545">');
-                        result = result.replace(/\\033\[32m/g, '<span style="color: #28a745">');
-                        result = result.replace(/\\033\[33m/g, '<span style="color: #ffc107">');
-                        result = result.replace(/\\033\[34m/g, '<span style="color: #007bff">');
-                        result = result.replace(/\\033\[35m/g, '<span style="color: #6f42c1">');
-                        result = result.replace(/\\033\[36m/g, '<span style="color: #17a2b8">');
-                        result = result.replace(/\\033\[37m/g, '<span style="color: #ffffff">');
-                        result = result.replace(/\\033\[0m/g, '</span>');
-                        result = result.replace(/\\033\[1m/g, '<span style="font-weight: bold">');
-                        result = result.replace(/\\033\[4m/g, '<span style="text-decoration: underline">');
+                        // 也处理\033格式的ANSI码（实际的转义序列）
+                        result = result.replace(/\033\[30m/g, '<span style="color: #000000">');
+                        result = result.replace(/\033\[31m/g, '<span style="color: #dc3545">');
+                        result = result.replace(/\033\[32m/g, '<span style="color: #28a745">');
+                        result = result.replace(/\033\[33m/g, '<span style="color: #ffc107">');
+                        result = result.replace(/\033\[34m/g, '<span style="color: #007bff">');
+                        result = result.replace(/\033\[35m/g, '<span style="color: #6f42c1">');
+                        result = result.replace(/\033\[36m/g, '<span style="color: #17a2b8">');
+                        result = result.replace(/\033\[37m/g, '<span style="color: #ffffff">');
+                        result = result.replace(/\033\[0m/g, '</span>');
+                        result = result.replace(/\033\[1m/g, '<span style="font-weight: bold">');
+                        result = result.replace(/\033\[4m/g, '<span style="text-decoration: underline">');
                         
                         return result;
                     }
