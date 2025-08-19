@@ -6346,14 +6346,14 @@ class CryptoTrader:
                                 <div class="binance-price-container">
                                     <div class="info-item coin-select-item">
                                             <label>币种:</label>
-                                            <span id="coinDisplay" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px; display: inline-block; background-color: #f9f9f9;">{{ data.coin }}</span>
+                                            <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
                                     <div class="info-item time-select-item">
                                         <label>交易时间:</label>
-                                        <span id="timeDisplay" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px; display: inline-block; background-color: #f9f9f9;">{{ data.auto_find_time }}</span>
+                                        <span id="timeDisplay" style="display: inline-block;">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item">
-                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: blue;">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
