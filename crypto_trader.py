@@ -255,7 +255,7 @@ class CryptoTrader:
                     amount = 0
 
                 # 使用正确的配置键格式
-                config_key = f"{position}1"  # 改为Yes1/No1
+                config_key = f"{position}1"  # 改为Up1/Down1
                 self.config['trading'][config_key]['target_price'] = target_price
                 self.config['trading'][config_key]['amount'] = amount
 
@@ -1954,7 +1954,7 @@ class CryptoTrader:
                 no1_price = float(self.no1_price_entry.get())
                 self.trading = True
 
-                # 检查Yes1价格匹配
+                # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 50:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
@@ -1970,14 +1970,14 @@ class CryptoTrader:
                         if self.Verify_buy_up():
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             
-                            # 重置Yes1和No1价格为0
+                            # 重置Up1和Down1价格为0
                             self.yes1_price_entry.configure(foreground='black')
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, "0")
                             self.no1_price_entry.configure(foreground='black')
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
-                            self.logger.info("\033[34m✅ Yes1和No1价格已重置为0\033[0m")
+                            self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
@@ -2041,14 +2041,14 @@ class CryptoTrader:
                         if self.Verify_buy_down():
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
 
-                            # 重置Yes1和No1价格为0
+                            # 重置Up1和Down1价格为0
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, "0")
                             self.yes1_price_entry.configure(foreground='black')
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, "0")
                             self.no1_price_entry.configure(foreground='black')
-                            self.logger.info("\033[34m✅ Yes1和No1价格已重置为0\033[0m")
+                            self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
