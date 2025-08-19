@@ -2460,7 +2460,7 @@ class CryptoTrader:
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no1_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no1_amount_entry)
                         
-                        self.buy_yes_button.invoke()
+                        self.click_buy_yes()
 
                         time.sleep(2)
                         if self.Verify_buy_down():
@@ -2648,11 +2648,13 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.buy_no_button.invoke()
+                        self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no2_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no2_amount_entry)
-                        
+
+                        self.click_buy_yes()
+
                         time.sleep(2)
                         if self.Verify_buy_down():
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
@@ -2847,9 +2849,12 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.buy_no_button.invoke()
+                        self.click_buy_no()
+
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no3_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no3_amount_entry)
+
+                        self.click_buy_yes()
 
                         time.sleep(2)
                         if self.Verify_buy_down():
@@ -3052,11 +3057,13 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.buy_no_button.invoke()
+                        self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no4_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no4_amount_entry)
                         
+                        self.click_buy_yes()
+
                         time.sleep(2)
                         if self.Verify_buy_down():
                             self.no4_amount = float(self.no4_amount_entry.get())
@@ -5719,7 +5726,7 @@ class CryptoTrader:
                         flex-wrap: wrap;
                     }
                     .position-content {
-                        font-size: 12px;
+                        font-size: 14px;
                         font-weight: 600;
                         color: #007bff;
                         display: flex;
@@ -6605,7 +6612,7 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 持仓显示区域 -->
-                                <div class="position-container" id="positionContainer" style="font-size:14px; display: block;">
+                                <div class="position-container" id="positionContainer" style="display: block;">
                                     <div class="position-content" id="positionContent">
                                         方向: -- 数量: -- 价格: -- 金额: --
                                     </div>
@@ -6831,21 +6838,34 @@ class CryptoTrader:
                     
                     // ANSI颜色代码转换函数
                     function convertAnsiToHtml(text) {
-                        // 直接使用字符串替换，避免正则表达式转义问题
+                        // 处理ANSI颜色代码
                         let result = text;
                         
-                        // ANSI颜色代码替换
-                        result = result.replace(/\\033\\[30m/g, '<span style="color: #000000">'); // 黑色
-                        result = result.replace(/\\033\\[31m/g, '<span style="color: #dc3545">'); // 红色
-                        result = result.replace(/\\033\\[32m/g, '<span style="color: #28a745">'); // 绿色
-                        result = result.replace(/\\033\\[33m/g, '<span style="color: #ffc107">'); // 黄色
-                        result = result.replace(/\\033\\[34m/g, '<span style="color: #007bff">'); // 蓝色
-                        result = result.replace(/\\033\\[35m/g, '<span style="color: #6f42c1">'); // 紫色
-                        result = result.replace(/\\033\\[36m/g, '<span style="color: #17a2b8">'); // 青色
-                        result = result.replace(/\\033\\[37m/g, '<span style="color: #ffffff">'); // 白色
-                        result = result.replace(/\\033\\[0m/g, '</span>'); // 重置
-                        result = result.replace(/\\033\\[1m/g, '<span style="font-weight: bold">'); // 粗体
-                        result = result.replace(/\\033\\[4m/g, '<span style="text-decoration: underline">'); // 下划线
+                        // ANSI颜色代码替换 - 修复转义字符问题
+                        result = result.replace(/\u001b\[30m/g, '<span style="color: #000000">'); // 黑色
+                        result = result.replace(/\u001b\[31m/g, '<span style="color: #dc3545">'); // 红色
+                        result = result.replace(/\u001b\[32m/g, '<span style="color: #28a745">'); // 绿色
+                        result = result.replace(/\u001b\[33m/g, '<span style="color: #ffc107">'); // 黄色
+                        result = result.replace(/\u001b\[34m/g, '<span style="color: #007bff">'); // 蓝色
+                        result = result.replace(/\u001b\[35m/g, '<span style="color: #6f42c1">'); // 紫色
+                        result = result.replace(/\u001b\[36m/g, '<span style="color: #17a2b8">'); // 青色
+                        result = result.replace(/\u001b\[37m/g, '<span style="color: #ffffff">'); // 白色
+                        result = result.replace(/\u001b\[0m/g, '</span>'); // 重置
+                        result = result.replace(/\u001b\[1m/g, '<span style="font-weight: bold">'); // 粗体
+                        result = result.replace(/\u001b\[4m/g, '<span style="text-decoration: underline">'); // 下划线
+                        
+                        // 也处理\033格式的ANSI码
+                        result = result.replace(/\\033\[30m/g, '<span style="color: #000000">');
+                        result = result.replace(/\\033\[31m/g, '<span style="color: #dc3545">');
+                        result = result.replace(/\\033\[32m/g, '<span style="color: #28a745">');
+                        result = result.replace(/\\033\[33m/g, '<span style="color: #ffc107">');
+                        result = result.replace(/\\033\[34m/g, '<span style="color: #007bff">');
+                        result = result.replace(/\\033\[35m/g, '<span style="color: #6f42c1">');
+                        result = result.replace(/\\033\[36m/g, '<span style="color: #17a2b8">');
+                        result = result.replace(/\\033\[37m/g, '<span style="color: #ffffff">');
+                        result = result.replace(/\\033\[0m/g, '</span>');
+                        result = result.replace(/\\033\[1m/g, '<span style="font-weight: bold">');
+                        result = result.replace(/\\033\[4m/g, '<span style="text-decoration: underline">');
                         
                         return result;
                     }
@@ -7404,8 +7424,19 @@ class CryptoTrader:
                                 # 解析日志格式: 时间 - 级别 - 消息
                                 parts = line.split(' - ', 2)
                                 if len(parts) >= 3:
+                                    # 提取时间部分，只保留时分秒，隐藏年月日
+                                    full_time = parts[0]
+                                    try:
+                                        # 解析完整时间格式: 2025-08-20 14:13:056
+                                        if ' ' in full_time:
+                                            time_part = full_time.split(' ')[1]  # 获取时间部分
+                                        else:
+                                            time_part = full_time
+                                    except:
+                                        time_part = full_time
+                                    
                                     logs.append({
-                                        'time': parts[0],
+                                        'time': time_part,
                                         'level': parts[1],
                                         'message': parts[2]
                                     })
