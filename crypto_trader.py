@@ -1957,7 +1957,7 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_down()
@@ -2008,7 +2008,7 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Up1 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)
                     else:
                         # 3次失败后发邮件
@@ -2024,7 +2024,7 @@ class CryptoTrader:
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_up()
@@ -2079,7 +2079,7 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Down1 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)
                     else:
                         self.send_trade_email(
@@ -2110,7 +2110,7 @@ class CryptoTrader:
                 # 检查Yes2价格匹配
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅  \033[32mUp 2: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅  \033[32mUp 2: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_down()
@@ -2157,7 +2157,7 @@ class CryptoTrader:
                                  
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Up2 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)
                     else:
                         self.send_trade_email(
@@ -2172,7 +2172,7 @@ class CryptoTrader:
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 2: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[31mDown 2: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_up()
@@ -2204,7 +2204,7 @@ class CryptoTrader:
                             self.yes3_price_entry.delete(0, tk.END)
                             self.yes3_price_entry.insert(0, str(self.default_target_price))
                             self.yes3_price_entry.configure(foreground='red')
-                            self.logger.info(f"✅ Yes3价格已重置为{self.default_target_price}")
+                            self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2223,7 +2223,7 @@ class CryptoTrader:
                             
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Down2 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)
                     else:
                         self.send_trade_email(
@@ -2254,7 +2254,7 @@ class CryptoTrader:
                 # 检查Yes3价格匹配
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[32mUp 3: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_down()
@@ -2284,7 +2284,7 @@ class CryptoTrader:
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, str(self.default_target_price))
                             self.no4_price_entry.configure(foreground='red')
-                            self.logger.info(f"✅ No4价格已重置为{self.default_target_price}")
+                            self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2303,7 +2303,7 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning("❌  Buy Up3 交易失败,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -2320,7 +2320,7 @@ class CryptoTrader:
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[31mDown 3: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_up()
@@ -2351,7 +2351,7 @@ class CryptoTrader:
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, str(self.default_target_price))
                             self.yes4_price_entry.configure(foreground='red')
-                            self.logger.info(f"✅ Yes4价格已重置为{self.default_target_price}")
+                            self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2370,7 +2370,7 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Down3 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -2452,7 +2452,7 @@ class CryptoTrader:
                            
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Up4 交易失败,第{retry+1}次,等待2秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待2秒后重试\033[0m")
                             time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -2468,7 +2468,7 @@ class CryptoTrader:
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[31mDown 4: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_up()
@@ -2519,7 +2519,7 @@ class CryptoTrader:
                             
                             break
                         else:
-                            self.logger.warning(f"❌  Buy Down4 交易失败,第{retry+1}次,等待1秒后重试")
+                            self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -2744,7 +2744,7 @@ class CryptoTrader:
                         if history_element:
                             # 获取历史记录文本
                             history_text = history_element.text
-                            self.logger.info(f"\033[32m找到交易记录: \033[34m{history_text}\033[0m")
+                            self.logger.info(f"\033[32m找到交易记录:{history_text}\033[0m")
                             
                             # 分别查找action_type和direction，避免同时匹配导致的问题
                             action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
@@ -2783,7 +2783,7 @@ class CryptoTrader:
                 time.sleep(1)  # 刷新后等待页面加载
             
             # 超时未找到匹配的交易记录
-            self.logger.warning(f"❌ 交易验证失败: 未找到 {action_type} {direction} (已尝试2轮,每轮3次重试)")
+            self.logger.warning(f"❌ \033[31m交易验证失败: 未找到 {action_type} {direction} (已尝试2轮,每轮3次重试)\033[0m")
             return False, 0, 0
                 
         except Exception as e:
