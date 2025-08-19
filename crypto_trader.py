@@ -50,7 +50,8 @@ class StatusDataManager:
                 'selected_coin': 'BTC',
                 'auto_find_time': '2:00',
                 'last_trade_time': None,
-                'trade_count': 22
+                'trade_count': 22,
+                'remaining_trades': 22
             },
             'prices': {
                 'polymarket_up': '--',
@@ -175,7 +176,8 @@ class StatusDataManager:
                     'down4_amount': data['positions']['down_positions'][3]['amount']
                 },
                 'coin': data['trading']['selected_coin'],
-                'auto_find_time': data['trading']['auto_find_time']
+                'auto_find_time': data['trading']['auto_find_time'],
+                'remaining_trades': data['trading']['remaining_trades']
             }
 
 
@@ -2320,6 +2322,9 @@ class CryptoTrader:
         self.buy_count += 1
         self.trade_count -= 1
         self.trade_count_label.config(text=str(self.trade_count))
+        
+        # 同步剩余交易次数到StatusDataManager
+        self.status_data.update('trading', 'remaining_trades', str(self.trade_count))
 
     def First_trade(self, up_price, down_price):
         """第一次交易价格设置为 0.54 买入,最多重试3次,失败发邮件"""
@@ -4255,6 +4260,9 @@ class CryptoTrader:
                 self.zero_time_cash_value = round(float(cash_match.group(1).replace(',', '')), 2)
                 self.zero_time_cash_label.config(text=f"{self.zero_time_cash_value}")
                 self.logger.info(f"✅ 获取到原始CASH值:\033[34m${self.zero_time_cash_value}\033[0m")
+                
+                # 同步当天本金数据到StatusDataManager
+                self.status_data.update('account', 'zero_time_cash', str(self.zero_time_cash_value))
 
                 # 设置 YES/NO 金额,延迟5秒确保数据稳定
                 self.root.after(5000, self.schedule_update_amount)
@@ -6007,10 +6015,12 @@ class CryptoTrader:
                                 const portfolioElement = document.querySelector('#portfolio');
                                 const cashElement = document.querySelector('#cash');
                                 const zeroTimeCashElement = document.querySelector('#zeroTimeCash');
+                                const remainingTradesElement = document.querySelector('#remainingTrades');
                                 
                                 if (portfolioElement) portfolioElement.textContent = data.account.portfolio;
                                 if (cashElement) cashElement.textContent = data.account.cash;
                                 if (zeroTimeCashElement) zeroTimeCashElement.textContent = data.account.zero_time_cash || '--';
+                                if (remainingTradesElement) remainingTradesElement.textContent = data.remaining_trades || '--';
                                 
                                 // 持仓信息将在交易验证成功后自动更新，无需在此处调用
                                 
@@ -6318,6 +6328,11 @@ class CryptoTrader:
                                     </div>
                                     <div class="binance-price-item">
                                         <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
+                                    </div>
+                                </div>
+                                <div class="binance-price-container">
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">剩下交易次数:</span> <span class="value" id="remainingTrades">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 币种和交易时间显示区域 -->
