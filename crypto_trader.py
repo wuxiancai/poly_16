@@ -2584,34 +2584,34 @@ class CryptoTrader:
         try:
             # 点击卖出按钮
             try:
-                positions_sell_button = WebDriverWait(self.driver, 0.3).until(
+                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
                 )
                 positions_sell_button.click()
-                self.logger.info("✅ 点击SELL按钮成功")
+                self.logger.info("✅ \033[34m点击SELL按钮成功\033[0m")
             except TimeoutException:
-                self.logger.error("没有出现SELL按钮,跳过点击")
+                self.logger.error("❌ \033[31m没有出现SELL按钮,跳过点击\033[0m")
 
             # 点击卖出确认按钮
             try:
-                sell_confirm_button = WebDriverWait(self.driver, 0.3).until(
+                sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
                 )
                 sell_confirm_button.click()
-                self.logger.info("✅ 点击SELL_CONFIRM按钮成功")
+                self.logger.info("✅ \033[34m点击SELL_CONFIRM按钮成功\033[0m")
             except TimeoutException:
-                self.logger.error("没有出现SELL_CONFIRM按钮,跳过点击")
+                self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
 
             # 等待ACCEPT弹窗出现
             try:
                 accept_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.presence_of_element_located((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
-                self.logger.info("✅ 点击ACCEPT按钮成功")
+                self.logger.info("✅ \033[34m点击ACCEPT按钮成功\033[0m")
             except TimeoutException:
                 # 弹窗没出现,不用处理
-                self.logger.info("没有出现ACCEPT弹窗,跳过点击")
+                self.logger.info("\033[31m❌ 没有出现ACCEPT弹窗,跳过点击\033[0m")
         except Exception as e:
             self.logger.error(f"卖出失败: {str(e)}")
 
@@ -2640,7 +2640,7 @@ class CryptoTrader:
                 self.driver.refresh()
                 break
             else:
-                self.logger.warning(f"❌ 卖出only_sell_up第{retry+1}次验证失败,重试")
+                self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
                 time.sleep(1)
       
     def only_sell_down(self):
@@ -2669,7 +2669,7 @@ class CryptoTrader:
                 self.driver.refresh()
                 break
             else:
-                self.logger.warning(f"❌ 卖出only_sell_down第{retry+1}次验证失败,重试")
+                self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
                 time.sleep(1)
 
     def Verify_buy_up(self):
@@ -2744,7 +2744,7 @@ class CryptoTrader:
                         if history_element:
                             # 获取历史记录文本
                             history_text = history_element.text
-                            self.logger.info(f"找到交易记录: \033[34m{history_text}\033[0m")
+                            self.logger.info(f"\033[32m找到交易记录: \033[34m{history_text}\033[0m")
                             
                             # 分别查找action_type和direction，避免同时匹配导致的问题
                             action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
@@ -2762,7 +2762,7 @@ class CryptoTrader:
                                 # shares可能是浮点数，先转为float再转为int
                                 self.shares = int(float(shares_match.group(1))) if shares_match else 0
 
-                                self.logger.info(f"✅ \033[31m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
+                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
                                 return True, self.price, self.amount, self.shares
                     
                     except StaleElementReferenceException:
@@ -2809,11 +2809,6 @@ class CryptoTrader:
             if not self.driver and not self.is_restarting:
                 self.restart_browser(force_restart=True)
 
-            # 等待页面加载完成
-            WebDriverWait(self.driver, 10).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-            
             position_value = self.find_position_label_up()
             # position_value 的值是true 或 false
             # 根据position_value的值决定点击哪个按钮
@@ -2850,11 +2845,6 @@ class CryptoTrader:
             if not self.driver and not self.is_restarting:
                 self.restart_browser(force_restart=True)
 
-            # 等待页面加载完成
-            WebDriverWait(self.driver, 10).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-            
             position_value = self.find_position_label_down()
             
             # 根据position_value的值决定点击哪个按钮
@@ -3020,7 +3010,7 @@ class CryptoTrader:
                          cash_value, portfolio_value):
         """发送交易邮件"""
         max_retries = 2
-        retry_delay = 2
+        retry_delay = 0.5
         
         for attempt in range(max_retries):
             try:
@@ -3170,8 +3160,8 @@ class CryptoTrader:
 
     def find_position_label_up(self):
         """查找Yes持仓标签"""
-        max_retries = 2
-        retry_delay = 2
+        max_retries = 3
+        retry_delay = 0.3
         
         for attempt in range(max_retries):
             try:
@@ -3217,8 +3207,8 @@ class CryptoTrader:
         
     def find_position_label_down(self):
         """查找Down持仓标签"""
-        max_retries = 2
-        retry_delay = 2
+        max_retries = 3
+        retry_delay = 0.3
         
         for attempt in range(max_retries):
             try:
