@@ -1170,7 +1170,7 @@ class CryptoTrader:
         self.root.after(120000, self.schedule_clear_chrome_mem_cache)
 
         # 14. 启动程序立即获取当前CASH值
-        self.root.after(50000, self.get_cash_value)
+        self.root.after(25000, self.get_cash_value)
         
         # 15.每天 0:30 获取 cash 值并展示历史记录页面
         self.root.after(60000, self.schedule_record_and_show_cash)
@@ -6605,7 +6605,7 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 持仓显示区域 -->
-                                <div class="position-container" id="positionContainer" style="display: block;">
+                                <div class="position-container" id="positionContainer" style="font-size:14px; display: block;">
                                     <div class="position-content" id="positionContent">
                                         方向: -- 数量: -- 价格: -- 金额: --
                                     </div>
