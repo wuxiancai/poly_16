@@ -6022,6 +6022,13 @@ class CryptoTrader:
                                 if (zeroTimeCashElement) zeroTimeCashElement.textContent = data.account.zero_time_cash || '--';
                                 if (remainingTradesElement) remainingTradesElement.textContent = data.remaining_trades || '--';
                                 
+                                // 更新币种和交易时间显示
+                                const coinDisplayElement = document.querySelector('#coinDisplay');
+                                const timeDisplayElement = document.querySelector('#timeDisplay');
+                                
+                                if (coinDisplayElement) coinDisplayElement.textContent = data.coin || '--';
+                                if (timeDisplayElement) timeDisplayElement.textContent = data.auto_find_time || '--';
+                                
                                 // 持仓信息将在交易验证成功后自动更新，无需在此处调用
                                 
                                 // 更新状态信息
@@ -6305,6 +6312,12 @@ class CryptoTrader:
                                     <div class="position-content" id="positionContent">
                                         方向: -- 数量: -- 价格: -- 金额: --
                                     </div>
+                                    <div class="binance-price-container">
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades">{{ data.remaining_trades or '--' }}</span>
+                                    </div>
+                                </div>
+
                                 </div>
                                 
                                 <!-- 币安价格和资产显示区域 -->
@@ -6330,49 +6343,16 @@ class CryptoTrader:
                                         <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
                                     </div>
                                 </div>
-                                <div class="binance-price-container">
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">剩下交易次数:</span> <span class="value" id="remainingTrades">{{ data.remaining_trades or '--' }}</span>
-                                    </div>
-                                </div>
+                                
                                 <!-- 币种和交易时间显示区域 -->
                                 <div class="binance-price-container">
                                     <div class="info-item coin-select-item">
                                             <label>币种:</label>
-                                            <select id="coinSelect" onchange="updateCoin()" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px;">
-                                                <option value="BTC" {{ 'selected' if data.coin == 'BTC' else '' }}>BTC</option>
-                                                <option value="ETH" {{ 'selected' if data.coin == 'ETH' else '' }}>ETH</option>
-                                                <option value="SOL" {{ 'selected' if data.coin == 'SOL' else '' }}>SOL</option>
-                                                <option value="XRP" {{ 'selected' if data.coin == 'XRP' else '' }}>XRP</option>
-                                            </select>
+                                            <span id="coinDisplay" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px; display: inline-block; background-color: #f9f9f9;">{{ data.coin }}</span>
                                         </div>
                                     <div class="info-item time-select-item">
                                         <label>交易时间:</label>
-                                        <select id="timeSelect" onchange="updateTime()" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px;">
-                                            <option value="1:00" {{ 'selected' if data.auto_find_time == '1:00' else '' }}>1:00</option>
-                                            <option value="2:00" {{ 'selected' if data.auto_find_time == '2:00' else '' }}>2:00</option>
-                                            <option value="3:00" {{ 'selected' if data.auto_find_time == '3:00' else '' }}>3:00</option>
-                                            <option value="4:00" {{ 'selected' if data.auto_find_time == '4:00' else '' }}>4:00</option>
-                                            <option value="5:00" {{ 'selected' if data.auto_find_time == '5:00' else '' }}>5:00</option>
-                                            <option value="6:00" {{ 'selected' if data.auto_find_time == '6:00' else '' }}>6:00</option>
-                                            <option value="7:00" {{ 'selected' if data.auto_find_time == '7:00' else '' }}>7:00</option>
-                                            <option value="8:00" {{ 'selected' if data.auto_find_time == '8:00' else '' }}>8:00</option>
-                                            <option value="9:00" {{ 'selected' if data.auto_find_time == '9:00' else '' }}>9:00</option>
-                                            <option value="10:00" {{ 'selected' if data.auto_find_time == '10:00' else '' }}>10:00</option>
-                                            <option value="11:00" {{ 'selected' if data.auto_find_time == '11:00' else '' }}>11:00</option>
-                                            <option value="12:00" {{ 'selected' if data.auto_find_time == '12:00' else '' }}>12:00</option>
-                                            <option value="13:00" {{ 'selected' if data.auto_find_time == '13:00' else '' }}>13:00</option>
-                                            <option value="14:00" {{ 'selected' if data.auto_find_time == '14:00' else '' }}>14:00</option>
-                                            <option value="15:00" {{ 'selected' if data.auto_find_time == '15:00' else '' }}>15:00</option>
-                                            <option value="16:00" {{ 'selected' if data.auto_find_time == '16:00' else '' }}>16:00</option>
-                                            <option value="17:00" {{ 'selected' if data.auto_find_time == '17:00' else '' }}>17:00</option>
-                                            <option value="18:00" {{ 'selected' if data.auto_find_time == '18:00' else '' }}>18:00</option>
-                                            <option value="19:00" {{ 'selected' if data.auto_find_time == '19:00' else '' }}>19:00</option>
-                                            <option value="20:00" {{ 'selected' if data.auto_find_time == '20:00' else '' }}>20:00</option>
-                                            <option value="21:00" {{ 'selected' if data.auto_find_time == '21:00' else '' }}>21:00</option>
-                                            <option value="22:00" {{ 'selected' if data.auto_find_time == '22:00' else '' }}>22:00</option>
-                                            <option value="23:00" {{ 'selected' if data.auto_find_time == '23:00' else '' }}>23:00</option>
-                                        </select>
+                                        <span id="timeDisplay" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px; display: inline-block; background-color: #f9f9f9;">{{ data.auto_find_time }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
