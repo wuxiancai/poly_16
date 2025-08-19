@@ -1353,36 +1353,31 @@ class CryptoTrader:
 
             # === 使用 JavaScript 获取价格（替代 XPath /原 JS 方法优化） ===
             prices = self.driver.execute_script("""
-                function getPricesJS() {
+                (function(){
                     const prices = {up: null, down: null};
-                    
-                    // 直接查找 Up 按钮里的 span 包含价格
-                    const upBtn = Array.from(document.querySelectorAll('button')).find(btn => 
-                        btn.textContent.includes('Up') || btn.textContent.includes('Up')
-                    );
-                    if (upBtn) {
-                        const span = upBtn.querySelector('span');
-                        if (span) {
-                            const match = span.textContent.match(/(\\d+(?:\\.\\d+)?)/);
+                    const buttons = Array.from(document.querySelectorAll('button'));
+
+                    for (let btn of buttons) {
+                        const text = (btn.textContent || '').trim();
+
+                        // Up 价格
+                        if (prices.up === null && /^Up\s+\d+/.test(text)) {
+                            const match = text.match(/(\d+(?:\\.\\d+)?)/);
                             if (match) prices.up = parseFloat(match[1]);
                         }
-                    }
 
-                    // 直接查找 Down 按钮里的 span 包含价格
-                    const downBtn = Array.from(document.querySelectorAll('button')).find(btn => 
-                        btn.textContent.includes('Down') || btn.textContent.includes('Down')
-                    );
-                    if (downBtn) {
-                        const span = downBtn.querySelector('span');
-                        if (span) {
-                            const match = span.textContent.match(/(\\d+(?:\\.\\d+)?)/);
+                        // Down 价格
+                        if (prices.down === null && /^Down\s+\d+/.test(text)) {
+                            const match = text.match(/(\d+(?:\\.\\d+)?)/);
                             if (match) prices.down = parseFloat(match[1]);
                         }
+
+                        // 找到两个价格就退出
+                        if (prices.up !== null && prices.down !== null) break;
                     }
 
                     return prices;
-                }
-                return getPricesJS();
+                })();
             """)
 
             # 验证获取到的数据
