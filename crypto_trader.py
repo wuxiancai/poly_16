@@ -6690,22 +6690,22 @@ class CryptoTrader:
                                                 <div class="position-label">金额</div>
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Up1</div>
+                                                <div class="position-name">Rise1</div>
                                                 <input type="number" class="position-input" id="up1_price" name="up1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up1_amount" name="up1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Up2</div>
+                                                <div class="position-name">Rise2</div>
                                                 <input type="number" class="position-input" id="up2_price" name="up2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up2_amount" name="up2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Up3</div>
+                                                <div class="position-name">Rise3</div>
                                                 <input type="number" class="position-input" id="up3_price" name="up3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up3_amount" name="up3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Up4</div>
+                                                <div class="position-name">Rise4</div>
                                                 <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up4_amount" name="up4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
