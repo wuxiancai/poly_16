@@ -5757,9 +5757,10 @@ class CryptoTrader:
                         color: #007bff;
                         display: flex;
                         align-items: center;
-                        justify-content: space-between;
+                        justify-content: center;
                         word-wrap: break-word;
                         width: 100%;
+                        text-align: center;
                     }
 
                     .binance-price-container {
@@ -6110,6 +6111,7 @@ class CryptoTrader:
                         border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         color: #2F3E46;
+                        text-align: center;
                     }
                     .url-input-group input:focus {
                         border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
