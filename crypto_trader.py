@@ -6635,11 +6635,12 @@ class CryptoTrader:
                                             <label>币种:</label>
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
-                                    <div class="info-item time-select-item">
-                                        <span id="timeDisplay" style="display: inline-block; padding: 5px 10px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 6px; font-weight: 600;">开始交易时间: {{ data.auto_find_time }}</span>
+                                    <div class="info-item time-select-item" style="display: inline-block; padding: 5px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 18px;">
+                                            <label>开始交易时间:</label>
+                                            <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: blue;">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}blue{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
