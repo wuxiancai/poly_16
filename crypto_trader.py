@@ -5658,7 +5658,7 @@ class CryptoTrader:
                         overflow: visible;
                     }
                     .info-item { 
-                        padding: 3px; background: rgba(248, 249, 250, 0.8); border-radius: 8px;
+                        padding: 3px; border-radius: 8px;
                         transition: all 0.3s ease; border: 2px solid transparent;
                         flex: 1 1 auto;
                         min-width: 70px;
@@ -5678,7 +5678,7 @@ class CryptoTrader:
                         display: flex;
                         align-items: center;
                         font-size: 14px;
-                        gap: 4px;
+                        gap: 6px;
                         flex: 0 0 auto;
                         min-width: 120px;
                         max-width: 120px;
@@ -5687,7 +5687,7 @@ class CryptoTrader:
                         display: flex;
                         align-items: center;
                         font-size: 14px;
-                        gap: 4px;
+                        gap: 8px;
                         flex: 0 0 auto;
                         min-width: 140px;
                         max-width: 140px;
@@ -5717,7 +5717,7 @@ class CryptoTrader:
                     }
                     .position-container {
                         padding: 5px 5px;
-                        background: rgba(248, 249, 250, 0.9);
+                        
                         border-radius: 6px;
                         display: flex;
                         align-items: center;
@@ -6648,12 +6648,12 @@ class CryptoTrader:
                                             <label>币种:</label>
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
-                                    <div class="info-item time-select-item" style="display: inline-block; padding: 10px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
-                                            <label>开始交易时间:</label>
+                                    <div class="info-item time-select-item" style="display: inline-block; padding: 5px 20px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
+                                            <label>开始交易时间:&nbsp;</label>
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}blue{% endif %};">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}blue{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
@@ -6842,30 +6842,30 @@ class CryptoTrader:
                         let result = text;
                         
                         // ANSI颜色代码替换 - 修复转义字符问题
-                        result = result.replace(/\u001b\[30m/g, '<span style="color: #000000">'); // 黑色
-                        result = result.replace(/\u001b\[31m/g, '<span style="color: #dc3545">'); // 红色
-                        result = result.replace(/\u001b\[32m/g, '<span style="color: #28a745">'); // 绿色
-                        result = result.replace(/\u001b\[33m/g, '<span style="color: #ffc107">'); // 黄色
-                        result = result.replace(/\u001b\[34m/g, '<span style="color: #007bff">'); // 蓝色
-                        result = result.replace(/\u001b\[35m/g, '<span style="color: #6f42c1">'); // 紫色
-                        result = result.replace(/\u001b\[36m/g, '<span style="color: #17a2b8">'); // 青色
-                        result = result.replace(/\u001b\[37m/g, '<span style="color: #ffffff">'); // 白色
-                        result = result.replace(/\u001b\[0m/g, '</span>'); // 重置
-                        result = result.replace(/\u001b\[1m/g, '<span style="font-weight: bold">'); // 粗体
-                        result = result.replace(/\u001b\[4m/g, '<span style="text-decoration: underline">'); // 下划线
+                        result = result.replace(/\u001b\\[30m/g, '<span style="color: #000000">'); // 黑色
+                        result = result.replace(/\u001b\\[31m/g, '<span style="color: #dc3545">'); // 红色
+                        result = result.replace(/\u001b\\[32m/g, '<span style="color: #28a745">'); // 绿色
+                        result = result.replace(/\u001b\\[33m/g, '<span style="color: #ffc107">'); // 黄色
+                        result = result.replace(/\u001b\\[34m/g, '<span style="color: #007bff">'); // 蓝色
+                        result = result.replace(/\u001b\\[35m/g, '<span style="color: #6f42c1">'); // 紫色
+                        result = result.replace(/\u001b\\[36m/g, '<span style="color: #17a2b8">'); // 青色
+                        result = result.replace(/\u001b\\[37m/g, '<span style="color: #ffffff">'); // 白色
+                        result = result.replace(/\u001b\\[0m/g, '</span>'); // 重置
+                        result = result.replace(/\u001b\\[1m/g, '<span style="font-weight: bold">'); // 粗体
+                        result = result.replace(/\u001b\\[4m/g, '<span style="text-decoration: underline">'); // 下划线
                         
                         // 也处理\033格式的ANSI码（实际的转义序列）
-                        result = result.replace(/\033\[30m/g, '<span style="color: #000000">');
-                        result = result.replace(/\033\[31m/g, '<span style="color: #dc3545">');
-                        result = result.replace(/\033\[32m/g, '<span style="color: #28a745">');
-                        result = result.replace(/\033\[33m/g, '<span style="color: #ffc107">');
-                        result = result.replace(/\033\[34m/g, '<span style="color: #007bff">');
-                        result = result.replace(/\033\[35m/g, '<span style="color: #6f42c1">');
-                        result = result.replace(/\033\[36m/g, '<span style="color: #17a2b8">');
-                        result = result.replace(/\033\[37m/g, '<span style="color: #ffffff">');
-                        result = result.replace(/\033\[0m/g, '</span>');
-                        result = result.replace(/\033\[1m/g, '<span style="font-weight: bold">');
-                        result = result.replace(/\033\[4m/g, '<span style="text-decoration: underline">');
+                        result = result.replace(/\\033\\[30m/g, '<span style="color: #000000">');
+                        result = result.replace(/\\033\\[31m/g, '<span style="color: #dc3545">');
+                        result = result.replace(/\\033\\[32m/g, '<span style="color: #28a745">');
+                        result = result.replace(/\\033\\[33m/g, '<span style="color: #ffc107">');
+                        result = result.replace(/\\033\\[34m/g, '<span style="color: #007bff">');
+                        result = result.replace(/\\033\\[35m/g, '<span style="color: #6f42c1">');
+                        result = result.replace(/\\033\\[36m/g, '<span style="color: #17a2b8">');
+                        result = result.replace(/\\033\\[37m/g, '<span style="color: #ffffff">');
+                        result = result.replace(/\\033\\[0m/g, '</span>');
+                        result = result.replace(/\\033\\[1m/g, '<span style="font-weight: bold">');
+                        result = result.replace(/\\033\\[4m/g, '<span style="text-decoration: underline">');
                         
                         return result;
                     }
