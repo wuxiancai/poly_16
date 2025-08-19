@@ -4649,22 +4649,18 @@ class CryptoTrader:
             self.logger.info("✅ \033[34m零点 5 分设置 YES/NO 价格为 0 成功!\033[0m")
 
             # 同步UP1/DOWN1价格重置到StatusDataManager
-            self.status_data.update({
-                "positions": {
-                    "up_positions": [
-                        {"price": 0},  # UP1重置为0
-                        {"price": float(self.yes2_price_entry.get())},
-                        {"price": float(self.yes3_price_entry.get())},
-                        {"price": float(self.yes4_price_entry.get())}
-                    ],
-                    "down_positions": [
-                        {"price": 0},  # DOWN1重置为0
-                        {"price": float(self.no2_price_entry.get())},
-                        {"price": float(self.no3_price_entry.get())},
-                        {"price": float(self.no4_price_entry.get())}
-                    ]
-                }
-            })
+            self.status_data.update('positions', 'up_positions', [
+                {"price": 0},  # UP1重置为0
+                {"price": float(self.yes2_price_entry.get())},
+                {"price": float(self.yes3_price_entry.get())},
+                {"price": float(self.yes4_price_entry.get())}
+            ])
+            self.status_data.update('positions', 'down_positions', [
+                {"price": 0},  # DOWN1重置为0
+                {"price": float(self.no2_price_entry.get())},
+                {"price": float(self.no3_price_entry.get())},
+                {"price": float(self.no4_price_entry.get())}
+            ])
 
             # 读取 GUI 上的交易次数
             trade_count = self.trade_count_label.cget("text")
@@ -4707,10 +4703,14 @@ class CryptoTrader:
                 yes_entry.delete(0, tk.END)
                 yes_entry.insert(0, "0")
                 yes_entry.configure(foreground='black')
+                # 同步YES价格到StatusDataManager
+                self.status_data.update('positions', f'yes{i}_price', "0")
             if no_entry:
                 no_entry.delete(0, tk.END)
                 no_entry.insert(0, "0")
                 no_entry.configure(foreground='black')
+                # 同步NO价格到StatusDataManager
+                self.status_data.update('positions', f'no{i}_price', "0")
 
         api_data = None
         coin_form_websocket = ""
