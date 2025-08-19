@@ -544,6 +544,22 @@ class CryptoTrader:
         """获取web数据值，替代GUI的get()方法"""
         return self.web_data.get(key, '')
     
+    def get_gui_label_value(self, label_name):
+        """直接从GUI标签获取实际值"""
+        try:
+            if hasattr(self, label_name):
+                label = getattr(self, label_name)
+                if hasattr(label, 'cget'):
+                    text = label.cget('text')
+                    # 处理带前缀的文本，如"Portfolio: 123.45" -> "123.45"
+                    if ':' in text:
+                        return text.split(':', 1)[1].strip()
+                    return text
+            return '--'
+        except Exception as e:
+            self.logger.error(f"获取GUI标签值失败 {label_name}: {e}")
+            return '--'
+    
     def _parse_date_for_sort(self, date_str):
         """解析日期字符串用于排序，支持多种日期格式"""
         try:
@@ -5183,16 +5199,16 @@ class CryptoTrader:
                 'coin': self.get_web_value('coin_combobox'),
                 'auto_find_time': self.get_web_value('auto_find_time_combobox'),
                 'account': {
-                    'cash': self.status_data.get_value('account', 'available_cash') or self.get_web_value('cash_label') or '--',
-                    'portfolio': self.status_data.get_value('account', 'portfolio_value') or self.get_web_value('portfolio_label') or '--',
-                    'zero_time_cash': self.status_data.get_value('account', 'zero_time_cash') or self.get_web_value('zero_time_cash_label') or '0'
+                    'cash': self.status_data.get_value('account', 'available_cash') or self.get_gui_label_value('cash_label') or '--',
+                    'portfolio': self.status_data.get_value('account', 'portfolio_value') or self.get_gui_label_value('portfolio_label') or '--',
+                    'zero_time_cash': self.status_data.get_value('account', 'zero_time_cash') or self.get_gui_label_value('zero_time_cash_label') or '0'
                 },
                 'prices': {
-                    'up_price': self.status_data.get_value('prices', 'polymarket_up') or self.get_web_value('yes_price_label') or 'N/A',
-                    'down_price': self.status_data.get_value('prices', 'polymarket_down') or self.get_web_value('no_price_label') or 'N/A',
-                    'binance_price': self.status_data.get_value('prices', 'binance_current') or self.get_web_value('binance_now_price_label') or 'N/A',
-                    'binance_zero_price': self.status_data.get_value('prices', 'binance_zero_time') or self.get_web_value('binance_zero_price_label') or 'N/A',
-                    'binance_rate': self.status_data.get_value('prices', 'price_change_rate') or self.get_web_value('binance_rate_label') or 'N/A'
+                    'up_price': self.status_data.get_value('prices', 'polymarket_up') or self.get_gui_label_value('yes_price_label') or 'N/A',
+                    'down_price': self.status_data.get_value('prices', 'polymarket_down') or self.get_gui_label_value('no_price_label') or 'N/A',
+                    'binance_price': self.status_data.get_value('prices', 'binance_current') or self.get_gui_label_value('binance_now_price_label') or 'N/A',
+                    'binance_zero_price': self.status_data.get_value('prices', 'binance_zero_time') or self.get_gui_label_value('binance_zero_price_label') or 'N/A',
+                    'binance_rate': self.status_data.get_value('prices', 'price_change_rate') or self.get_gui_label_value('binance_rate_label') or 'N/A'
                 },
                 'trading_pair': self.get_web_value('trading_pair_label'),
                 'live_prices': {
