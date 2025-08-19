@@ -6637,10 +6637,6 @@ class CryptoTrader:
                                     <div class="position-content" id="positionContent">
                                         方向: -- 数量: -- 价格: -- 金额: --
                                     </div>
-                                    <div class="binance-price-container">
-                                    
-                                </div>
-
                                 </div>
                                 
                                 <!-- 币安价格和资产显示区域 -->
