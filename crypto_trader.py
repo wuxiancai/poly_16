@@ -2931,7 +2931,8 @@ class CryptoTrader:
                             trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
-                        )   
+                        )
+                        self.logger.error(f"❌ \033[31mBuy Down3 连续3次失败\033[0m")
             
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -6256,8 +6257,8 @@ class CryptoTrader:
                                 const binanceZeroPriceElement = document.querySelector('#binanceZeroPrice');
                                 const binanceRateElement = document.querySelector('#binanceRate');
                                 
-                                if (upPriceElement) upPriceElement.innerHTML = '<span class="price-label">RISE:</span> ' + (data.prices.up_price || 'N/A');
-                                if (downPriceElement) downPriceElement.innerHTML = '<span class="price-label">DOWN:</span> ' + (data.prices.down_price || 'N/A');
+                                if (upPriceElement) upPriceElement.textContent = data.prices.up_price || 'N/A';
+                                if (downPriceElement) downPriceElement.textContent = data.prices.down_price || 'N/A';
                                 if (binanceZeroPriceElement) binanceZeroPriceElement.textContent = data.prices.binance_zero_price;
                                 
                                 // 实时价格颜色逻辑：与零点价格比较
@@ -6591,10 +6592,10 @@ class CryptoTrader:
                                 <!-- UP和DOWN价格显示 -->
                                 <div class="up-down-prices-container">
                                     <div class="up-price-display" id="upPrice">
-                                        <span class="price-label">RISE:</span> {{ data.prices.up_price or 'N/A' }}
+                                        {{ data.prices.up_price or 'N/A' }}
                                     </div>
                                     <div class="down-price-display" id="downPrice">
-                                        <span class="price-label">DOWN:</span> {{ data.prices.down_price or 'N/A' }}
+                                        {{ data.prices.down_price or 'N/A' }}
                                     </div>
                                 </div>
                                 
@@ -6635,7 +6636,7 @@ class CryptoTrader:
                                             <label>币种:</label>
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
-                                    <div class="info-item time-select-item" style="display: inline-block; padding: 5px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 18px;">
+                                    <div class="info-item time-select-item" style="display: inline-block; padding: 10px 5px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 18px;">
                                             <label>开始交易时间:</label>
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
