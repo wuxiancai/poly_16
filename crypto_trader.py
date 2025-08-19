@@ -118,6 +118,11 @@ class CryptoTrader:
         self.url_monitoring_lock = threading.Lock()
         self.refresh_page_lock = threading.Lock()
         self.login_attempt_lock = threading.Lock()
+        
+        # 添加元素缓存机制
+        self.element_cache = {}
+        self.cache_timeout = 30  # 缓存30秒后失效
+        self.cache_lock = threading.Lock()
         self.restart_lock = threading.Lock()  # 添加重启锁
         self.is_restarting = False  # 重启状态标志
 
@@ -947,9 +952,26 @@ class CryptoTrader:
                 time.sleep(sleep_time)
                 error_count = 0  # 重置错误计数
                 
+            except (StaleElementReferenceException, NoSuchElementException) as e:
+                error_count += 1
+                self.logger.warning(f"元素引用失效: {str(e)}")
+                # 轻量级重试
+                sleep_time = min(2, base_interval * (2 ** error_count))
+                time.sleep(sleep_time)
+            except (TimeoutException, AttributeError) as e:
+                error_count += 1
+                self.logger.error(f"浏览器连接异常: {str(e)}")
+                # 浏览器级别重试
+                sleep_time = min(5, base_interval * (2 ** error_count))
+                if error_count > 3:
+                    self.logger.error("连续浏览器异常，尝试重启")
+                    self.restart_browser()
+                    error_count = 0
+                time.sleep(sleep_time)
             except Exception as e:
                 error_count += 1
-                # 错误时使用指数退避
+                self.logger.error(f"价格监控异常: {str(e)}")
+                # 通用异常处理
                 sleep_time = min(5, base_interval * (2 ** error_count))
                 time.sleep(sleep_time)
     
@@ -958,6 +980,9 @@ class CryptoTrader:
         Args:
             force_restart: True=强制重启Chrome进程,False=尝试重连现有进程
         """
+        # 清空元素缓存，因为浏览器即将重启
+        self._clear_element_cache()
+        
         # 先关闭浏览器
         if self.driver:
             try:
@@ -1345,76 +1370,51 @@ class CryptoTrader:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
             
-            # 等待页面完全加载
-            WebDriverWait(self.driver, 5).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-
-            # === 使用 JavaScript 获取价格（替代 XPath /原 JS 方法优化） ===
+            # 高度优化的JavaScript获取价格 - 最小化DOM查询
             prices = self.driver.execute_script("""
-                function getPricesEnhanced() {
+                function getPricesOptimized() {
                     const prices = {up: null, down: null};
+                    const priceRegex = /(\\d+(?:\\.\\d+)?)¢/;
                     
-                    // 等待一小段时间确保DOM完全渲染
-                    const startTime = Date.now();
-                    while (Date.now() - startTime < 200) {
-                        // 方法1: 查找所有span元素
-                        const spans = document.getElementsByTagName('span');
-                        for (let el of spans) {
-                            const text = el.textContent.trim();
-                            
-                            // 匹配Up价格的多种模式
-                            if ((text.includes('Up')) && text.includes('¢')) {
-                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                if (match && !prices.up) {
-                                    prices.up = parseFloat(match[1]);
-                                }
-                            }
-                            
-                            // 匹配Down价格的多种模式
-                            if ((text.includes('Down')) && text.includes('¢')) {
-                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                if (match && !prices.down) {
-                                    prices.down = parseFloat(match[1]);
-                                }
-                            }
-                        }
-                        
-                        // 方法2: 查找按钮元素
-                        if (!prices.up || !prices.down) {
-                            const buttons = document.getElementsByTagName('button');
-                            for (let btn of buttons) {
-                                const text = btn.textContent.trim();
+                    // 使用更精确的选择器，减少遍历范围
+                    const selectors = [
+                        'button[class*="btn"]',
+                        'button[class*="button"]', 
+                        'div[class*="price"]',
+                        'span[class*="price"]',
+                        'button'
+                    ];
+                    
+                    for (let selector of selectors) {
+                        try {
+                            const elements = document.querySelectorAll(selector);
+                            for (let el of elements) {
+                                const text = el.textContent || el.innerText;
+                                if (!text || !text.includes('¢')) continue;
                                 
-                                if (text.includes('Up') && text.includes('¢')) {
-                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                    if (match && !prices.up) {
-                                        prices.up = parseFloat(match[1]);
-                                    }
+                                if (text.includes('Up') && prices.up === null) {
+                                    const match = text.match(priceRegex);
+                                    if (match) prices.up = parseFloat(match[1]);
+                                }
+                                if (text.includes('Down') && prices.down === null) {
+                                    const match = text.match(priceRegex);
+                                    if (match) prices.down = parseFloat(match[1]);
                                 }
                                 
-                                if (text.includes('Down') && text.includes('¢')) {
-                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                    if (match && !prices.down) {
-                                        prices.down = parseFloat(match[1]);
-                                    }
-                                }
+                                // 如果两个价格都找到了，立即返回
+                                if (prices.up !== null && prices.down !== null) return prices;
                             }
+                            
+                            // 如果当前选择器找到了价格，不再尝试其他选择器
+                            if (prices.up !== null || prices.down !== null) break;
+                        } catch (e) {
+                            continue; // 忽略选择器错误，继续下一个
                         }
-                        
-                        // 如果找到了价格，提前退出
-                        if (prices.up !== null && prices.down !== null) {
-                            break;
-                        }
-                        
-                        // 短暂等待
-                        const now = Date.now();
-                        while (Date.now() - now < 10) {}
                     }
                     
                     return prices;
                 }
-                return getPricesEnhanced();
+                return getPricesOptimized();
             """)
 
             # 验证获取到的数据
@@ -1428,6 +1428,12 @@ class CryptoTrader:
                     # 更新GUI价格显示
                     self.yes_price_label.config(text=f"Up: {up_price_val:.1f}")
                     self.no_price_label.config(text=f"Down: {down_price_val:.1f}")
+                    
+                    # 重置失败计数器（价格获取成功）
+                    if hasattr(self, 'price_check_fail_count'):
+                        self.price_check_fail_count = 0
+                    if hasattr(self, 'element_fail_count'):
+                        self.element_fail_count = 0
                     
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
@@ -1452,29 +1458,46 @@ class CryptoTrader:
                 self.logger.warning(f"数据获取不完整，缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
-                # 尝试刷新页面
+                # 智能刷新：仅在连续失败时才刷新
+                if not hasattr(self, 'price_check_fail_count'):
+                    self.price_check_fail_count = 0
+                self.price_check_fail_count += 1
+                
+                if self.price_check_fail_count >= 3:
+                    try:
+                        self.logger.info("连续3次价格获取失败，执行页面刷新")
+                        self.driver.refresh()
+                        time.sleep(2)
+                        self.price_check_fail_count = 0
+                    except Exception:
+                        pass
+
+        except (StaleElementReferenceException, NoSuchElementException) as e:
+            self.logger.warning(f"元素引用失效: {str(e)}")
+            self.yes_price_label.config(text="Up: Retry")
+            self.no_price_label.config(text="Down: Retry")
+            # 智能刷新：仅在元素失效时才刷新
+            if not hasattr(self, 'element_fail_count'):
+                self.element_fail_count = 0
+            self.element_fail_count += 1
+            
+            if self.element_fail_count >= 2:
                 try:
+                    self.logger.info("连续2次元素失效，执行页面刷新")
                     self.driver.refresh()
                     time.sleep(2)
-                except:
+                    self.element_fail_count = 0
+                except Exception:
                     pass
-
+        except AttributeError as e:
+            self.logger.error(f"浏览器连接异常: {str(e)}")
+            if not self.is_restarting:
+                self.restart_browser()
+            return
         except Exception as e:
             self.logger.error(f"价格检查异常: {str(e)}")
-            
-            if "'NoneType' object has no attribute" in str(e):
-                if not self.is_restarting:
-                    self.restart_browser()
-                return
             self.yes_price_label.config(text="Up: Fail")
             self.no_price_label.config(text="Down: Fail")
-            
-            # 尝试刷新页面
-            try:
-                self.driver.refresh()
-                time.sleep(2)
-            except:
-                pass
             
     def check_balance(self):
         """获取Portfolio和Cash值"""  
@@ -1623,16 +1646,10 @@ class CryptoTrader:
     
     def start_url_monitoring(self):
         """启动URL监控"""
-        if self.driver is None:
-            return
-            
         with self.url_monitoring_lock:
             if getattr(self, 'is_url_monitoring', False):
                 self.logger.debug("URL监控已在运行中")
                 return
-            
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
 
             self.url_monitoring_running = True
             self.logger.info("\033[34m✅ 启动URL监控\033[0m")
@@ -1759,7 +1776,7 @@ class CryptoTrader:
                         time.sleep(check_interval)
 
                     self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
-                    self.refresh_page_timer = self.root.after(240000, self.refresh_page)
+                    self.refresh_page_timer = self.root.after(360000, self.refresh_page)  # 优化为6分钟
                     self.logger.info("✅ 已重新启用URL监控和页面刷新")
 
         except NoSuchElementException as e:
@@ -1834,10 +1851,14 @@ class CryptoTrader:
             self.logger.error(f"执行 click_accept 点击操作失败: {str(e)}")
 
     def refresh_page(self):
-        """定时刷新页面"""
-        # 生成随机的5-10分钟（以毫秒为单位）
-        random_minutes = random.uniform(2, 7)
+        """智能定时刷新页面 - 优化刷新频率和条件"""
+        # 增加刷新间隔到8-15分钟，减少不必要的刷新
+        random_minutes = random.uniform(8, 15)
         self.refresh_interval = int(random_minutes * 60000)  # 转换为毫秒
+        
+        # 初始化刷新失败计数器（如果不存在）
+        if not hasattr(self, 'refresh_fail_count'):
+            self.refresh_fail_count = 0
 
         with self.refresh_page_lock:
             self.refresh_page_running = True
@@ -1850,33 +1871,89 @@ class CryptoTrader:
                     except Exception as e:
                         self.logger.error(f"取消旧定时器失败: {str(e)}")
 
-                if self.running and self.driver and not self.trading:
+                # 智能刷新条件判断
+                should_refresh = self._should_refresh_page()
+                
+                if self.running and self.driver and not self.trading and should_refresh:
                     try:
                         # 验证浏览器连接是否正常
                         self.driver.execute_script("return navigator.userAgent")
                         refresh_time = self.refresh_interval / 60000 # 转换为分钟,用于输入日志
+                        
+                        # 清空元素缓存，因为页面即将刷新
+                        self._clear_element_cache()
                         self.driver.refresh()
+                        
+                        # 重置失败计数器
+                        self.refresh_fail_count = 0
+                        self.logger.info(f"✅ 页面已刷新，{round(refresh_time, 2)}分钟后再次检查")
+                        
                     except Exception as e:
-                        self.logger.warning(f"浏览器连接异常，无法刷新页面")
-                        # 尝试重启浏览器
-                        if not self.is_restarting:
+                        self.refresh_fail_count += 1
+                        self.logger.warning(f"浏览器连接异常，无法刷新页面 (失败次数: {self.refresh_fail_count})")
+                        
+                        # 连续失败3次后尝试重启浏览器
+                        if self.refresh_fail_count >= 3 and not self.is_restarting:
+                            self.logger.warning("连续刷新失败3次，尝试重启浏览器")
+                            self.refresh_fail_count = 0
                             self.restart_browser()
                 else:
-                    self.logger.info("刷新失败(else)")
-                    self.logger.info(f"trading={self.trading}")
+                    if not should_refresh:
+                        self.logger.debug("跳过刷新：页面状态良好")
+                    else:
+                        self.logger.debug(f"跳过刷新：running={self.running}, driver={bool(self.driver)}, trading={self.trading}")
                     
             except Exception as e:
-                self.logger.warning(f"页面刷新失败(except)")
-                # 无论是否执行刷新都安排下一次（确保循环持续）
-                if hasattr(self, 'refresh_page_timer') and self.refresh_page_timer:
-                    try:
-                        self.root.after_cancel(self.refresh_page_timer)
-                    except Exception as e:
-                        self.logger.error(f"取消旧定时器失败")
+                self.refresh_fail_count += 1
+                self.logger.warning(f"页面刷新失败: {str(e)} (失败次数: {self.refresh_fail_count})")
+                
             finally:
+                # 安排下一次检查（确保循环持续）
                 self.refresh_page_timer = self.root.after(self.refresh_interval, self.refresh_page)
-                #self.logger.info(f"\033[34m{round(refresh_time, 2)} 分钟后再次刷新\033[0m")
 
+    def _should_refresh_page(self):
+        """智能判断是否需要刷新页面"""
+        try:
+            # 检查页面是否响应正常
+            if not self.driver:
+                return False
+                
+            # 检查页面加载状态
+            ready_state = self.driver.execute_script("return document.readyState")
+            if ready_state != "complete":
+                return True  # 页面未完全加载，需要刷新
+                
+            # 检查是否存在关键元素（价格按钮）
+            try:
+                buttons = self.driver.find_elements(By.TAG_NAME, "button")
+                price_buttons = [btn for btn in buttons if '¢' in btn.text and ('Up' in btn.text or 'Down' in btn.text)]
+                if len(price_buttons) < 2:
+                    return True  # 关键元素缺失，需要刷新
+            except Exception:
+                return True  # 元素查找失败，需要刷新
+                
+            # 检查页面是否有错误信息
+            try:
+                error_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Error') or contains(text(), '错误') or contains(text(), 'Failed')]") 
+                if error_elements:
+                    return True  # 页面有错误，需要刷新
+            except Exception:
+                pass
+                
+            # 检查网络连接状态
+            try:
+                online_status = self.driver.execute_script("return navigator.onLine")
+                if not online_status:
+                    return True  # 网络断开，需要刷新
+            except Exception:
+                pass
+                
+            return False  # 页面状态良好，无需刷新
+            
+        except Exception as e:
+            self.logger.debug(f"页面状态检查失败: {str(e)}")
+            return True  # 检查失败，保守起见进行刷新
+    
     def stop_refresh_page(self):
         """停止页面刷新"""
         with self.refresh_page_lock:
@@ -2532,7 +2609,7 @@ class CryptoTrader:
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
     def send_amount_and_click_buy_confirm(self, amount_entry):
-        """优化版交易执行 - 减少等待时间"""
+        """批量优化版交易执行 - 使用通用批量DOM操作方法"""
         try:
             amount = amount_entry.get()
             
@@ -2560,16 +2637,34 @@ class CryptoTrader:
             self.logger.error(f"快速交易失败: {str(e)}")
 
     def click_positions_sell_and_sell_confirm_and_accept(self):
-        """卖出并点击确认"""
+        """卖出并点击确认 - 使用顺序执行的批量操作"""
+        try:
+            # 定义顺序执行的操作 - 包含延迟确保按钮响应
+            operations = [
+                {'xpath': XPathConfig.POSITION_SELL_BUTTON[0], 'action': 'click'},
+                {'xpath': XPathConfig.SELL_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 100},
+                {'xpath': XPathConfig.ACCEPT_BUTTON[0], 'action': 'click', 'delay': 100, 'optional': True}
+            ]
+            
+            # 定义回退操作
+            fallback_operations = [
+                lambda: self._fallback_sell_operation(),
+            ]
+            
+            # 使用顺序执行方法
+            self._execute_sequential_dom_operations(operations, fallback_operations)
+            
+        except Exception as e:
+            self.logger.error(f"卖出失败: {str(e)}")
+            
+    def _fallback_sell_operation(self):
+        """卖出操作的回退方法"""
         try:
             # 点击卖出按钮
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                # 点击确认按钮
                 positions_sell_button.click()
-                #self.logger.info("✅ \033[34m点击SELL按钮成功\033[0m")
             except TimeoutException:
-                
                 positions_sell_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
                 )
@@ -2579,11 +2674,8 @@ class CryptoTrader:
             # 点击卖出确认按钮
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-                # 点击确认按钮
                 sell_confirm_button.click()
-                #self.logger.info("✅ \033[34m点击SELL_CONFIRM按钮成功\033[0m")
             except TimeoutException:
-                
                 sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
                 )
@@ -2596,12 +2688,10 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
-                #self.logger.info("✅ \033[34m点击ACCEPT按钮成功\033[0m")
             except TimeoutException:
-                # 弹窗没出现,不用处理
-                pass
+                pass  # 弹窗没出现,不用处理
         except Exception as e:
-            self.logger.error(f"卖出失败: {str(e)}")
+            self.logger.error(f"回退卖出操作失败: {str(e)}")
 
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
@@ -2843,8 +2933,13 @@ class CryptoTrader:
             except (NoSuchElementException, StaleElementReferenceException):
                 button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
 
-            button.click()
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy按钮未找到")
             
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
 
@@ -2857,8 +2952,13 @@ class CryptoTrader:
             except (NoSuchElementException, StaleElementReferenceException):
                 button = self._find_element_with_retry(XPathConfig.BUY_YES_BUTTON, timeout=2, silent=True)
                 
-            button.click()
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy-Yes按钮未找到")
             
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy-Yes按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy-Yes 按钮失败: {str(e)}")
 
@@ -2871,8 +2971,13 @@ class CryptoTrader:
             except (NoSuchElementException, StaleElementReferenceException):
                 button = self._find_element_with_retry(XPathConfig.BUY_NO_BUTTON, timeout=2, silent=True)
                 
-            button.click()
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy-No按钮未找到")
             
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy-No按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy-No 按钮失败: {str(e)}")
     
@@ -3173,8 +3278,265 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
       
-    def _find_element_with_retry(self, xpaths, timeout=1, silent=True):
-        """优化版元素查找 - 并行查找多个XPath"""
+    def _get_cached_element(self, cache_key):
+        """从缓存中获取元素"""
+        with self.cache_lock:
+            if cache_key in self.element_cache:
+                cached_data = self.element_cache[cache_key]
+                # 检查缓存是否过期
+                if time.time() - cached_data['timestamp'] < self.cache_timeout:
+                    try:
+                        # 验证元素是否仍然有效
+                        element = cached_data['element']
+                        element.is_displayed()  # 这会触发StaleElementReferenceException如果元素无效
+                        return element
+                    except (StaleElementReferenceException, NoSuchElementException):
+                        # 元素已失效，从缓存中移除
+                        del self.element_cache[cache_key]
+                else:
+                    # 缓存过期，移除
+                    del self.element_cache[cache_key]
+            return None
+    
+    def _cache_element(self, cache_key, element):
+        """将元素添加到缓存"""
+        with self.cache_lock:
+            self.element_cache[cache_key] = {
+                'element': element,
+                'timestamp': time.time()
+            }
+    
+    def _clear_element_cache(self):
+        """清空元素缓存"""
+        with self.cache_lock:
+            self.element_cache.clear()
+    
+    def _execute_batch_dom_operations(self, operations, fallback_operations=None):
+        """批量执行DOM操作 - 支持顺序执行和延迟
+        
+        Args:
+            operations: 要执行的操作列表，每个操作包含 {xpath, action, value?, delay?, optional?}
+            fallback_operations: 批量操作失败时的回退操作函数列表
+            
+        Returns:
+            dict: {success: bool, results: list, error: str?}
+        """
+        try:
+            # 对于需要顺序执行的操作，使用异步JavaScript
+            has_delays = any(op.get('delay', 0) > 0 for op in operations)
+            
+            if has_delays:
+                # 使用异步方式处理有延迟的操作
+                return self._execute_sequential_dom_operations(operations, fallback_operations)
+            
+            # 对于无延迟的操作，使用同步批量处理
+            js_operations = []
+            for i, op in enumerate(operations):
+                xpath = op['xpath']
+                action = op['action']  # 'click', 'setValue', 'getText'
+                value = op.get('value', '')
+                optional = op.get('optional', False)
+                
+                if action == 'click':
+                    action_code = f'element{i}.click();'
+                elif action == 'setValue':
+                    action_code = f'element{i}.value = "{value}"; element{i}.dispatchEvent(new Event("input", {{bubbles: true}}));'
+                elif action == 'getText':
+                    action_code = f'results.push(element{i}.textContent || element{i}.innerText);'
+                else:
+                    action_code = ''
+                
+                if optional:
+                    js_operations.append(f"""
+                        // 操作 {i+1}: {action} (可选)
+                        const element{i} = document.evaluate(
+                            '{xpath}', 
+                            document, 
+                            null, 
+                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                            null
+                        ).singleNodeValue;
+                        
+                        if (element{i}) {{
+                            {action_code}
+                            operations.push({{index: {i}, action: '{action}', success: true}});
+                        }} else {{
+                            operations.push({{index: {i}, action: '{action}', success: true, skipped: true}});
+                        }}
+                    """)
+                else:
+                    js_operations.append(f"""
+                        // 操作 {i+1}: {action}
+                        const element{i} = document.evaluate(
+                            '{xpath}', 
+                            document, 
+                            null, 
+                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                            null
+                        ).singleNodeValue;
+                        
+                        if (element{i}) {{
+                            {action_code}
+                            operations.push({{index: {i}, action: '{action}', success: true}});
+                        }} else {{
+                            operations.push({{index: {i}, action: '{action}', success: false, error: 'Element not found'}});
+                        }}
+                    """)
+            
+            js_code = f"""
+                try {{
+                    let operations = [];
+                    let results = [];
+                    
+                    {''.join(js_operations)}
+                    
+                    return {{success: true, operations: operations, results: results}};
+                }} catch (e) {{
+                    return {{success: false, error: e.message}};
+                }}
+            """
+            
+            result = self.driver.execute_script(js_code)
+            
+            if result.get('success'):
+                successful_ops = [op for op in result.get('operations', []) if op.get('success')]
+                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
+                
+                if failed_ops and fallback_operations:
+                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败，执行回退操作")
+                    # 只对失败的操作执行回退
+                    for failed_op in failed_ops:
+                        index = failed_op['index']
+                        if index < len(fallback_operations):
+                            try:
+                                fallback_operations[index]()
+                            except Exception as e:
+                                self.logger.error(f"回退操作{index}失败: {str(e)}")
+                
+                return {
+                    'success': True,
+                    'operations': result.get('operations', []),
+                    'results': result.get('results', []),
+                    'partial_success': len(successful_ops) > 0
+                }
+            else:
+                # 完全失败，执行所有回退操作
+                if fallback_operations:
+                    self.logger.warning(f"批量操作完全失败，执行所有回退操作: {result.get('error')}")
+                    for i, fallback_op in enumerate(fallback_operations):
+                        try:
+                            fallback_op()
+                        except Exception as e:
+                            self.logger.error(f"回退操作{i}失败: {str(e)}")
+                
+                return {'success': False, 'error': result.get('error')}
+                
+        except Exception as e:
+            self.logger.error(f"批量DOM操作执行失败: {str(e)}")
+            # 执行所有回退操作
+            if fallback_operations:
+                for i, fallback_op in enumerate(fallback_operations):
+                    try:
+                        fallback_op()
+                    except Exception as e:
+                        self.logger.error(f"回退操作{i}失败: {str(e)}")
+            
+            return {'success': False, 'error': str(e)}
+    
+    def _execute_sequential_dom_operations(self, operations, fallback_operations=None):
+        """顺序执行DOM操作 - 支持延迟和异步操作"""
+        try:
+            results = []
+            operation_results = []
+            
+            for i, op in enumerate(operations):
+                xpath = op['xpath']
+                action = op['action']
+                value = op.get('value', '')
+                delay = op.get('delay', 0)
+                optional = op.get('optional', False)
+                
+                try:
+                    # 查找元素
+                    element = WebDriverWait(self.driver, 0.5).until(
+                        EC.presence_of_element_located((By.XPATH, xpath))
+                    )
+                    
+                    # 执行操作
+                    if action == 'click':
+                        element.click()
+                    elif action == 'setValue':
+                        self.driver.execute_script(f"arguments[0].value = '{value}'; arguments[0].dispatchEvent(new Event('input', {{bubbles: true}}));", element)
+                    elif action == 'getText':
+                        results.append(element.text or element.get_attribute('textContent'))
+                    
+                    operation_results.append({
+                        'index': i,
+                        'action': action,
+                        'success': True
+                    })
+                    
+                    # 如果有延迟，等待指定时间
+                    if delay > 0:
+                        time.sleep(delay / 1000.0)  # 转换为秒
+                        
+                except (TimeoutException, NoSuchElementException) as e:
+                    if optional:
+                        # 可选操作失败不影响整体结果
+                        operation_results.append({
+                            'index': i,
+                            'action': action,
+                            'success': True,
+                            'skipped': True
+                        })
+                    else:
+                        # 必需操作失败，执行回退
+                        operation_results.append({
+                            'index': i,
+                            'action': action,
+                            'success': False,
+                            'error': str(e)
+                        })
+                        
+                        if fallback_operations and i < len(fallback_operations):
+                            try:
+                                fallback_operations[i]()
+                            except Exception as fallback_error:
+                                self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+            
+            # 检查是否有失败的必需操作
+            failed_required = [op for op in operation_results if not op.get('success') and not op.get('skipped')]
+            
+            return {
+                'success': len(failed_required) == 0,
+                'operations': operation_results,
+                'results': results,
+                'partial_success': any(op.get('success') for op in operation_results)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"顺序DOM操作执行失败: {str(e)}")
+            # 执行所有回退操作
+            if fallback_operations:
+                for i, fallback_op in enumerate(fallback_operations):
+                    try:
+                        fallback_op()
+                    except Exception as fallback_error:
+                        self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+            
+            return {'success': False, 'error': str(e)}
+
+    def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
+        """优化版元素查找 - 支持缓存和并行查找多个XPath"""
+        # 生成缓存键
+        cache_key = str(sorted(xpaths)) if use_cache else None
+        
+        # 尝试从缓存获取元素
+        if use_cache and cache_key:
+            cached_element = self._get_cached_element(cache_key)
+            if cached_element:
+                return cached_element
+        
         try:
             from concurrent.futures import ThreadPoolExecutor, TimeoutError
             
@@ -3183,7 +3545,7 @@ class CryptoTrader:
                     return WebDriverWait(self.driver, timeout).until(
                         EC.presence_of_element_located((By.XPATH, xpath))
                     )
-                except:
+                except (TimeoutException, NoSuchElementException):
                     return None
             
             # 并行查找所有XPath
@@ -3194,16 +3556,22 @@ class CryptoTrader:
                     try:
                         result = future.result(timeout=timeout)
                         if result:
+                            # 缓存找到的元素
+                            if use_cache and cache_key:
+                                self._cache_element(cache_key, result)
                             return result
-                    except:
+                    except (TimeoutError, Exception):
                         continue
             
             for future in futures:
                 try:
                     result = future.result(timeout=timeout)
                     if result:
+                        # 缓存找到的元素
+                        if use_cache and cache_key:
+                            self._cache_element(cache_key, result)
                         return result
-                except:
+                except (TimeoutError, Exception):
                     continue
         
         except Exception as e:
