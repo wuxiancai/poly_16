@@ -7163,18 +7163,31 @@ class CryptoTrader:
         def get_positions_api():
             """获取持仓信息API"""
             try:
-                # 调用get_positions函数获取持仓信息
-                position_info = self.get_positions()
-                return jsonify({
-                    'success': True,
-                    'position_info': position_info
-                })
+                # 从StatusDataManager获取交易验证信息
+                trade_verification = self.status_data.get('trade_verification', {})
+                
+                if trade_verification and all(key in trade_verification for key in ['direction', 'shares', 'price', 'amount']):
+                    position = {
+                        'direction': trade_verification['direction'],
+                        'shares': trade_verification['shares'],
+                        'price': trade_verification['price'],
+                        'amount': trade_verification['amount']
+                    }
+                    return jsonify({
+                        'success': True,
+                        'position': position
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'position': None
+                    })
             except Exception as e:
                 self.logger.error(f"获取持仓信息失败: {str(e)}")
                 return jsonify({
                     'success': False,
                     'error': str(e),
-                    'position_info': '暂无持仓信息'
+                    'position': None
                 }), 500
          
         @app.route("/history")
