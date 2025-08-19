@@ -181,3 +181,13 @@ class XPathConfig:
         '//p[contains(text(), "Solana Up or Down on")]', 
         '//a//p[contains(text(), "Solana Up or Down on")]' 
     ]
+
+    # 35.UP 价格
+    UP_PRICE = [
+        '//button[.//span[contains(text(), "Up")]]//span[contains(text(), "¢")]'
+    ]
+
+    # 36.DOWN 价格
+    DOWN_PRICE = [
+        '//button[.//span[contains(text(), "Down")]]//span[contains(text(), "¢")]'
+    ]
