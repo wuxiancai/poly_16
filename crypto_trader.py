@@ -1896,49 +1896,6 @@ class CryptoTrader:
             # 重置监控状态
             self.refresh_page_running = False
             self.logger.info("\033[31m❌ 刷新状态已停止\033[0m")
- 
-    def send_amount_and_buy_confirm(self, amount_entry):
-        """一次完成金额输入 + 确认点击"""
-        try:
-            # 1. 获取金额
-            amount = amount_entry.get()
-
-            # 2. 定位输入框（短等待，避免卡死）
-            try:
-                amount_input = WebDriverWait(self.driver, 0.3).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
-                )
-                # 3. 清空并输入金额
-                amount_input.clear()
-                amount_input.send_keys(str(amount))
-                self.logger.info(f"输入金额: {amount}")
-            except TimeoutException:
-                self.logger.error("定位金额输入框超时")
-
-            # 4. 立即点击确认按钮
-            try:
-                buy_confirm_button = WebDriverWait(self.driver, 0.3).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-                )
-                # 点击确认按钮
-                buy_confirm_button.click()
-                self.logger.info("✅ 点击确认按钮成功")
-            except TimeoutException:
-                self.logger.error("定位确认按钮超时")
-
-            # 5. 等待确认弹窗出现
-            try:
-                accept_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.presence_of_element_located((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
-                )
-                accept_button.click()
-                self.logger.info("✅ 点击ACCEPT按钮成功")
-            except TimeoutException:
-                # 弹窗没出现,不用处理
-                self.logger.info("没有出现ACCEPT弹窗,跳过点击")
-
-        except Exception as e:
-            self.logger.error(f"交易失败: {str(e)}")
     
     def change_buy_and_trade_count(self):
         """改变交易次数"""
@@ -1964,7 +1921,7 @@ class CryptoTrader:
 
                         # 买入 UP1
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes1_amount_entry
-                        self.send_amount_and_buy_confirm(self.yes1_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.yes1_amount_entry)
 
                         time.sleep(2)
                         if self.Verify_buy_up():
@@ -2033,7 +1990,7 @@ class CryptoTrader:
                         self.buy_no_button.invoke() 
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no1_amount_entry
-                        self.send_amount_and_buy_confirm(self.no1_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.no1_amount_entry)
                         
                         self.buy_yes_button.invoke()
 
@@ -2116,7 +2073,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes2_amount_entry
-                        self.send_amount_and_buy_confirm(self.yes2_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.yes2_amount_entry)
                         
                         time.sleep(2)
                         if self.Verify_buy_up():
@@ -2181,7 +2138,7 @@ class CryptoTrader:
                         self.buy_no_button.invoke()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no2_amount_entry
-                        self.send_amount_and_buy_confirm(self.no2_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.no2_amount_entry)
                         
                         time.sleep(2)
                         if self.Verify_buy_down():
@@ -2260,7 +2217,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes3_amount_entry
-                        self.send_amount_and_buy_confirm(self.yes3_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.yes3_amount_entry)
 
                         time.sleep(2)
                         if self.Verify_buy_up():
@@ -2328,7 +2285,7 @@ class CryptoTrader:
                         # 执行交易操作
                         self.buy_no_button.invoke()
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no3_amount_entry
-                        self.send_amount_and_buy_confirm(self.no3_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.no3_amount_entry)
 
                         time.sleep(2)
                         if self.Verify_buy_down():
@@ -2409,7 +2366,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes4_amount_entry
-                        self.send_amount_and_buy_confirm(self.yes4_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.yes4_amount_entry)
 
                         time.sleep(2)
                         if self.Verify_buy_up():
@@ -2477,7 +2434,7 @@ class CryptoTrader:
                         self.buy_no_button.invoke()
 
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.no4_amount_entry
-                        self.send_amount_and_buy_confirm(self.no4_amount_entry)
+                        self.send_amount_and_click_buy_confirm(self.no4_amount_entry)
                         
                         time.sleep(2)
                         if self.Verify_buy_down():
@@ -2579,27 +2536,82 @@ class CryptoTrader:
         self.no4_entry.insert(0, f"{yes4_amount:.2f}")
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
+    def send_amount_and_click_buy_confirm(self, amount_entry):
+        """一次完成金额输入 + 确认点击"""
+        try:
+            # 1. 获取金额
+            amount = amount_entry.get()
+
+            # 2. 定位输入框（短等待，避免卡死）
+            try:
+                amount_input = WebDriverWait(self.driver, 0.3).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
+                )
+                # 3. 清空并输入金额
+                amount_input.clear()
+                amount_input.send_keys(str(amount))
+                #self.logger.info(f"输入金额: {amount}")
+            except TimeoutException:
+                self.logger.error("定位金额输入框超时")
+
+            # 4. 立即点击确认按钮
+            try:
+                buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
+                # 点击确认按钮
+                buy_confirm_button.click()
+                #self.logger.info("✅ 点击确认按钮成功")
+            except TimeoutException:
+                #self.logger.error("\033[31m定位确认按钮超时\033[0m")
+                buy_confirm_button = WebDriverWait(self.driver, 0.3).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
+                )
+                # 点击确认按钮
+                buy_confirm_button.click()
+
+            # 5. 等待确认弹窗出现
+            try:
+                accept_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.presence_of_element_located((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
+                )
+                accept_button.click()
+                #self.logger.info("✅ 点击ACCEPT按钮成功")
+            except TimeoutException:
+                # 弹窗没出现,不用处理
+                #self.logger.info("没有出现ACCEPT弹窗,跳过点击")
+                pass
+
+        except Exception as e:
+            self.logger.error(f"交易失败: {str(e)}")
+            
     def click_positions_sell_and_sell_confirm_and_accept(self):
         """卖出并点击确认"""
         try:
             # 点击卖出按钮
             try:
+                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+                # 点击确认按钮
+                positions_sell_button.click()
+                #self.logger.info("✅ \033[34m点击SELL按钮成功\033[0m")
+            except TimeoutException:
+                
                 positions_sell_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
                 )
                 positions_sell_button.click()
-                self.logger.info("✅ \033[34m点击SELL按钮成功\033[0m")
-            except TimeoutException:
                 self.logger.error("❌ \033[31m没有出现SELL按钮,跳过点击\033[0m")
 
             # 点击卖出确认按钮
             try:
+                sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
+                # 点击确认按钮
+                sell_confirm_button.click()
+                #self.logger.info("✅ \033[34m点击SELL_CONFIRM按钮成功\033[0m")
+            except TimeoutException:
+                
                 sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
                 )
                 sell_confirm_button.click()
-                self.logger.info("✅ \033[34m点击SELL_CONFIRM按钮成功\033[0m")
-            except TimeoutException:
                 self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
 
             # 等待ACCEPT弹窗出现
@@ -2608,10 +2620,10 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
-                self.logger.info("✅ \033[34m点击ACCEPT按钮成功\033[0m")
+                #self.logger.info("✅ \033[34m点击ACCEPT按钮成功\033[0m")
             except TimeoutException:
                 # 弹窗没出现,不用处理
-                self.logger.info("\033[31m❌ 没有出现ACCEPT弹窗,跳过点击\033[0m")
+                pass
         except Exception as e:
             self.logger.error(f"卖出失败: {str(e)}")
 
@@ -2728,7 +2740,7 @@ class CryptoTrader:
                 wait_interval = 1  # 检查间隔
                 
                 for retry in range(max_retries):
-                    self.logger.info(f"第{retry + 1}次检查交易记录（共{max_retries}次）")
+                    #self.logger.info(f"第{retry + 1}次检查交易记录（共{max_retries}次）")
                     
                     try:
                         # 等待历史记录元素出现                  
@@ -2744,7 +2756,7 @@ class CryptoTrader:
                         if history_element:
                             # 获取历史记录文本
                             history_text = history_element.text
-                            self.logger.info(f"\033[32m找到交易记录:{history_text}\033[0m")
+                            #self.logger.info(f"\033[32m找到交易记录:{history_text}\033[0m")
                             
                             # 分别查找action_type和direction，避免同时匹配导致的问题
                             action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
