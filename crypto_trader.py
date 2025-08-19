@@ -2382,16 +2382,16 @@ class CryptoTrader:
                             
                             # 同步UP1和DOWN1价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][0]['amount']},
-                                self.status_data.data['positions']['up_positions'][1],
-                                self.status_data.data['positions']['up_positions'][2],
-                                self.status_data.data['positions']['up_positions'][3]
+                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][0]['amount']},
+                                self.status_data._data['positions']['up_positions'][1],
+                                self.status_data._data['positions']['up_positions'][2],
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][0]['amount']},
-                                self.status_data.data['positions']['down_positions'][1],
-                                self.status_data.data['positions']['down_positions'][2],
-                                self.status_data.data['positions']['down_positions'][3]
+                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][0]['amount']},
+                                self.status_data._data['positions']['down_positions'][1],
+                                self.status_data._data['positions']['down_positions'][2],
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
@@ -2408,10 +2408,10 @@ class CryptoTrader:
                             
                             # 同步DOWN2价格到StatusDataManager
                             self.status_data.update('positions', 'down_positions', [
-                                self.status_data.data['positions']['down_positions'][0],
-                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
-                                self.status_data.data['positions']['down_positions'][2],
-                                self.status_data.data['positions']['down_positions'][3]
+                                self.status_data._data['positions']['down_positions'][0],
+                                {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
+                                self.status_data._data['positions']['down_positions'][2],
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             
                             self.logger.info(f"\033[34m✅ No2价格已重置为默认值{self.default_target_price}\033[0m")
@@ -2476,16 +2476,16 @@ class CryptoTrader:
                             
                             # 同步UP1和DOWN1价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][0]['amount']},
-                                self.status_data.data['positions']['up_positions'][1],
-                                self.status_data.data['positions']['up_positions'][2],
-                                self.status_data.data['positions']['up_positions'][3]
+                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][0]['amount']},
+                                self.status_data._data['positions']['up_positions'][1],
+                                self.status_data._data['positions']['up_positions'][2],
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][0]['amount']},
-                                self.status_data.data['positions']['down_positions'][1],
-                                self.status_data.data['positions']['down_positions'][2],
-                                self.status_data.data['positions']['down_positions'][3]
+                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][0]['amount']},
+                                self.status_data._data['positions']['down_positions'][1],
+                                self.status_data._data['positions']['down_positions'][2],
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
@@ -2502,10 +2502,10 @@ class CryptoTrader:
                             
                             # 同步UP2价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                self.status_data.data['positions']['up_positions'][0],
-                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
-                                self.status_data.data['positions']['up_positions'][2],
-                                self.status_data.data['positions']['up_positions'][3]
+                                self.status_data._data['positions']['up_positions'][0],
+                                {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
+                                self.status_data._data['positions']['up_positions'][2],
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             
                             self.logger.info(f"\033[34m✅ Yes2价格已重置为{self.default_target_price}\033[0m")
@@ -2580,16 +2580,16 @@ class CryptoTrader:
                             
                             # 同步UP2和DOWN2价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                self.status_data.data['positions']['up_positions'][0],
-                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
-                                self.status_data.data['positions']['up_positions'][2],
-                                self.status_data.data['positions']['up_positions'][3]
+                                self.status_data._data['positions']['up_positions'][0],
+                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
+                                self.status_data._data['positions']['up_positions'][2],
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                self.status_data.data['positions']['down_positions'][0],
-                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
-                                self.status_data.data['positions']['down_positions'][2],
-                                self.status_data.data['positions']['down_positions'][3]
+                                self.status_data._data['positions']['down_positions'][0],
+                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
+                                self.status_data._data['positions']['down_positions'][2],
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
@@ -2604,10 +2604,10 @@ class CryptoTrader:
                             
                             # 同步DOWN3价格到StatusDataManager
                             self.status_data.update('positions', 'down_positions', [
-                                self.status_data.data['positions']['down_positions'][0],
-                                self.status_data.data['positions']['down_positions'][1],
-                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['down_positions'][2]['amount']},
-                                self.status_data.data['positions']['down_positions'][3]
+                                self.status_data._data['positions']['down_positions'][0],
+                                self.status_data._data['positions']['down_positions'][1],
+                                {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['down_positions'][2]['amount']},
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             #self.logger.info(f"✅ No3价格已重置为{self.default_target_price}")
 
@@ -2667,16 +2667,16 @@ class CryptoTrader:
                             
                             # 同步UP2和DOWN2价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                self.status_data.data['positions']['up_positions'][0],
-                                {'price': '0', 'amount': self.status_data.data['positions']['up_positions'][1]['amount']},
-                                self.status_data.data['positions']['up_positions'][2],
-                                self.status_data.data['positions']['up_positions'][3]
+                                self.status_data._data['positions']['up_positions'][0],
+                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
+                                self.status_data._data['positions']['up_positions'][2],
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                self.status_data.data['positions']['down_positions'][0],
-                                {'price': '0', 'amount': self.status_data.data['positions']['down_positions'][1]['amount']},
-                                self.status_data.data['positions']['down_positions'][2],
-                                self.status_data.data['positions']['down_positions'][3]
+                                self.status_data._data['positions']['down_positions'][0],
+                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
+                                self.status_data._data['positions']['down_positions'][2],
+                                self.status_data._data['positions']['down_positions'][3]
                             ])
                             #self.logger.info(f"\033[34m✅ Yes2和No2价格已重置为0\033[0m")
 
@@ -2691,10 +2691,10 @@ class CryptoTrader:
                             
                             # 同步UP3价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                self.status_data.data['positions']['up_positions'][0],
-                                self.status_data.data['positions']['up_positions'][1],
-                                {'price': str(self.default_target_price), 'amount': self.status_data.data['positions']['up_positions'][2]['amount']},
-                                self.status_data.data['positions']['up_positions'][3]
+                                self.status_data._data['positions']['up_positions'][0],
+                                self.status_data._data['positions']['up_positions'][1],
+                                {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['up_positions'][2]['amount']},
+                                self.status_data._data['positions']['up_positions'][3]
                             ])
                             
                             self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
@@ -3477,10 +3477,12 @@ class CryptoTrader:
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
                                 
                                 # 同步交易验证信息到StatusDataManager
-                                self.status_data.update('trade_verification', 'direction', direction_found)
-                                self.status_data.update('trade_verification', 'shares', self.shares)
-                                self.status_data.update('trade_verification', 'price', self.price)
-                                self.status_data.update('trade_verification', 'amount', self.amount)
+                                self.status_data.update_data('trading', 'trade_verification', {
+                                    'direction': direction,
+                                    'shares': self.shares,
+                                    'price': self.price,
+                                    'amount': self.amount
+                                })
                                 
                                 return True, self.price, self.amount, self.shares
                     
@@ -6375,6 +6377,9 @@ class CryptoTrader:
                         // 初始化时间显示和倒计时
                         initializeTimeDisplay();
                         
+                        // 初始化持仓信息显示
+                        updatePositionInfo();
+                        
                         // 添加URL输入框事件监听器
                         const urlInput = document.getElementById('urlInput');
                         if (urlInput) {
@@ -7127,7 +7132,7 @@ class CryptoTrader:
             """获取持仓信息API"""
             try:
                 # 从StatusDataManager获取交易验证信息
-                trade_verification = self.status_data.get('trade_verification', {})
+                trade_verification = self.status_data.get_value('trading', 'trade_verification') or {}
                 
                 if trade_verification and all(key in trade_verification for key in ['direction', 'shares', 'price', 'amount']):
                     position = {
