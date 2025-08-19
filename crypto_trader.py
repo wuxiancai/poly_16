@@ -929,30 +929,29 @@ class CryptoTrader:
         self.running = False
 
     def monitor_prices(self):
-        """检查价格变化"""
-        try:
-            # 确保浏览器连接
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
-            
-            # 等待页面加载完成
-            WebDriverWait(self.driver, 3).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-           
-            # 开始监控价格
-            while not self.stop_event.is_set():  # 改用事件判断
-                try:
-                    self.check_balance()
-                    self.check_prices()
-                    time.sleep(1)
-                except Exception as e:
-                    if not self.stop_event.is_set():  # 仅在未停止时记录错误
-                        self.logger.error(f"监控失败: {str(e)}")
-                    time.sleep(self.retry_interval)
-        except Exception as e:
-            if not self.stop_event.is_set():
-                self.logger.error(f"加载页面失败: {str(e)}")
+        """优化版价格监控 - 动态调整监控频率"""
+        base_interval = 0.3  # 基础监控间隔300ms
+        error_count = 0
+        
+        while not self.stop_event.is_set():
+            try:
+                start_time = time.time()
+                
+                self.check_balance()
+                self.check_prices()
+                
+                # 根据执行时间动态调整间隔
+                execution_time = time.time() - start_time
+                sleep_time = max(0.1, base_interval - execution_time)
+                
+                time.sleep(sleep_time)
+                error_count = 0  # 重置错误计数
+                
+            except Exception as e:
+                error_count += 1
+                # 错误时使用指数退避
+                sleep_time = min(5, base_interval * (2 ** error_count))
+                time.sleep(sleep_time)
     
     def restart_browser(self,force_restart=True):
         """统一的浏览器重启/重连函数
@@ -2534,51 +2533,32 @@ class CryptoTrader:
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
     def send_amount_and_click_buy_confirm(self, amount_entry):
-        """一次完成金额输入 + 确认点击"""
+        """优化版交易执行 - 减少等待时间"""
         try:
-            # 1. 获取金额
             amount = amount_entry.get()
-
-            # 2. 定位输入框（短等待，避免卡死）
+            
+            # 减少元素查找超时时间从0.3秒到0.1秒
+            amount_input = WebDriverWait(self.driver, 0.1).until(
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
+            )
+            
+            # 使用JavaScript直接设置值，比clear+send_keys更快
+            self.driver.execute_script(f"arguments[0].value = '{amount}';", amount_input)
+            
+            # 立即查找并点击确认按钮，不等待
+            buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
+            self.driver.execute_script("arguments[0].click();", buy_confirm_button)
+            
+            # 减少确认等待时间
             try:
-                amount_input = WebDriverWait(self.driver, 0.3).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
-                )
-                # 3. 清空并输入金额
-                amount_input.clear()
-                amount_input.send_keys(str(amount))
-                #self.logger.info(f"输入金额: {amount}")
-            except TimeoutException:
-                self.logger.error("定位金额输入框超时")
-
-            # 4. 立即点击确认按钮
-            try:
-                buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
-                # 点击确认按钮
-                buy_confirm_button.click()
-                #self.logger.info("✅ 点击确认按钮成功")
-            except TimeoutException:
-                #self.logger.error("\033[31m定位确认按钮超时\033[0m")
-                buy_confirm_button = WebDriverWait(self.driver, 0.3).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-                )
-                # 点击确认按钮
-                buy_confirm_button.click()
-
-            # 5. 等待确认弹窗出现
-            try:
-                accept_button = WebDriverWait(self.driver, 0.5).until(
+                WebDriverWait(self.driver, 0.5).until(
                     EC.presence_of_element_located((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
-                )
-                accept_button.click()
-                #self.logger.info("✅ 点击ACCEPT按钮成功")
+                ).click()
             except TimeoutException:
-                # 弹窗没出现,不用处理
-                #self.logger.info("没有出现ACCEPT弹窗,跳过点击")
-                pass
-
+                pass  # 没有弹窗就继续
+                
         except Exception as e:
-            self.logger.error(f"交易失败: {str(e)}")
+            self.logger.error(f"快速交易失败: {str(e)}")
 
     def click_positions_sell_and_sell_confirm_and_accept(self):
         """卖出并点击确认"""
@@ -2718,86 +2698,46 @@ class CryptoTrader:
         return self._verify_trade('Sold', 'Down')[0]
 
     def _verify_trade(self, action_type, direction):
-        """
-        验证交易是否成功完成
-        基于时间的循环:在6秒时间窗口内不断查找,时间到了就刷新,循环2次
+        """优化版交易验证 - 使用WebDriverWait等待特定交易记录出现"""
+        max_retries = 2  # 最多重试2次
         
-        Args:
-            action_type: 'Bought' 或 'Sold'
-            direction: 'Up' 或 'Down'
-            
-        Returns:
-            tuple: (是否成功, 价格, 金额)
-        """
-        try:
-            for attempt in range(2):
-                self.logger.info(f"开始第{attempt + 1}次验证尝试（基于次数重试）")
-                # 检查 3次,每次等待1秒检查交易记录
-                max_retries = 3  # 最大重试次数
-                wait_interval = 1  # 检查间隔
-                
-                for retry in range(max_retries):
-                    #self.logger.info(f"第{retry + 1}次检查交易记录（共{max_retries}次）")
-                    
+        for retry in range(max_retries):
+            try:
+                # 使用WebDriverWait等待包含特定交易记录的元素出现，最长等待5秒
+                def check_trade_record(driver):
                     try:
-                        # 等待历史记录元素出现                  
-                        try:
-                            # 将元素查找超时时间从默认值减少到0.5秒，加快查找速度
-                            history_element = WebDriverWait(self.driver, 0.5).until(
-                                EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0]))
-                            )
-                        except (NoSuchElementException, StaleElementReferenceException, TimeoutException):
-                            # 将重试查找超时时间从2秒减少到0.5秒
-                            history_element = self._find_element_with_retry(XPathConfig.HISTORY, timeout=0.5, silent=True)
-                        
+                        history_element = driver.find_element(By.XPATH, XPathConfig.HISTORY[0])
                         if history_element:
-                            # 获取历史记录文本
                             history_text = history_element.text
-                            #self.logger.info(f"\033[32m找到交易记录:{history_text}\033[0m")
-                            
-                            # 分别查找action_type和direction，避免同时匹配导致的问题
-                            action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
-                            direction_found = re.search(rf"\b{direction}\b", history_text, re.IGNORECASE)
-                            
-                            if action_found and direction_found:
-                                # 提取价格和金额 - 优化正则表达式
-                                price_match = re.search(r'at\s+(\d+\.?\d*)¢', history_text)
-                                amount_match = re.search(r'\(\$(\d+\.\d+)\)', history_text)
-                                # 提取SHARES - shares是Bought/Sold后的第一个数字
-                                shares_match = re.search(r'(?:Bought|Sold)\s+(\d+(?:\.\d+)?)', history_text, re.IGNORECASE)
-                                
-                                self.price = float(price_match.group(1)) if price_match else 0
-                                self.amount = float(amount_match.group(1)) if amount_match else 0
-                                # shares可能是浮点数，先转为float再转为int
-                                self.shares = int(float(shares_match.group(1))) if shares_match else 0
-
-                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
-                                return True, self.price, self.amount, self.shares
-                    
-                    except StaleElementReferenceException:
-                        self.logger.warning(f"检测到stale element错误,重新定位元素（第{retry + 1}次重试）")
-                        continue  # 继续下一次重试，不退出循环
-                    except Exception as e:
-                        self.logger.warning(f"元素操作异常: {str(e)}")
-                        continue
-                    
-                    # 如果不是最后一次重试，等待1秒后继续
-                    if retry < max_retries - 1:
-                        
-                        time.sleep(wait_interval)
-                    
-                # 3次重试结束，刷新页面
-                # self.logger.info(f"第{attempt + 1}次尝试的3次重试结束,刷新页面")
-                self.driver.refresh()
-                time.sleep(1)  # 刷新后等待页面加载
-            
-            # 超时未找到匹配的交易记录
-            self.logger.warning(f"❌ \033[31m交易验证失败: 未找到 {action_type} {direction} (已尝试2轮,每轮3次重试)\033[0m")
-            return False, 0, 0
+                            # 检查是否包含指定的交易记录
+                            if action_type.lower() in history_text.lower() and direction.lower() in history_text.lower():
+                                return history_element
+                    except Exception:
+                        pass
+                    return False
                 
-        except Exception as e:
-            self.logger.error(f"交易验证失败: {str(e)}")
-            return False, 0, 0
+                # 等待交易记录出现，最长等待5秒
+                history_element = WebDriverWait(self.driver, 5).until(check_trade_record)
+                
+                if history_element:
+                    history_text = history_element.text
+                    
+                    # 提取价格、金额和份额
+                    price_match = re.search(r'at\s+(\d+\.?\d*)¢', history_text)
+                    amount_match = re.search(r'\(\$(\d+\.\d+)\)', history_text)
+                    shares_match = re.search(r'(?:Bought|Sold)\s+(\d+(?:\.\d+)?)', history_text, re.IGNORECASE)
+                    
+                    if price_match and amount_match and shares_match:
+                        return True, float(price_match.group(1)), float(amount_match.group(1)), float(shares_match.group(1))
+                        
+            except Exception as e:
+                self.logger.warning(f"第{retry + 1}次交易验证失败: {str(e)}")
+                if retry < max_retries - 1:
+                    # 如果不是最后一次重试，刷新页面后继续
+                    self.driver.refresh()
+                    time.sleep(1)
+    
+        return False, 0, 0, 0
 
     def click_buy_confirm_button(self):
         try:
@@ -3261,24 +3201,38 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
       
-    def _find_element_with_retry(self, xpaths, timeout=3, silent=False):
-        """优化版XPATH元素查找(增强空值处理)"""
-        try:
-            for i, xpath in enumerate(xpaths, 1):
+    def _find_element(self, xpaths, timeout=1):
+        """优化版元素查找 - 并行查找多个XPath"""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError
+        
+        def find_single_xpath(xpath):
+            try:
+                return WebDriverWait(self.driver, timeout).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
+            except:
+                return None
+        
+        # 并行查找所有XPath
+        with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
+            futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
+            
+            for future in futures:
                 try:
-                    # 使用presence_of_element_located而不是element_to_be_clickable以减少等待时间
-                    # element_to_be_clickable需要额外检查元素是否可见且可交互
-                    element = WebDriverWait(self.driver, timeout).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
-                    return element
-                except TimeoutException:
-                    if not silent:
-                        self.logger.warning(f"第{i}个XPATH定位超时: {xpath}")
+                    result = future.result(timeout=timeout)
+                    if result:
+                        return result
+                except:
                     continue
-        except Exception as e:
-            if not silent:
-                raise
+        
+        for future in futures:
+            try:
+                result = future.result(timeout=timeout)
+                if result:
+                    return result
+            except:
+                continue
+    
         return None
 
     def schedule_price_setting(self):
