@@ -5665,7 +5665,7 @@ class CryptoTrader:
                         max-width: none;
                         white-space: nowrap;
                         display: flex;
-                        align-items: center;
+                        
                         justify-content: center;
                         gap: 2px;
                         overflow: hidden;
@@ -5676,7 +5676,7 @@ class CryptoTrader:
                     }
                     .coin-select-item {
                         display: flex;
-                        align-items: center;
+                        justify-content: center;
                         font-size: 14px;
                         gap: 6px;
                         flex: 0 0 auto;
@@ -5685,7 +5685,7 @@ class CryptoTrader:
                     }
                     .time-select-item {
                         display: flex;
-                        align-items: center;
+                        justify-content: center;
                         font-size: 14px;
                         gap: 8px;
                         flex: 0 0 auto;
@@ -6643,13 +6643,13 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 币种和交易时间显示区域 -->
-                                <div class="binance-price-container">
+                                <div class="binance-price-container" style="width: 80%; margin: 0 auto; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
                                     <div class="info-item coin-select-item">
                                             <label>币种:</label>
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
-                                    <div class="info-item time-select-item" style="display: inline-block; padding: 5px 20px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
-                                            <label>开始交易时间:&nbsp;</label>
+                                    <div class="info-item time-select-item">
+                                            <label>开始交易时间:</label>
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
