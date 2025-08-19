@@ -867,7 +867,7 @@ class CryptoTrader:
                 self.driver.get(new_url)
                 
                 # 等待页面加载
-                WebDriverWait(self.driver, 60).until(
+                WebDriverWait(self.driver, 10).until(
                     lambda driver: driver.execute_script('return document.readyState') == 'complete'
                 )
                 self.logger.info("\033[34m✅ 浏览器启动成功!\033[0m")
@@ -936,7 +936,7 @@ class CryptoTrader:
                 self.restart_browser(force_restart=True)
             
             # 等待页面加载完成
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 3).until(
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
            
@@ -1093,7 +1093,7 @@ class CryptoTrader:
                     target_url = self.url_entry.get()
                     if target_url:
                         self.driver.get(target_url)
-                        WebDriverWait(self.driver, 15).until(
+                        WebDriverWait(self.driver, 10).until(
                             lambda d: d.execute_script('return document.readyState') == 'complete'
                         )
                         self.logger.info(f"✅ 成功加载页面: {target_url}")
@@ -1351,95 +1351,39 @@ class CryptoTrader:
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
 
-            # 方法1: 使用改进的JavaScript获取价格（增加等待和多种匹配模式）
+            # === 使用 JavaScript 获取价格（替代 XPath /原 JS 方法优化） ===
             prices = self.driver.execute_script("""
-                function getPricesEnhanced() {
+                function getPricesJS() {
                     const prices = {up: null, down: null};
                     
-                    // 等待一小段时间确保DOM完全渲染
-                    const startTime = Date.now();
-                    while (Date.now() - startTime < 1000) {
-                        // 方法1: 查找所有span元素
-                        const spans = document.getElementsByTagName('span');
-                        for (let el of spans) {
-                            const text = el.textContent.trim();
-                            
-                            // 匹配Up价格的多种模式
-                            if ((text.includes('Up') || text.includes('Yes')) && text.includes('¢')) {
-                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                if (match && !prices.up) {
-                                    prices.up = parseFloat(match[1]);
-                                }
-                            }
-                            
-                            // 匹配Down价格的多种模式
-                            if ((text.includes('Down') || text.includes('No')) && text.includes('¢')) {
-                                const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                if (match && !prices.down) {
-                                    prices.down = parseFloat(match[1]);
-                                }
-                            }
+                    // 直接查找 Up 按钮里的 span 包含价格
+                    const upBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+                        btn.textContent.includes('Up') || btn.textContent.includes('Up')
+                    );
+                    if (upBtn) {
+                        const span = upBtn.querySelector('span');
+                        if (span) {
+                            const match = span.textContent.match(/(\\d+(?:\\.\\d+)?)/);
+                            if (match) prices.up = parseFloat(match[1]);
                         }
-                        
-                        // 方法2: 查找按钮元素
-                        if (!prices.up || !prices.down) {
-                            const buttons = document.getElementsByTagName('button');
-                            for (let btn of buttons) {
-                                const text = btn.textContent.trim();
-                                
-                                if ((text.includes('Up') || text.includes('Yes')) && text.includes('¢')) {
-                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                    if (match && !prices.up) {
-                                        prices.up = parseFloat(match[1]);
-                                    }
-                                }
-                                
-                                if ((text.includes('Down') || text.includes('No')) && text.includes('¢')) {
-                                    const match = text.match(/(\\d+(?:\\.\\d+)?)¢/);
-                                    if (match && !prices.down) {
-                                        prices.down = parseFloat(match[1]);
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 如果找到了价格，提前退出
-                        if (prices.up !== null && prices.down !== null) {
-                            break;
-                        }
-                        
-                        // 短暂等待
-                        const now = Date.now();
-                        while (Date.now() - now < 50) {}
                     }
-                    
+
+                    // 直接查找 Down 按钮里的 span 包含价格
+                    const downBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+                        btn.textContent.includes('Down') || btn.textContent.includes('Down')
+                    );
+                    if (downBtn) {
+                        const span = downBtn.querySelector('span');
+                        if (span) {
+                            const match = span.textContent.match(/(\\d+(?:\\.\\d+)?)/);
+                            if (match) prices.down = parseFloat(match[1]);
+                        }
+                    }
+
                     return prices;
                 }
-                return getPricesEnhanced();
+                return getPricesJS();
             """)
-            
-            # 方法2: 如果JavaScript方法失败，尝试使用XPath直接获取
-            if (prices['up'] is None or prices['down'] is None) and not self.is_restarting:
-                self.logger.warning("JavaScript方法获取价格失败，尝试XPath方法...")
-                try:
-                    # 尝试使用XPath获取价格按钮
-                    up_buttons = self.driver.find_elements(By.XPATH, '//button[.//span[contains(text(), "Up") or contains(text(), "Yes")] and .//span[contains(text(), "¢")]]')
-                    down_buttons = self.driver.find_elements(By.XPATH, '//button[.//span[contains(text(), "Down") or contains(text(), "No")] and .//span[contains(text(), "¢")]]')
-                    
-                    if up_buttons and prices['up'] is None:
-                        up_text = up_buttons[0].text
-                        up_match = re.search(r'(\d+(?:\.\d+)?)¢', up_text)
-                        if up_match:
-                            prices['up'] = float(up_match.group(1))
-                            
-                    if down_buttons and prices['down'] is None:
-                        down_text = down_buttons[0].text
-                        down_match = re.search(r'(\d+(?:\.\d+)?)¢', down_text)
-                        if down_match:
-                            prices['down'] = float(down_match.group(1))
-                            
-                except Exception as xpath_e:
-                    self.logger.warning(f"XPath方法也失败: {str(xpath_e)}")
 
             # 验证获取到的数据
             if prices['up'] is not None and prices['down'] is not None:
@@ -1512,7 +1456,7 @@ class CryptoTrader:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
             # 等待页面完全加载
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 3).until(
                 lambda driver: driver.execute_script('return document.readyState') == 'complete'
             )
         except Exception as e:
@@ -3201,7 +3145,7 @@ class CryptoTrader:
                     self.restart_browser(force_restart=True)
                     
                 # 等待页面加载完成
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 3).until(
                     lambda driver: driver.execute_script('return document.readyState') == 'complete'
                 )
                 
@@ -3248,7 +3192,7 @@ class CryptoTrader:
                     self.restart_browser(force_restart=True)
                     
                 # 等待页面加载完成
-                WebDriverWait(self.driver, 10).until(
+                WebDriverWait(self.driver, 3).until(
                     lambda driver: driver.execute_script('return document.readyState') == 'complete'
                 )
                 
@@ -3403,12 +3347,12 @@ class CryptoTrader:
 
             # 第一步:先点击 CRYPTO 按钮
             try:
-                crypto_button = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
+                crypto_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
                 crypto_button.click()
                 self.logger.info(f"✅ 成功点击CRYPTO按钮")
 
                 # 等待CRYPTO按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 30).until(
+                WebDriverWait(self.driver, 10).until(
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
                 self.logger.info("✅ CRYPTO按钮点击后的页面加载完成")
@@ -3417,12 +3361,12 @@ class CryptoTrader:
 
             # 第二步:点击 DAILY 按钮
             try:
-                daily_button = WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.DAILY_BUTTON[0])))
+                daily_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.DAILY_BUTTON[0])))
                 daily_button.click()
                 self.logger.info(f"✅ 成功点击DAILY按钮")
 
                 # 等待DAILY按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 30).until(
+                WebDriverWait(self.driver, 10).until(
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
                 self.logger.info("✅ DAILY按钮点击后的页面加载完成")
@@ -3527,7 +3471,7 @@ class CryptoTrader:
                 self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
 
                 # 等待目标URL按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 30).until(
+                WebDriverWait(self.driver, 20).until(
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
                 self.logger.info(f"✅ {card.text}页面加载完成")
