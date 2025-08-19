@@ -1955,7 +1955,7 @@ class CryptoTrader:
                 self.trading = True
 
                 # 检查Up1价格匹配
-                if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 50:
+                if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2022,7 +2022,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
 
-                elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 50:
+                elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 1: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2108,7 +2108,7 @@ class CryptoTrader:
                 self.trading = True
 
                 # 检查Yes2价格匹配
-                if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 50:
+                if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅  \033[32mUp 2: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2170,7 +2170,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                 # 检查No2价格匹配
-                elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 50:
+                elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 2: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2252,7 +2252,7 @@ class CryptoTrader:
                 self.trading = True  # 开始交易
             
                 # 检查Yes3价格匹配
-                if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 50:
+                if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2318,7 +2318,7 @@ class CryptoTrader:
                         )   
 
                 # 检查No3价格匹配
-                elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 50:
+                elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2401,7 +2401,7 @@ class CryptoTrader:
                 self.trading = True  # 开始交易
             
                 # 检查Yes4价格匹配
-                if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 50:
+                if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
@@ -2466,7 +2466,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                 # 检查No4价格匹配
-                elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 50:
+                elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
                         # 如果买入次数大于 18 次,那么先卖出,后买入
