@@ -1881,8 +1881,12 @@ class CryptoTrader:
                 self.portfolio_value = "获取失败"
         
             # 更新Portfolio和Cash显示
-            self._update_label_and_sync(self.portfolio_label, f"Portfolio: {self.portfolio_value}", 'account', 'portfolio')
-            self._update_label_and_sync(self.cash_label, f"Cash: {self.cash_value}", 'account', 'cash')
+            self.portfolio_label.config(text=f"Portfolio: {self.portfolio_value}")
+            self.cash_label.config(text=f"Cash: {self.cash_value}")
+            
+            # 同步数据到StatusDataManager
+            self.status_data.update('account', 'portfolio_value', self.portfolio_value)
+            self.status_data.update('account', 'available_cash', self.cash_value)
 
         except Exception as e:
             self.portfolio_label.config(text="Portfolio: Fail")
@@ -4439,6 +4443,9 @@ class CryptoTrader:
                     # 获取到币安价格,并更新到GUI
                     self.zero_time_price = api_data["price"]
                     self.binance_zero_price_label.config(text=f"{self.zero_time_price}")
+                    
+                    # 同步零点价格数据到StatusDataManager
+                    self.status_data.update('prices', 'binance_zero_time', str(self.zero_time_price))
                 except Exception as e_gui:
                     self.logger.debug(f"❌ 更新零点价格GUI时出错: {e_gui}")
             
@@ -4499,7 +4506,11 @@ class CryptoTrader:
 
                 def update_gui():
                     try:
-                        self._update_label_and_sync(self.binance_now_price_label, f"{now_price}", 'prices', 'binance_current')
+                        # 更新实时价格标签并同步到StatusDataManager
+                        self.binance_now_price_label.config(text=f"{now_price}")
+                        self.status_data.update('prices', 'binance_current', now_price)
+                        
+                        # 更新涨跌幅标签并同步到StatusDataManager
                         self.binance_rate_label.config(
                             text=f"{binance_rate_text}",
                             foreground=rate_color,
