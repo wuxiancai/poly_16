@@ -1288,7 +1288,38 @@ class CryptoTrader:
                 self.get_zero_time_cash_timer = self.root.after(seconds_until_cash_run, self.get_zero_time_cash)
                 self.logger.info(f"✅ 恢复获取零点 CASH定时器,{round(seconds_until_cash_run / 3600000, 2)} 小时后执行")
             
-            # 10. 恢复记录利润定时器（安排每日0:30记录）
+            # 11. 重新启动币安价格WebSocket定时器
+            if hasattr(self, 'get_binance_price_websocket_timer') and self.get_binance_price_websocket_timer:
+                self.root.after_cancel(self.get_binance_price_websocket_timer)
+            self.get_binance_price_websocket_timer = self.root.after(16000, self.get_binance_price_websocket)
+            self.logger.info("✅ 恢复了币安价格WebSocket定时器")
+            
+            # 12. 重新启动设置默认目标价格定时器（如果需要）
+            # 注意：这个定时器通常由用户操作触发，这里只是确保清理状态
+            if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
+                self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
+                self.set_yes1_no1_default_target_price_timer = None
+            self.logger.info("✅ 清理了设置默认目标价格定时器状态")
+            
+            # 13. 重新启动重试更新金额定时器（如果需要）
+            # 注意：这个定时器通常由错误情况触发，这里只是确保清理状态
+            if hasattr(self, 'retry_update_amount_timer') and self.retry_update_amount_timer:
+                self.root.after_cancel(self.retry_update_amount_timer)
+                self.retry_update_amount_timer = None
+            self.logger.info("✅ 清理了重试更新金额定时器状态")
+            
+            # 14. 重新启动币安零点价格线程定时器（如果需要）
+            # 注意：这个是threading.Timer，需要特殊处理
+            if hasattr(self, 'binance_zero_price_timer') and self.binance_zero_price_timer:
+                try:
+                    if self.binance_zero_price_timer.is_alive():
+                        self.binance_zero_price_timer.cancel()
+                except:
+                    pass
+                self.binance_zero_price_timer = None
+            self.logger.info("✅ 清理了币安零点价格线程定时器状态")
+            
+            # 15. 恢复记录利润定时器（安排每日0:30记录）
             if hasattr(self, 'record_and_show_cash_timer') and self.record_and_show_cash_timer:
                 self.logger.info("✅ 记录利润定时器已存在，保持不变")
             else:
@@ -1612,13 +1643,13 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"设置金额失败: {str(e)}")
             
-            self.schedule_retry_update()
+            self.schedule_retry_update_amount()
 
-    def schedule_retry_update(self):
+    def schedule_retry_update_amount(self):
         """安排重试更新金额"""
-        if hasattr(self, 'retry_timer'):
-            self.root.after_cancel(self.retry_timer)
-        self.retry_timer = self.root.after(3000, self.set_yes_no_cash)  # 3秒后重试
+        if hasattr(self, 'retry_update_amount_timer'):
+            self.root.after_cancel(self.retry_update_amount_timer)
+        self.retry_update_amount_timer = self.root.after(3000, self.set_yes_no_cash)  # 3秒后重试
     
     def start_url_monitoring(self):
         """启动URL监控"""
