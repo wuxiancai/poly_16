@@ -100,6 +100,14 @@ class StatusDataManager:
                 self._data[category][key] = value
                 self._data['system']['last_update'] = datetime.now().strftime('%H:%M:%S')
     
+    def update_data(self, category, key, value):
+        """更新指定分类下的数据（兼容旧接口）"""
+        with self._lock:
+            if category not in self._data:
+                self._data[category] = {}
+            self._data[category][key] = value
+            self._data['system']['last_update'] = datetime.now().strftime('%H:%M:%S')
+    
     def update_position(self, position_type, index, price=None, amount=None):
         """更新持仓信息"""
         with self._lock:
@@ -6741,6 +6749,12 @@ class CryptoTrader:
                 return jsonify(current_data)
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
+        
+        # 新的标准接口
+        @app.route("/api/status")
+        def get_status_api():
+            """获取实时状态数据API"""
+            return get_status()
         
         # 保持向后兼容性，保留原/api/data接口
         @app.route("/api/data")
