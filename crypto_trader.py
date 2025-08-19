@@ -5930,8 +5930,8 @@ class CryptoTrader:
                                 const binanceZeroPriceElement = document.querySelector('#binanceZeroPrice');
                                 const binanceRateElement = document.querySelector('#binanceRate');
                                 
-                                if (upPriceElement) upPriceElement.innerHTML = '<span class="price-label">UP:</span> ' + (data.prices.up_price || 'N/A');
-                                if (downPriceElement) downPriceElement.innerHTML = '<span class="price-label">DOWN:</span> ' + (data.prices.down_price || 'N/A');
+                                if (upPriceElement) upPriceElement.textContent = data.prices.up_price || 'N/A';
+                                if (downPriceElement) downPriceElement.textContent = data.prices.down_price || 'N/A';
                                 if (binanceZeroPriceElement) binanceZeroPriceElement.textContent = data.prices.binance_zero_price;
                                 
                                 // 实时价格颜色逻辑：与零点价格比较
