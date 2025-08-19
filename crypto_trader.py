@@ -35,7 +35,143 @@ import websocket
 import subprocess
 import shutil
 import csv
-from flask import Flask, render_template_string, request, url_for
+from flask import Flask, render_template_string, request, url_for, jsonify
+import psutil
+import socket
+import urllib.request
+import requests
+
+
+class StatusDataManager:
+    """线程安全的状态数据管理器"""
+    def __init__(self):
+        self._data = {
+            'trading': {
+                'is_running': False,
+                'current_url': '',
+                'selected_coin': 'BTC',
+                'auto_find_time': '2:00',
+                'last_trade_time': None,
+                'trade_count': 22
+            },
+            'prices': {
+                'polymarket_up': '--',
+                'polymarket_down': '--',
+                'binance_current': '--',
+                'binance_zero_time': '--',
+                'price_change_rate': '--'
+            },
+            'account': {
+                'portfolio_value': '--',
+                'available_cash': '--',
+                'zero_time_cash': '--',
+                'initial_amount': 0,
+                'first_rebound': 0,
+                'n_rebound': 0,
+                'profit_rate': '0%',
+                'doubling_weeks': 0
+            },
+            'positions': {
+                'up_positions': [
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'}
+                ],
+                'down_positions': [
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'},
+                    {'price': '0', 'amount': '0'}
+                ]
+            },
+            'system': {
+                'browser_status': '未连接',
+                'monitoring_status': '未启动',
+                'last_update': None,
+                'error_count': 0,
+                'trading_pair': '--'
+            }
+        }
+        self._lock = threading.RLock()
+    
+    def update(self, category, key, value):
+        """更新指定分类下的数据"""
+        with self._lock:
+            if category in self._data and key in self._data[category]:
+                self._data[category][key] = value
+                self._data['system']['last_update'] = datetime.now().strftime('%H:%M:%S')
+    
+    def update_position(self, position_type, index, price=None, amount=None):
+        """更新持仓信息"""
+        with self._lock:
+            if position_type in ['up_positions', 'down_positions'] and 0 <= index < 4:
+                if price is not None:
+                    self._data['positions'][position_type][index]['price'] = str(price)
+                if amount is not None:
+                    self._data['positions'][position_type][index]['amount'] = str(amount)
+                self._data['system']['last_update'] = datetime.now().strftime('%H:%M:%S')
+    
+    def get_all(self):
+        """获取所有数据的副本"""
+        with self._lock:
+            return self._data.copy()
+    
+    def get_category(self, category):
+        """获取指定分类的数据"""
+        with self._lock:
+            return self._data.get(category, {}).copy()
+    
+    def get_value(self, category, key):
+        """获取指定值"""
+        with self._lock:
+            return self._data.get(category, {}).get(key)
+    
+    def get_legacy_format(self):
+        """获取兼容旧格式的数据结构，用于API接口"""
+        with self._lock:
+            data = self._data
+            return {
+                'status': {
+                    'monitoring': data['system']['monitoring_status'],
+                    'url': data['trading']['current_url'],
+                    'browser_status': data['system']['browser_status'],
+                    'last_update': data['system']['last_update'] or datetime.now().strftime('%H:%M:%S')
+                },
+                'prices': {
+                    'up_price': data['prices']['polymarket_up'],
+                    'down_price': data['prices']['polymarket_down'],
+                    'binance_price': data['prices']['binance_current'],
+                    'binance_zero_price': data['prices']['binance_zero_time'],
+                    'binance_rate': data['prices']['price_change_rate']
+                },
+                'account': {
+                    'portfolio': data['account']['portfolio_value'],
+                    'cash': data['account']['available_cash'],
+                    'zero_time_cash': data['account']['zero_time_cash']
+                },
+                'positions': {
+                    'up1_price': data['positions']['up_positions'][0]['price'],
+                    'up1_amount': data['positions']['up_positions'][0]['amount'],
+                    'up2_price': data['positions']['up_positions'][1]['price'],
+                    'up2_amount': data['positions']['up_positions'][1]['amount'],
+                    'up3_price': data['positions']['up_positions'][2]['price'],
+                    'up3_amount': data['positions']['up_positions'][2]['amount'],
+                    'up4_price': data['positions']['up_positions'][3]['price'],
+                    'up4_amount': data['positions']['up_positions'][3]['amount'],
+                    'down1_price': data['positions']['down_positions'][0]['price'],
+                    'down1_amount': data['positions']['down_positions'][0]['amount'],
+                    'down2_price': data['positions']['down_positions'][1]['price'],
+                    'down2_amount': data['positions']['down_positions'][1]['amount'],
+                    'down3_price': data['positions']['down_positions'][2]['price'],
+                    'down3_amount': data['positions']['down_positions'][2]['amount'],
+                    'down4_price': data['positions']['down_positions'][3]['price'],
+                    'down4_amount': data['positions']['down_positions'][3]['amount']
+                },
+                'coin': data['trading']['selected_coin'],
+                'auto_find_time': data['trading']['auto_find_time']
+            }
+
 
 class Logger:
     def __init__(self, name):
@@ -67,6 +203,22 @@ class Logger:
             # 添加处理器到logger
             self.logger.addHandler(file_handler)
             self.logger.addHandler(console_handler)
+    
+    @staticmethod
+    def get_latest_log_file():
+        """获取最新的日志文件路径"""
+        logs_dir = 'logs'
+        if not os.path.exists(logs_dir):
+            return None
+        
+        # 获取logs目录下所有.log文件
+        log_files = [f for f in os.listdir(logs_dir) if f.endswith('.log')]
+        if not log_files:
+            return None
+        
+        # 按文件名排序，获取最新的文件
+        log_files.sort(reverse=True)
+        return os.path.join(logs_dir, log_files[0])
     
     def debug(self, message):
         self.logger.debug(message)
@@ -118,7 +270,9 @@ class CryptoTrader:
         self.url_monitoring_lock = threading.Lock()
         self.refresh_page_lock = threading.Lock()
         self.login_attempt_lock = threading.Lock()
-        
+        self.restart_lock = threading.Lock()  # 添加重启锁
+        self.is_restarting = False  # 重启状态标志
+
         # 添加元素缓存机制
         self.element_cache = {}
         self.cache_timeout = 30  # 缓存30秒后失效
@@ -161,11 +315,86 @@ class CryptoTrader:
             setattr(self, f'yes{i}_amount', 0)
             setattr(self, f'no{i}_amount', 0)
 
+         # 初始化 shares 属性
+        self.shares = None
+        self.price = None
+        self.amount = None
+        self.zero_time_cash_value = 0
+
+        # 初始化状态数据管理器
+        self.status_data = StatusDataManager()
+        
+        # 初始化状态数据
+        self.status_data.update('account', 'initial_amount', self.initial_amount)
+        self.status_data.update('account', 'first_rebound', self.first_rebound)
+        self.status_data.update('account', 'n_rebound', self.n_rebound)
+        self.status_data.update('account', 'profit_rate', f"{self.profit_rate}%")
+        self.status_data.update('account', 'doubling_weeks', self.doubling_weeks)
+        self.status_data.update('trading', 'trade_count', self.trade_count)
+        
+        # 保持web_data兼容性 (用于向后兼容)
+        self.web_data = {
+            # 金额设置
+            'initial_amount_entry': str(self.initial_amount),
+            'first_rebound_entry': str(self.first_rebound),
+            'n_rebound_entry': str(self.n_rebound),
+            'profit_rate_entry': f"{self.profit_rate}%",
+            'doubling_weeks_entry': str(self.doubling_weeks),
+            
+            # URL和币种设置
+            'url_entry': '',
+            'coin_combobox': 'BTC',
+            'auto_find_time_combobox': '2:00',
+            
+            # 价格和金额输入框
+            'yes1_price_entry': '0', 'yes1_amount_entry': '0',
+            'yes2_price_entry': '0', 'yes2_amount_entry': '0',
+            'yes3_price_entry': '0', 'yes3_amount_entry': '0',
+            'yes4_price_entry': '0', 'yes4_amount_entry': '0',
+            'no1_price_entry': '0', 'no1_amount_entry': '0',
+            'no2_price_entry': '0', 'no2_amount_entry': '0',
+            'no3_price_entry': '0', 'no3_amount_entry': '0',
+            'no4_price_entry': '0', 'no4_amount_entry': '0',
+            
+            # 显示标签
+            'trade_count_label': '22',
+            'zero_time_cash_label': '--',
+            'trading_pair_label': '--',
+            'binance_zero_price_label': '--',
+            'binance_now_price_label': '--',
+            'binance_rate_label': '--',
+            'binance_rate_symbol_label': '%',
+            'yes_price_label': '--',
+            'no_price_label': '--',
+            'portfolio': '--',
+            'cash': '--',
+            
+            # 按钮状态
+            'start_button_state': 'normal',
+            'set_amount_button_state': 'disabled',
+            'find_coin_button_state': 'normal'
+        }
+        
+        # 初始化零点时间现金值
+        self.zero_time_cash_value = 0
+        
         # 初始化Flask应用和历史记录
         self.csv_file = "cash_history.csv"
+        # 首先尝试修复CSV文件（如果需要）
+        self.repair_csv_file()
         self.cash_history = self.load_cash_history()
         self.flask_app = self.create_flask_app()
         self.start_flask_server()
+
+        # 初始化配置和web模式
+        try:
+            self.config = self.load_config()
+            self.setup_web_mode()
+            
+        except Exception as e:
+            self.logger.error(f"初始化失败: {str(e)}")
+            print(f"程序初始化失败: {str(e)}")
+            sys.exit(1)
 
         # 初始化 UI 界面
         try:
@@ -293,6 +522,93 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"保存配置失败: {str(e)}")
             raise
+    
+    def setup_web_mode(self):
+        """初始化Web模式，替代GUI界面"""
+        self.logger.info("Web模式初始化完成")
+        print("Web模式已启动，请在浏览器中访问 http://localhost:5000")
+        
+        # 加载配置到web_data
+        if hasattr(self, 'config') and self.config:
+            self.web_data['url_entry'] = self.config.get('website', {}).get('url', '')
+            self.web_data['coin_combobox'] = self.config.get('coin', 'BTC')
+            self.web_data['auto_find_time_combobox'] = self.config.get('auto_find_time', '2:00')
+    
+    def get_web_value(self, key):
+        """获取web数据值，替代GUI的get()方法"""
+        return self.web_data.get(key, '')
+    
+    def _parse_date_for_sort(self, date_str):
+        """解析日期字符串用于排序，支持多种日期格式"""
+        try:
+            return datetime.strptime(date_str, "%Y/%m/%d")
+        except:
+            try:
+                return datetime.strptime(date_str, "%Y-%m-%d")
+            except:
+                return datetime.min
+    
+    def set_web_value(self, key, value):
+        """设置web数据值，替代GUI的config()方法"""
+        self.web_data[key] = str(value)
+        # 同步更新到status_data
+        self._sync_to_status_data(key, value)
+    
+    def set_web_state(self, key, state):
+        """设置web组件状态，替代GUI的config(state=)方法"""
+        state_key = f"{key}_state"
+        if state_key in self.web_data:
+            self.web_data[state_key] = state
+            # 同步更新到status_data
+            self._sync_to_status_data(state_key, state)
+    
+    def _sync_to_status_data(self, key, value):
+        """将web_data的更新同步到status_data"""
+        try:
+            # 价格相关数据
+            if 'price' in key.lower():
+                if 'yes' in key.lower() or 'up' in key.lower():
+                    self.status_data.update_data('prices', 'up_price', str(value))
+                elif 'no' in key.lower() or 'down' in key.lower():
+                    self.status_data.update_data('prices', 'down_price', str(value))
+                elif 'binance' in key.lower():
+                    if 'now' in key.lower():
+                        self.status_data.update_data('prices', 'binance_current', str(value))
+                    elif 'zero' in key.lower():
+                        self.status_data.update_data('prices', 'binance_zero', str(value))
+            
+            # 账户相关数据
+            elif 'cash' in key.lower():
+                self.status_data.update_data('account', 'cash', str(value))
+            elif 'portfolio' in key.lower():
+                self.status_data.update_data('account', 'portfolio', str(value))
+            
+            # 交易相关数据
+            elif 'amount' in key.lower():
+                if 'yes' in key.lower():
+                    self.status_data.update_data('trading', 'yes_amount', str(value))
+                elif 'no' in key.lower():
+                    self.status_data.update_data('trading', 'no_amount', str(value))
+            
+            # 系统状态
+            elif 'monitoring' in key.lower():
+                self.status_data.update_data('system', 'monitoring_status', str(value))
+            elif 'url' in key.lower():
+                self.status_data.update_data('system', 'current_url', str(value))
+            elif 'browser' in key.lower():
+                self.status_data.update_data('system', 'browser_status', str(value))
+                
+        except Exception as e:
+            self.logger.debug(f"同步数据到status_data失败: {e}")
+    
+    def _update_label_and_sync(self, label, text, data_category=None, data_key=None):
+        """更新GUI标签并同步到status_data"""
+        try:
+            label.config(text=text)
+            if data_category and data_key:
+                self.status_data.update_data(data_category, data_key, text)
+        except Exception as e:
+            self.logger.debug(f"更新标签并同步失败: {e}")
 
     def setup_gui(self):
         """优化后的GUI界面设置"""
@@ -1426,8 +1742,8 @@ class CryptoTrader:
                 # 数据合理性检查
                 if 0 <= up_price_val <= 100 and 0 <= down_price_val <= 100:
                     # 更新GUI价格显示
-                    self.yes_price_label.config(text=f"Up: {up_price_val:.1f}")
-                    self.no_price_label.config(text=f"Down: {down_price_val:.1f}")
+                    self._update_label_and_sync(self.yes_price_label, f"Up: {up_price_val:.1f}", 'prices', 'up_price')
+                    self._update_label_and_sync(self.no_price_label, f"Down: {down_price_val:.1f}", 'prices', 'down_price')
                     
                     # 重置失败计数器（价格获取成功）
                     if hasattr(self, 'price_check_fail_count'):
@@ -1539,8 +1855,8 @@ class CryptoTrader:
                 self.portfolio_value = "获取失败"
         
             # 更新Portfolio和Cash显示
-            self.portfolio_label.config(text=f"Portfolio: {self.portfolio_value}")
-            self.cash_label.config(text=f"Cash: {self.cash_value}")
+            self._update_label_and_sync(self.portfolio_label, f"Portfolio: {self.portfolio_value}", 'account', 'portfolio')
+            self._update_label_and_sync(self.cash_label, f"Cash: {self.cash_value}", 'account', 'cash')
 
         except Exception as e:
             self.portfolio_label.config(text="Portfolio: Fail")
@@ -4154,12 +4470,13 @@ class CryptoTrader:
 
                 def update_gui():
                     try:
-                        self.binance_now_price_label.config(text=f"{now_price}")
+                        self._update_label_and_sync(self.binance_now_price_label, f"{now_price}", 'prices', 'binance_current')
                         self.binance_rate_label.config(
                             text=f"{binance_rate_text}",
                             foreground=rate_color,
                             font=("Arial", 18, "bold")
                         )
+                        self.status_data.update_data('prices', 'binance_rate', binance_rate_text)
                     except Exception as e:
                         self.logger.debug("❌ 更新GUI时发生错误:", e)
 
@@ -4530,9 +4847,11 @@ class CryptoTrader:
         next_run = now.replace(hour=0, minute=30, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
-        wait_time = (next_run - now).total_seconds() * 1000
-        self.record_and_show_cash_timer = self.root.after(int(wait_time), self.record_cash_daily)
-        self.logger.info(f"✅ 已安排在 {next_run.strftime('%Y-%m-%d %H:%M:%S')} 记录利润")
+        wait_time = (next_run - now).total_seconds()
+        self.record_and_show_cash_timer = threading.Timer(wait_time, self.record_cash_daily)
+        self.record_and_show_cash_timer.daemon = True
+        self.record_and_show_cash_timer.start()
+        self.logger.info(f"✅ \033[32m已安排在 {next_run.strftime('%Y-%m-%d %H:%M:%S')} 记录利润\033[0m")
 
     def load_cash_history(self):
         """启动时从CSV加载全部历史记录, 兼容旧4/6列并补齐为7列(日期,Cash,利润,利润率,总利润,总利润率,交易次数)"""
@@ -4543,40 +4862,213 @@ class CryptoTrader:
                     reader = csv.reader(f)
                     cumulative_profit = 0.0
                     first_cash = None
+                    line_number = 0
                     for row in reader:
-                        if len(row) >= 4:
-                            date_str = row[0]
-                            cash = float(row[1])
-                            profit = float(row[2])
-                            profit_rate = float(row[3])
-                            if first_cash is None:
-                                first_cash = cash
-                            # 如果已有6列或7列，直接采用并更新累计上下文
-                            if len(row) >= 6:
-                                total_profit = float(row[4])
-                                total_profit_rate = float(row[5])
-                                cumulative_profit = total_profit
-                            else:
-                                cumulative_profit += profit
-                                total_profit = cumulative_profit
-                                total_profit_rate = (total_profit / first_cash) if first_cash else 0.0
-                            # 第7列：交易次数
-                            if len(row) >= 7:
-                                trade_times = row[6]
-                            else:
-                                trade_times = ""
-                            history.append([
+                        line_number += 1
+                        try:
+                            if len(row) >= 4:
+                                date_str = row[0].strip()
+                                
+                                # 验证并转换数值，添加详细的错误信息
+                                try:
+                                    cash = float(row[1].strip())
+                                except ValueError as ve:
+                                    self.logger.error(f"第{line_number}行现金数值转换失败: '{row[1]}' - {ve}")
+                                    continue
+                                    
+                                try:
+                                    profit = float(row[2].strip())
+                                except ValueError as ve:
+                                    self.logger.error(f"第{line_number}行利润数值转换失败: '{row[2]}' - {ve}")
+                                    continue
+                                    
+                                try:
+                                    # 处理百分比格式的利润率
+                                    profit_rate_str = row[3].strip()
+                                    if profit_rate_str.endswith('%'):
+                                        profit_rate = float(profit_rate_str.rstrip('%')) / 100
+                                    else:
+                                        profit_rate = float(profit_rate_str)
+                                except ValueError as ve:
+                                    self.logger.error(f"第{line_number}行利润率数值转换失败: '{row[3]}' - {ve}")
+                                    continue
+                                
+                                if first_cash is None:
+                                    first_cash = cash
+                                    
+                                # 如果已有6列或7列，直接采用并更新累计上下文
+                                if len(row) >= 6:
+                                    try:
+                                        total_profit = float(row[4].strip())
+                                        # 处理百分比格式的总利润率
+                                        total_profit_rate_str = row[5].strip()
+                                        if total_profit_rate_str.endswith('%'):
+                                            total_profit_rate = float(total_profit_rate_str.rstrip('%')) / 100
+                                        else:
+                                            total_profit_rate = float(total_profit_rate_str)
+                                        cumulative_profit = total_profit
+                                    except ValueError as ve:
+                                        self.logger.error(f"第{line_number}行总利润数值转换失败: '{row[4]}' 或 '{row[5]}' - {ve}")
+                                        # 使用计算值作为备用
+                                        cumulative_profit += profit
+                                        total_profit = cumulative_profit
+                                        total_profit_rate = (total_profit / first_cash) if first_cash else 0.0
+                                else:
+                                    cumulative_profit += profit
+                                    total_profit = cumulative_profit
+                                    total_profit_rate = (total_profit / first_cash) if first_cash else 0.0
+                                    
+                                # 第7列：交易次数
+                                if len(row) >= 7:
+                                    trade_times = row[6].strip()
+                                else:
+                                    trade_times = ""
+                                    
+                                history.append([
                                 date_str,
                                 f"{cash:.2f}",
                                 f"{profit:.2f}",
-                                f"{profit_rate:.4f}",
+                                f"{profit_rate*100:.2f}%",
                                 f"{total_profit:.2f}",
-                                f"{total_profit_rate:.2f}",
+                                f"{total_profit_rate*100:.2f}%",
                                 trade_times
                             ])
+                            else:
+                                self.logger.warning(f"第{line_number}行数据列数不足: {len(row)}列, 需要至少4列")
+                        except Exception as row_error:
+                            self.logger.error(f"第{line_number}行数据处理失败: {row} - {row_error}")
+                            continue
         except Exception as e:
             self.logger.error(f"加载历史CSV失败: {e}")
+            # 如果CSV文件损坏，尝试修复
+            if os.path.exists(self.csv_file):
+                self.logger.info("尝试修复损坏的CSV文件...")
+                try:
+                    self.repair_csv_file()
+                    # 修复后重新尝试加载
+                    self.logger.info("CSV文件修复完成，重新尝试加载...")
+                    return self.load_cash_history()
+                except Exception as repair_error:
+                    self.logger.error(f"CSV文件修复失败: {repair_error}")
+                    # 创建备份并重新开始
+                    backup_file = f"{self.csv_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                    try:
+                        shutil.copy2(self.csv_file, backup_file)
+                        self.logger.info(f"已创建损坏CSV文件的备份: {backup_file}")
+                    except Exception as backup_error:
+                        self.logger.error(f"创建备份文件失败: {backup_error}")
         return history
+
+    def repair_csv_file(self):
+        """修复损坏的CSV文件，移除无效行并重建文件"""
+        if not os.path.exists(self.csv_file):
+            self.logger.info("CSV文件不存在，无需修复")
+            return
+            
+        valid_rows = []
+        invalid_rows = []
+        
+        try:
+            with open(self.csv_file, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                line_number = 0
+                for row in reader:
+                    line_number += 1
+                    try:
+                        if len(row) >= 4:
+                            # 验证每个数值字段
+                            date_str = row[0].strip()
+                            cash = float(row[1].strip())
+                            profit = float(row[2].strip())
+                            
+                            # 处理百分比格式的利润率，特别处理被错误连接的情况
+                            profit_rate_str = row[3].strip()
+                            
+                            # 检查是否包含日期信息（如 '0.00292025-08-18'）
+                            if re.search(r'\d{4}-\d{2}-\d{2}', profit_rate_str):
+                                # 尝试分离利润率和日期
+                                match = re.match(r'([\d\.%-]+)(\d{4}-\d{2}-\d{2}.*)', profit_rate_str)
+                                if match:
+                                    profit_rate_str = match.group(1)
+                                    self.logger.warning(f"第{line_number}行利润率字段包含日期信息，已分离: '{row[3]}' -> '{profit_rate_str}'")
+                            
+                            if profit_rate_str.endswith('%'):
+                                profit_rate = float(profit_rate_str.rstrip('%')) / 100
+                            else:
+                                profit_rate = float(profit_rate_str)
+                            
+                            # 验证并标准化日期格式
+                            try:
+                                # 尝试标准格式 YYYY-MM-DD
+                                parsed_date = datetime.strptime(date_str, '%Y-%m-%d')
+                            except ValueError:
+                                try:
+                                    # 尝试斜杠格式 YYYY/M/D 或 YYYY/MM/DD
+                                    parsed_date = datetime.strptime(date_str, '%Y/%m/%d')
+                                    # 标准化为 YYYY-MM-DD 格式
+                                    date_str = parsed_date.strftime('%Y-%m-%d')
+                                    self.logger.info(f"第{line_number}行日期格式已标准化: '{row[0]}' -> '{date_str}'")
+                                except ValueError:
+                                    try:
+                                        # 尝试其他可能的格式
+                                        parsed_date = datetime.strptime(date_str, '%Y/%#m/%#d')  # Windows格式
+                                        date_str = parsed_date.strftime('%Y-%m-%d')
+                                        self.logger.info(f"第{line_number}行日期格式已标准化: '{row[0]}' -> '{date_str}'")
+                                    except ValueError:
+                                        raise ValueError(f"日期格式不支持: {date_str}")
+                            
+                            # 如果有更多列，也验证它们
+                            if len(row) >= 6:
+                                total_profit = float(row[4].strip())
+                                # 处理百分比格式的总利润率
+                                total_profit_rate_str = row[5].strip()
+                                
+                                # 同样检查总利润率是否包含日期信息
+                                if re.search(r'\d{4}-\d{2}-\d{2}', total_profit_rate_str):
+                                    match = re.match(r'([\d\.%-]+)(\d{4}-\d{2}-\d{2}.*)', total_profit_rate_str)
+                                    if match:
+                                        total_profit_rate_str = match.group(1)
+                                        self.logger.warning(f"第{line_number}行总利润率字段包含日期信息，已分离: '{row[5]}' -> '{total_profit_rate_str}'")
+                                
+                                if total_profit_rate_str.endswith('%'):
+                                    total_profit_rate = float(total_profit_rate_str.rstrip('%')) / 100
+                                else:
+                                    total_profit_rate = float(total_profit_rate_str)
+                            
+                            # 重新构建修复后的行数据
+                            fixed_row = [date_str, f"{cash:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%"]
+                            if len(row) >= 6:
+                                fixed_row.extend([f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%"])
+                            if len(row) >= 7:
+                                fixed_row.append(row[6].strip())
+                            
+                            valid_rows.append(fixed_row)
+                        else:
+                            invalid_rows.append((line_number, row, "列数不足"))
+                    except Exception as e:
+                        invalid_rows.append((line_number, row, str(e)))
+                        
+            if invalid_rows:
+                # 创建备份
+                backup_file = f"{self.csv_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                shutil.copy2(self.csv_file, backup_file)
+                self.logger.info(f"发现{len(invalid_rows)}行无效数据，已创建备份: {backup_file}")
+                
+                # 记录无效行
+                for line_num, row, error in invalid_rows:
+                    self.logger.warning(f"移除第{line_num}行无效数据: {row} - {error}")
+                
+                # 重写CSV文件，只保留有效行
+                with open(self.csv_file, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerows(valid_rows)
+                    
+                self.logger.info(f"CSV文件修复完成，保留{len(valid_rows)}行有效数据")
+            else:
+                self.logger.info("CSV文件检查完成，未发现无效数据")
+                
+        except Exception as e:
+            self.logger.error(f"CSV文件修复失败: {e}")
 
     def append_cash_record(self, date_str, cash_value):
         """追加一条记录到CSV并更新内存history"""
@@ -4614,13 +5106,13 @@ class CryptoTrader:
         try:
             with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow([date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate:.4f}", f"{total_profit:.2f}", f"{total_profit_rate:.2f}", str(self.last_trade_count)])
+                writer.writerow([date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)])
             self.logger.info(f"✅ 已追加写入CSV: {date_str}, Cash:{cash_float:.2f}, 利润:{profit:.2f}, 总利润:{total_profit:.2f}, 交易次数:{self.last_trade_count}")
         except Exception as e:
             self.logger.error(f"写入CSV失败: {e}")
             
         # 更新内存中的历史记录
-        new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate:.4f}", f"{total_profit:.2f}", f"{total_profit_rate:.2f}", str(self.last_trade_count)]
+        new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)]
         self.cash_history.append(new_record)
 
     def create_flask_app(self):
@@ -4629,12 +5121,1664 @@ class CryptoTrader:
 
         @app.route("/")
         def index():
+            """主仪表板页面"""
+            # 获取实时数据
+            current_data = {
+                'url': self.get_web_value('url_entry'),
+                'coin': self.get_web_value('coin_combobox'),
+                'auto_find_time': self.get_web_value('auto_find_time_combobox'),
+                'account': {
+                    'cash': getattr(self, 'cash_value', '--') or '--',
+                    'portfolio': getattr(self, 'portfolio_value', '--') or '--',
+                    'zero_time_cash': self.get_web_value('zero_time_cash_label') or '0'
+                },
+                'prices': {
+                    'up_price': self.get_web_value('yes_price_label') or 'N/A',
+                    'down_price': self.get_web_value('no_price_label') or 'N/A',
+                    'binance_price': self.get_web_value('binance_now_price_label') or 'N/A',
+                    'binance_zero_price': self.get_web_value('binance_zero_price_label') or 'N/A',
+                    'binance_rate': self.get_web_value('binance_rate_label') or 'N/A'
+                },
+                'trading_pair': self.get_web_value('trading_pair_label'),
+                'live_prices': {
+                    'up': self.get_web_value('yes_price_label') or '0',
+                    'down': self.get_web_value('no_price_label') or '0'
+                },
+                'positions': {
+                    'up1_price': self.get_web_value('yes1_price_entry'),
+                    'up1_amount': self.get_web_value('yes1_amount_entry'),
+                    'up2_price': self.get_web_value('yes2_price_entry'),
+                    'up2_amount': self.get_web_value('yes2_amount_entry'),
+                    'up3_price': self.get_web_value('yes3_price_entry'),
+                    'up3_amount': self.get_web_value('yes3_amount_entry'),
+                    'up4_price': self.get_web_value('yes4_price_entry'),
+                    'up4_amount': self.get_web_value('yes4_amount_entry'),
+                    'down1_price': self.get_web_value('no1_price_entry'),
+                    'down1_amount': self.get_web_value('no1_amount_entry'),
+                    'down2_price': self.get_web_value('no2_price_entry'),
+                    'down2_amount': self.get_web_value('no2_amount_entry'),
+                    'down3_price': self.get_web_value('no3_price_entry'),
+                    'down3_amount': self.get_web_value('no3_amount_entry'),
+                    'down4_price': self.get_web_value('no4_price_entry'),
+                    'down4_amount': self.get_web_value('no4_amount_entry')
+                },
+                'cash_history': sorted(self.cash_history, key=lambda x: self._parse_date_for_sort(x[0]), reverse=True) if hasattr(self, 'cash_history') else []
+            }
+            
+            dashboard_template = """
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Polymarket自动交易系统</title>
+                <style>
+                    body { 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+                        padding: 0; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                    }
+                    .container { 
+                        max-width: 1160px; margin: 2px auto; background: rgba(255, 255, 255, 0.95); 
+                        padding: 2px; border-radius: 15px; backdrop-filter: blur(10px);
+                    }
+                    .header { text-align: center; margin-bottom: 5px; }
+                    .header h1 { 
+                        color: #2c3e50; margin: 0; font-size: 36px; font-weight: 700;
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .header p { color: #5a6c7d; margin: 5px 0 0 0; font-size: 18px; font-weight: 500; }
+                    .nav { 
+                        display: flex; justify-content: center; gap: 20px; 
+                        margin-bottom: 5px; padding: 8px; background: rgba(248, 249, 250, 0.8); 
+                        border-radius: 12px; backdrop-filter: blur(5px);
+                    }
+                    .nav a { 
+                        padding: 12px 24px; background: linear-gradient(45deg, #007bff, #0056b3); 
+                        color: white; text-decoration: none; border-radius: 8px; font-weight: 600;
+                        font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+                    }
+                    .nav a:hover { 
+                        background: linear-gradient(45deg, #0056b3, #004085); 
+                        transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+                    }
+                    .nav a.active { 
+                        background: linear-gradient(45deg, #28a745, #20c997); 
+                        box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+                    }
+                    .nav button {
+                        padding: 12px 24px; background: linear-gradient(45deg, #17a2b8, #138496);
+                        border: none; color: white; border-radius: 8px; cursor: pointer;
+                        font-size: 16px; font-weight: 600; transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(23,162,184,0.3);
+                    }
+                    .nav button:hover {
+                        background: linear-gradient(45deg, #138496, #117a8b);
+                        transform: translateY(-2px); box-shadow: 0 6px 20px rgba(23,162,184,0.4);
+                    }
+                    .nav button:disabled, button:disabled {
+                        background: linear-gradient(45deg, #6c757d, #5a6268) !important;
+                        cursor: not-allowed !important;
+                        opacity: 0.6 !important;
+                        transform: none !important;
+                        box-shadow: none !important;
+                    }
+                    .nav button:disabled:hover, button:disabled:hover {
+                        background: linear-gradient(45deg, #6c757d, #5a6268) !important;
+                        transform: none !important;
+                        box-shadow: none !important;
+                    }
+
+                    .main-layout {
+                        display: flex;
+                        gap: 20px;
+                        max-width: 1160px;
+    
+                        padding: 5px 5px;
+                        align-items: flex-start;
+                    }
+                    
+                    .left-panel {
+                        flex: 1;
+                        min-width: 400px;
+                    }
+                    
+                    .right-panel {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 15px;
+                        align-items: stretch;
+                    }
+                    
+
+                    
+                    .info-grid { 
+                        display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+                        gap: 8px; 
+                    }
+                    .monitor-controls-section {
+                        max-width: 1160px;
+                        
+                        padding: 2px 1px;
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 15px;
+                        align-items: flex-start;
+                        overflow: visible;
+                    }
+                    .info-item { 
+                        padding: 3px; background: rgba(248, 249, 250, 0.8); border-radius: 8px;
+                        transition: all 0.3s ease; border: 2px solid transparent;
+                        flex: 1 1 auto;
+                        min-width: 70px;
+                        max-width: none;
+                        white-space: nowrap;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 2px;
+                        overflow: hidden;
+                    }
+                    .info-item:hover {
+                        background: rgba(255, 255, 255, 0.9); border-color: #007bff;
+                        transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,123,255,0.1);
+                    }
+                    .coin-select-item {
+                        display: flex;
+                        align-items: center;
+                        font-size: 14px;
+                        gap: 4px;
+                        flex: 0 0 auto;
+                        min-width: 120px;
+                        max-width: 120px;
+                    }
+                    .time-select-item {
+                        display: flex;
+                        align-items: center;
+                        font-size: 14px;
+                        gap: 4px;
+                        flex: 0 0 auto;
+                        min-width: 140px;
+                        max-width: 140px;
+                    }
+                    .info-item label { 
+                        font-weight: 600; color: #6c757d; 
+                        font-size: 14px; 
+                        flex-shrink: 0;
+                        margin-right: 2px;
+                    }
+                    .info-item .value { 
+                        font-size: 14px; color: #2c3e50; font-weight: 600;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        flex: 1;
+                    }
+                    .info-item select {
+                        padding: 4px 8px; border: 1px solid #dee2e6; border-radius: 4px;
+                        font-size: 14px; font-weight: 600; background: white;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        color: #2c3e50;
+                        transition: all 0.3s ease; cursor: pointer;
+                        flex: 1;
+                    }
+                    .info-item select:focus {
+                        border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+                        outline: none;
+                    }
+                    .position-container {
+                        padding: 5px 5px;
+                        background: rgba(248, 249, 250, 0.9);
+                        border-radius: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                    }
+                    .position-content {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: #007bff;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        word-wrap: break-word;
+                        width: 100%;
+                    }
+
+                    .binance-price-container {
+                        display: flex;
+                        flex-direction: row;
+                        gap: 5px;
+                        flex: 1;
+                        align-items: center;
+                        justify-content: center; /* 水平居中 */
+                    }
+                    /* 减少上方币安价格区与下方资产区之间的垂直间距 */
+                    .binance-price-container + .binance-price-container {
+                        margin-top: 0px;
+                    }
+                    .binance-price-item {
+                        display: flex;
+                        align-items: center;
+                        font-size: 14px;
+                        gap: 4px;
+                    }
+                    .binance-label {
+                        font-weight: 600;
+                        color: #6c757d;
+                    }
+                    .binance-price-item .value {
+                        font-size: 14px;
+                        font-weight: 600;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                        color: #2c3e50;
+                    }
+                    /* UP和DOWN价格显示独立样式 */
+                    .up-down-prices-container {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        gap: 25px;
+                        
+                        flex: 2;
+                        min-height: 80px;
+                    }
+                    
+                    .up-price-display, .down-price-display {
+                        font-size: 28px;
+                        font-weight: 800;
+                        color: #2F3E46; /* 深灰蓝，比纯黑柔和 */
+                        text-align: center;
+                        padding: 12px 20px;
+                        border-radius: 12px;
+                        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+                        min-width: 180px;
+                        max-width: 250px;
+                        flex: 1;
+                        position: relative;
+                        overflow: hidden;
+                        transition: all 0.3s ease;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                    }
+                    
+                    .up-price-display {
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        border: none;
+                    }
+                    
+                    .down-price-display {
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        border: none;
+                    }
+                    
+                    .up-price-display:hover, .down-price-display:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 35px rgba(0,0,0,0.2);
+                    }
+                    
+                    .price-label {
+                        color: #333;
+                        font-weight: bold;
+                        margin-right: 5px;
+                    }
+                    .price-display { 
+                        display: flex; justify-content: space-around; text-align: center; gap: 12px;
+                        margin-top: 10px;
+                    }
+                    .price-box { 
+                        padding: 18px; border-radius: 12px; min-width: 150px;
+                        font-size: 20px; font-weight: 800; transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    }
+                    .price-box:hover {
+                        transform: translateY(-3px); box-shadow: 0 8px 10px rgba(0,0,0,0.15);
+                    }
+                    .price-up { 
+                        background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+                        color: #155724; border: 2px solid #28a745;
+                    }
+                    .price-down { 
+                        background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+                        color: #721c24; border: 2px solid #dc3545;
+                    }
+                    .positions-grid { 
+                        display: grid; 
+                        grid-template-columns: 1fr 1fr; 
+                        gap: 2px; 
+                        margin-top: 0px;
+                        flex: 0.5;
+                        max-height: 250px;
+                        overflow-y: auto;
+                    }
+                    .position-section {
+                        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,249,250,0.9));
+                        border-radius: 8px;
+                        padding: 8px;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        transition: all 0.3s ease;
+                        position: relative;
+                        overflow: hidden;
+                        height: fit-content;
+                    }
+                    .position-section::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 4px;
+                        background: linear-gradient(90deg, #667eea, #764ba2);
+                        border-radius: 16px 16px 0 0;
+                    }
+                    .position-section:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+                    }
+                    .up-section::before {
+                        background: linear-gradient(90deg, #00c9ff, #92fe9d);
+                    }
+                    .down-section::before {
+                        background: linear-gradient(90deg, #fc466b, #3f5efb);
+                    }
+                    .position-section h4 { 
+                        margin: 0 0 8px 0; 
+                        padding: 8px 12px; 
+                        border-radius: 8px; 
+                        text-align: center; 
+                        color: white; 
+                        font-size: 14px; 
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .position-section h4::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: -100%;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                        transition: left 0.5s;
+                    }
+                    .position-section:hover h4::before {
+                        left: 100%;
+                    }
+                    .up-section h4 { 
+                        background: linear-gradient(135deg, #00c9ff, #92fe9d); 
+                        box-shadow: 0 6px 20px rgba(0,201,255,0.4);
+                    }
+                    .down-section h4 { 
+                        background: linear-gradient(135deg, #fc466b, #3f5efb); 
+                        box-shadow: 0 6px 20px rgba(252,70,107,0.4);
+                    }
+                    .position-row { 
+                        display: grid; 
+                        grid-template-columns: 60px 1fr 1fr; 
+                        gap: 6px; 
+                        padding: 6px 0; 
+                        border-bottom: 1px solid rgba(0,0,0,0.05); 
+                        align-items: center; 
+                        font-size: 12px; 
+                        font-weight: 500;
+                        transition: all 0.2s ease;
+                    }
+                    .position-row:last-child { border-bottom: none; }
+                    .position-row:hover {
+                        background: rgba(102,126,234,0.05);
+                        border-radius: 8px;
+                        padding-left: 8px;
+                        padding-right: 8px;
+                    }
+                    .position-row.header {
+                        background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+                        border-radius: 6px;
+                        font-weight: 700;
+                        color: #2c3e50;
+                        padding: 6px 8px;
+                        
+                        border: none;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        font-size: 10px;
+                    }
+                    .position-label { 
+                        font-weight: 700; 
+                        color: #495057; 
+                        text-align: center;
+                    }
+                    .position-name {
+                        font-weight: 600;
+                        color: #2F3E46; /* 深灰蓝，比纯黑柔和 */
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        border-radius: 8px;
+                        padding: 8px;
+                        font-size: 13px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .position-input {
+                        width: 100%;
+                        padding: 6px 8px;
+                        border: 1px solid rgba(0,0,0,0.1);
+                        border-radius: 6px;
+                        font-size: 11px;
+                        text-align: center;
+                        background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,250,0.9));
+                        font-weight: 600;
+                        color: #2c3e50;
+                        transition: all 0.3s ease;
+                        font-family: 'Monaco', 'Menlo', monospace;
+                    }
+                    .position-input:focus {
+                        outline: none;
+                        border-color: #667eea;
+                        box-shadow: 0 0 0 4px rgba(102,126,234,0.15);
+                        background: white;
+                        transform: scale(1.02);
+                    }
+                    .position-input:hover {
+                        border-color: rgba(102,126,234,0.5);
+                        background: white;
+                    }
+                    .position-controls {
+                        display: flex;
+                        gap: 12px;
+                        margin-top: 20px;
+                        justify-content: center;
+                        padding-top: 15px;
+                        border-top: 1px solid rgba(0,0,0,0.05);
+                    }
+                    .save-btn, .reset-btn {
+                        padding: 12px 24px;
+                        border: none;
+                        border-radius: 12px;
+                        font-size: 14px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        position: relative;
+                        overflow: hidden;
+                        min-width: 100px;
+                        backdrop-filter: blur(10px);
+                    }
+                    .save-btn::before, .reset-btn::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: -100%;
+                        width: 100%;
+                        height: 100%;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                        transition: left 0.5s;
+                    }
+                    .save-btn:hover::before, .reset-btn:hover::before {
+                        left: 100%;
+                    }
+                    .save-btn {
+                        background: linear-gradient(135deg, #00c9ff, #92fe9d);
+                        color: white;
+                        box-shadow: 0 6px 25px rgba(0,201,255,0.4);
+                        border: 2px solid rgba(255,255,255,0.2);
+                    }
+                    .save-btn:hover {
+                        background: linear-gradient(135deg, #00b4e6, #7ee87f);
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 35px rgba(0,201,255,0.5);
+                    }
+                    .save-btn:active {
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 15px rgba(0,201,255,0.3);
+                    }
+                    .reset-btn {
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        box-shadow: 0 6px 25px rgba(102,126,234,0.4);
+                        border: 2px solid rgba(255,255,255,0.2);
+                    }
+                    .reset-btn:hover {
+                        background: linear-gradient(135deg, #5a6fd8, #6a4190);
+                        transform: translateY(-3px);
+                        box-shadow: 0 10px 35px rgba(102,126,234,0.5);
+                    }
+                    .reset-btn:active {
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 15px rgba(102,126,234,0.3);
+                    }
+                    .refresh-info {
+                        margin-top: 20px;
+                        padding: 16px 20px;
+                        background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+                        border-radius: 12px;
+                        border: 1px solid rgba(102,126,234,0.2);
+                        font-size: 14px;
+                        color: #2c3e50;
+                        box-shadow: 0 4px 20px rgba(102,126,234,0.1);
+                        backdrop-filter: blur(10px);
+                        position: relative;
+                        overflow: hidden;
+                        font-weight: 500;
+                        text-align: center;
+                    }
+                    .refresh-info::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 3px;
+                        background: linear-gradient(90deg, #667eea, #764ba2);
+                        border-radius: 12px 12px 0 0;
+                    }
+                    .control-section {
+                        max-width: 1160px;
+                        min-width: 1140px;
+                        padding: 10px 10px 0 10px;
+                        
+                    }
+                    .url-input-group {
+                        display: flex; gap: 15px; 
+                    }
+                    .url-input-group input {
+                        flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
+                        border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        color: #2F3E46;
+                    }
+                    .url-input-group input:focus {
+                        border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+                        outline: none;
+                    }
+                    .url-input-group button {
+                        padding: 6px 8px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        color: #2F3E46; border: none; border-radius: 8px; cursor: pointer;
+                        font-size: 16px; font-weight: 600; white-space: nowrap;
+                        transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(168,192,255,0.3);
+                    }
+                    .url-input-group button:hover {
+                        background: linear-gradient(135deg, #9BB5FF, #B8F2DD);
+                        transform: translateY(-2px); box-shadow: 0 6px 20px rgba(168,192,255,0.4);
+                    }
+                    .url-input-group button:disabled {
+                        background: #6c757d; cursor: not-allowed; transform: none;
+                        box-shadow: none;
+                    }
+                    .status-message {
+                        padding: 12px; border-radius: 8px; font-size: 16px;
+                        text-align: center; display: none; font-weight: 500;
+                    }
+                    .status-message.success {
+                        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                        color: #155724; border: 2px solid #c3e6cb; display: block;
+                    }
+                    .status-message.error {
+                        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+                        color: #721c24; border: 2px solid #f5c6cb; display: block;
+                    }
+                    .log-section {
+                        background: rgba(255, 255, 255, 0.9);
+                        border-radius: 2px; padding: 2px; color: #2c3e50;
+                        font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+                        backdrop-filter: blur(5px);
+                        border: 1px solid rgba(233, 236, 239, 0.5);
+                    }
+                    
+                    .log-container {
+                        height: 500px; overflow-y: auto; background: rgba(248, 249, 250, 0.8);
+                        border-radius: 8px; padding: 18px; border: 2px solid rgba(233, 236, 239, 0.5);
+                        margin-top: 0;
+                        /* 自定义滚动条样式 */
+                        scrollbar-width: thin;
+                        scrollbar-color: transparent transparent;
+                    }
+                    /* Webkit浏览器滚动条样式 */
+                    .log-container::-webkit-scrollbar {
+                        width: 8px;
+                    }
+                    .log-container::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+                    .log-container::-webkit-scrollbar-thumb {
+                        background: transparent;
+                        border-radius: 4px;
+                        transition: background 0.3s ease;
+                    }
+                    /* 悬停时显示滚动条 */
+                    .log-container:hover {
+                        scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+                    }
+                    .log-container:hover::-webkit-scrollbar-thumb {
+                        background: rgba(0, 0, 0, 0.3);
+                    }
+                    .log-container:hover::-webkit-scrollbar-thumb:hover {
+                        background: rgba(0, 0, 0, 0.5);
+                    }
+                    .log-entry {
+                        margin-bottom: 8px; font-size: 10px; line-height: 1.4;
+                        word-wrap: break-word;
+                        color: #000000;
+                    }
+                    .log-entry.info { color: #17a2b8; }
+                    .log-entry.warning { color: #ffc107; }
+                    .log-entry.error { color: #dc3545; }
+                    .log-entry.success { color: #28a745; }
+
+                    .side-by-side-container {
+                        display: flex;
+                        gap: 20px;
+                        margin-top: 30px;
+                    }
+                    .half-width {
+                        flex: 1;
+                        width: 50%;
+                        min-height: 500px;
+                    }
+                    .log-section.half-width {
+                        margin-top: 0;
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                    }
+                    .card.half-width {
+                        margin-top: 0;
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                    }
+                    .card.half-width .positions-grid {
+                        flex: 1;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 15px;
+                    }
+                    
+                    /* 时间显示和倒计时样式 */
+                    .time-display-section {
+                        margin-top: 6px;
+                        padding: 5px 10px;
+                        background: rgba(248, 249, 250, 0.9);
+                        border-radius: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                    }
+                    
+                    .current-time {
+                        margin: 0;
+                    }
+                    
+                    #currentTime {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #2c3e50;
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    
+                    .countdown-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                    }
+                    
+                    .countdown-label {
+                        font-size: 14px;
+                        font-weight: 600;
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    
+                    .simple-clock {
+                        display: flex;
+                        gap: 1px;
+                        align-items: center;
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: #dc3545;
+                    }
+                    
+                    .simple-clock span {
+                        min-width: 18px;
+                        text-align: center;
+                    }
+                 
+                </style>
+                <script>
+                    function updateData() {
+                        fetch('/api/status')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.error) {
+                                    console.error('API Error:', data.error);
+                                    return;
+                                }
+                                
+                                // 更新价格显示
+                                const upPriceElement = document.querySelector('#upPrice');
+                                const downPriceElement = document.querySelector('#downPrice');
+                                const binancePriceElement = document.querySelector('#binancePrice');
+                                const binanceZeroPriceElement = document.querySelector('#binanceZeroPrice');
+                                const binanceRateElement = document.querySelector('#binanceRate');
+                                
+                                if (upPriceElement) upPriceElement.innerHTML = '<span class="price-label">UP:</span> ' + (data.prices.up_price || 'N/A');
+                                if (downPriceElement) downPriceElement.innerHTML = '<span class="price-label">DOWN:</span> ' + (data.prices.down_price || 'N/A');
+                                if (binanceZeroPriceElement) binanceZeroPriceElement.textContent = data.prices.binance_zero_price;
+                                
+                                // 实时价格颜色逻辑：与零点价格比较
+                                if (binancePriceElement) {
+                                    binancePriceElement.textContent = data.prices.binance_price;
+                                    const currentPrice = parseFloat(data.prices.binance_price);
+                                    const zeroPrice = parseFloat(data.prices.binance_zero_price);
+                                    
+                                    if (!isNaN(currentPrice) && !isNaN(zeroPrice)) {
+                                        if (currentPrice > zeroPrice) {
+                                            binancePriceElement.style.color = '#28a745'; // 绿色
+                                        } else if (currentPrice < zeroPrice) {
+                                            binancePriceElement.style.color = '#dc3545'; // 红色
+                                        } else {
+                                            binancePriceElement.style.color = '#2c3e50'; // 默认颜色
+                                        }
+                                    }
+                                }
+                                
+                                // 涨幅格式化和颜色逻辑
+                                if (binanceRateElement) {
+                                    const rateValue = parseFloat(data.prices.binance_rate);
+                                    if (!isNaN(rateValue)) {
+                                        // 格式化为百分比，保留三位小数
+                                        const formattedRate = rateValue >= 0 ? 
+                                            `${rateValue.toFixed(3)}%` : 
+                                            `-${Math.abs(rateValue).toFixed(3)}%`;
+                                        
+                                        binanceRateElement.textContent = formattedRate;
+                                        
+                                        // 设置颜色：上涨绿色，下跌红色
+                                        if (rateValue > 0) {
+                                            binanceRateElement.style.color = '#28a745'; // 绿色
+                                        } else if (rateValue < 0) {
+                                            binanceRateElement.style.color = '#dc3545'; // 红色
+                                        } else {
+                                            binanceRateElement.style.color = '#2c3e50'; // 默认颜色
+                                        }
+                                    } else {
+                                        binanceRateElement.textContent = data.prices.binance_rate;
+                                        binanceRateElement.style.color = '#2c3e50';
+                                    }
+                                }
+                                
+                                // 更新账户信息
+                                const portfolioElement = document.querySelector('#portfolio');
+                                const cashElement = document.querySelector('#cash');
+                                const zeroTimeCashElement = document.querySelector('#zeroTimeCash');
+                                
+                                if (portfolioElement) portfolioElement.textContent = data.account.portfolio;
+                                if (cashElement) cashElement.textContent = data.account.cash;
+                                if (zeroTimeCashElement) zeroTimeCashElement.textContent = data.account.zero_time_cash || '--';
+                                
+                                // 持仓信息将在交易验证成功后自动更新，无需在此处调用
+                                
+                                // 更新状态信息
+                                const statusElement = document.querySelector('.status-value');
+                                const urlElement = document.querySelector('.url-value');
+                                const browserElement = document.querySelector('.browser-value');
+                                
+                                if (statusElement) statusElement.textContent = data.status.monitoring;
+                                if (urlElement) urlElement.textContent = data.status.url;
+                                if (browserElement) browserElement.textContent = data.status.browser_status;
+                                
+                                // URL输入框不再自动更新，避免覆盖用户输入
+                                // const urlInputElement = document.querySelector('#urlInput');
+                                // if (urlInputElement && data.status.url && data.status.url !== '未设置') {
+                                //     urlInputElement.value = data.status.url;
+                                // }
+                                
+                                // 更新仓位信息
+                                for (let i = 1; i <= 5; i++) {
+                                    const upPriceEl = document.querySelector(`#up${i}_price`);
+                                    const upAmountEl = document.querySelector(`#up${i}_amount`);
+                                    const downPriceEl = document.querySelector(`#down${i}_price`);
+                                    const downAmountEl = document.querySelector(`#down${i}_amount`);
+                                    
+                                    if (upPriceEl) upPriceEl.value = data.positions[`up${i}_price`];
+                                    if (upAmountEl) upAmountEl.value = data.positions[`up${i}_amount`];
+                                    if (downPriceEl) downPriceEl.value = data.positions[`down${i}_price`];
+                                    if (downAmountEl) downAmountEl.value = data.positions[`down${i}_amount`];
+                                }
+                                
+                                // 更新最后更新时间
+                                const timeElement = document.querySelector('.last-update-time');
+                                if (timeElement) timeElement.textContent = data.status.last_update;
+                            })
+                            .catch(error => {
+                                console.error('更新数据失败:', error);
+                            });
+                    }
+                    
+                    function refreshPage() {
+                        location.reload();
+                    }
+                    
+
+                    
+                    // 页面加载时初始化
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // 开始定期更新数据
+                        updateData();
+                        setInterval(updateData, 2000);
+                        
+                        // 初始化时间显示和倒计时
+                        initializeTimeDisplay();
+                        
+                        // 添加URL输入框事件监听器
+                        const urlInput = document.getElementById('urlInput');
+                        if (urlInput) {
+                            urlInput.addEventListener('input', function() {
+                                // 用户手动输入时清除防止自动更新的标志
+                                window.preventUrlAutoUpdate = false;
+                            });
+                        }
+                    });
+                    
+                    function updatePositionInfo() {
+                        fetch('/api/positions')
+                            .then(response => response.json())
+                            .then(data => {
+                                const positionContainer = document.getElementById('positionContainer');
+                                const positionContent = document.getElementById('positionContent');
+                                const sellBtn = document.getElementById('sellPositionBtn');
+                                
+                                if (!positionContainer || !positionContent) return;
+                                
+                                if (data.success && data.position) {
+                                    const position = data.position;
+                                    // 格式化持仓信息：持仓:方向:direction 数量:shares 价格:price 金额:amount
+                                    const positionText = `方向:${position.direction} 数量:${position.shares} 价格:${position.price} 金额:${position.amount}`;
+                                    
+                                    // 设置文本内容
+                                    positionContent.innerHTML = positionText;
+                                    
+                                    // 根据方向设置颜色
+                                    if (position.direction === 'Up') {
+                                        positionContent.style.color = '#28a745'; // 绿色
+                                    } else if (position.direction === 'Down') {
+                                        positionContent.style.color = '#dc3545'; // 红色
+                                    } else {
+                                        positionContent.style.color = '#2c3e50'; // 默认颜色
+                                    }
+                                    
+                                    // 有持仓时保持卖出按钮样式
+                                    if (sellBtn) {
+                                        sellBtn.style.backgroundColor = '#dc3545';
+                                        sellBtn.style.cursor = 'pointer';
+                                    }
+                                    
+                                    positionContainer.style.display = 'block';
+                                } else {
+                                    positionContent.textContent = '方向: -- 数量: -- 价格: -- 金额: --';
+                                    positionContent.style.color = '#2c3e50'; // 默认颜色
+                                    
+                                    // 无持仓时保持卖出按钮可点击
+                                    if (sellBtn) {
+                                        sellBtn.style.backgroundColor = '#dc3545';
+                                        sellBtn.style.cursor = 'pointer';
+                                    }
+                                    
+                                    positionContainer.style.display = 'block';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('获取持仓信息失败:', error);
+                                const positionContainer = document.getElementById('positionContainer');
+                                const positionContent = document.getElementById('positionContent');
+                                const sellBtn = document.getElementById('sellPositionBtn');
+                                if (positionContainer && positionContent) {
+                                    positionContent.textContent = '方向: -- 数量: -- 价格: -- 金额: --';
+                                    positionContent.style.color = '#dc3545'; // 红色表示错误
+                                    
+                                    // 获取失败时保持卖出按钮可点击
+                                    if (sellBtn) {
+                                        sellBtn.style.backgroundColor = '#dc3545';
+                                        sellBtn.style.cursor = 'pointer';
+                                    }
+                                    
+                                    positionContainer.style.display = 'block';
+                                }
+                            });
+                    }
+                    
+
+                    
+
+                    
+                    function updateCoin() {
+                        const coin = document.getElementById('coinSelect').value;
+                        fetch('/api/update_coin', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({coin: coin})
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('币种更新成功:', coin);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating coin:', error);
+                        });
+                    }
+                    
+                    function updateTime() {
+                        const time = document.getElementById('timeSelect').value;
+                        fetch('/api/update_time', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({time: time})
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('时间更新成功:', time);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating time:', error);
+                        });
+                    }
+                    
+                    // 时间显示和倒计时功能
+                    function updateCurrentTime() {
+                        const now = new Date();
+                        const timeString = now.getFullYear() + '-' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(now.getDate()).padStart(2, '0') + ' ' + 
+                            String(now.getHours()).padStart(2, '0') + ':' + 
+                            String(now.getMinutes()).padStart(2, '0') + ':' + 
+                            String(now.getSeconds()).padStart(2, '0');
+                        document.getElementById('currentTime').textContent = timeString;
+                    }
+                    
+                    function updateCountdown() {
+                        const now = new Date();
+                        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+                        const timeDiff = endOfDay - now;
+                        
+                        if (timeDiff <= 0) {
+                            // 如果已经过了当天23:59:59，显示00:00:00
+                            updateFlipClock('00', '00', '00');
+                            return;
+                        }
+                        
+                        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                        
+                        const hoursStr = String(hours).padStart(2, '0');
+                        const minutesStr = String(minutes).padStart(2, '0');
+                        const secondsStr = String(seconds).padStart(2, '0');
+                        
+                        updateFlipClock(hoursStr, minutesStr, secondsStr);
+                    }
+                    
+                    function updateFlipClock(hours, minutes, seconds) {
+                        // 先检查元素是否存在
+                        if (document.getElementById('hours') && 
+                            document.getElementById('minutes') && 
+                            document.getElementById('seconds')) {
+                            updateSimpleUnit('hours', hours);
+                            updateSimpleUnit('minutes', minutes);
+                            updateSimpleUnit('seconds', seconds);
+                        } else {
+                            console.log('Countdown elements not found, retrying in 1 second...');
+                        }
+                    }
+                    
+                    function updateSimpleUnit(unitId, newValue) {
+                        const unit = document.getElementById(unitId);
+                        if (!unit) {
+                            console.error('Element not found:', unitId);
+                            return;
+                        }
+                        
+                        // 直接更新数字内容
+                        unit.textContent = newValue;
+                    }
+                    
+                    // 初始化时间显示和倒计时
+                    function initializeTimeDisplay() {
+                        // 延迟执行以确保DOM完全加载
+                        setTimeout(() => {
+                            updateCurrentTime();
+                            updateCountdown();
+                            
+                            // 每秒更新时间和倒计时
+                            setInterval(updateCurrentTime, 1000);
+                            setInterval(updateCountdown, 1000);
+                        }, 100);
+                    }
+                    
+                    // 注意：数据更新和按钮状态管理已在DOMContentLoaded事件中处理
+                </script>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚀 Polymarket自动交易系统</h1>
+                        </div>
+                        
+                        <!-- 主要内容区域：左右分栏 -->
+                        <div class="main-layout">
+                            <!-- 左侧：日志显示区域 -->
+                            <div class="left-panel log-section log-container" id="logContainer">
+                                
+                                    
+                                <div class="log-loading">正在加载日志...</div>
+                                    
+                                
+                            </div>
+                            <!-- 右侧：价格和交易区域 -->
+                            <div class="right-panel">
+                                <!-- UP和DOWN价格显示 -->
+                                <div class="up-down-prices-container">
+                                    <div class="up-price-display" id="upPrice">
+                                        <span class="price-label">UP:</span> {{ data.prices.up_price or 'N/A' }}
+                                    </div>
+                                    <div class="down-price-display" id="downPrice">
+                                        <span class="price-label">DOWN:</span> {{ data.prices.down_price or 'N/A' }}
+                                    </div>
+                                </div>
+                                
+                                <!-- 持仓显示区域 -->
+                                <div class="position-container" id="positionContainer" style="display: block;">
+                                    <div class="position-content" id="positionContent">
+                                        方向: -- 数量: -- 价格: -- 金额: --
+                                    </div>
+                                </div>
+                                
+                                <!-- 币安价格和资产显示区域 -->
+                                <div class="binance-price-container">
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">零点价格:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
+                                    </div>
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">实时价格:</span> <span class="value" id="binancePrice">{{ data.prices.binance_price or '--' }}</span>
+                                    </div>
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">涨跌幅:</span> <span class="value" id="binanceRate">{{ data.prices.binance_rate or '--' }}</span>
+                                    </div>
+                                </div>
+                                <div class="binance-price-container">
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">预计收益:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
+                                    </div>
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">剩余本金:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
+                                    </div>
+                                    <div class="binance-price-item">
+                                        <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
+                                    </div>
+                                </div>
+                                <!-- 币种和交易时间显示区域 -->
+                                <div class="binance-price-container">
+                                    <div class="info-item coin-select-item">
+                                            <label>币种:</label>
+                                            <select id="coinSelect" onchange="updateCoin()" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px;">
+                                                <option value="BTC" {{ 'selected' if data.coin == 'BTC' else '' }}>BTC</option>
+                                                <option value="ETH" {{ 'selected' if data.coin == 'ETH' else '' }}>ETH</option>
+                                                <option value="SOL" {{ 'selected' if data.coin == 'SOL' else '' }}>SOL</option>
+                                                <option value="XRP" {{ 'selected' if data.coin == 'XRP' else '' }}>XRP</option>
+                                            </select>
+                                        </div>
+                                    <div class="info-item time-select-item">
+                                        <label>交易时间:</label>
+                                        <select id="timeSelect" onchange="updateTime()" style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 60px; min-width: 60px;">
+                                            <option value="1:00" {{ 'selected' if data.auto_find_time == '1:00' else '' }}>1:00</option>
+                                            <option value="2:00" {{ 'selected' if data.auto_find_time == '2:00' else '' }}>2:00</option>
+                                            <option value="3:00" {{ 'selected' if data.auto_find_time == '3:00' else '' }}>3:00</option>
+                                            <option value="4:00" {{ 'selected' if data.auto_find_time == '4:00' else '' }}>4:00</option>
+                                            <option value="5:00" {{ 'selected' if data.auto_find_time == '5:00' else '' }}>5:00</option>
+                                            <option value="6:00" {{ 'selected' if data.auto_find_time == '6:00' else '' }}>6:00</option>
+                                            <option value="7:00" {{ 'selected' if data.auto_find_time == '7:00' else '' }}>7:00</option>
+                                            <option value="8:00" {{ 'selected' if data.auto_find_time == '8:00' else '' }}>8:00</option>
+                                            <option value="9:00" {{ 'selected' if data.auto_find_time == '9:00' else '' }}>9:00</option>
+                                            <option value="10:00" {{ 'selected' if data.auto_find_time == '10:00' else '' }}>10:00</option>
+                                            <option value="11:00" {{ 'selected' if data.auto_find_time == '11:00' else '' }}>11:00</option>
+                                            <option value="12:00" {{ 'selected' if data.auto_find_time == '12:00' else '' }}>12:00</option>
+                                            <option value="13:00" {{ 'selected' if data.auto_find_time == '13:00' else '' }}>13:00</option>
+                                            <option value="14:00" {{ 'selected' if data.auto_find_time == '14:00' else '' }}>14:00</option>
+                                            <option value="15:00" {{ 'selected' if data.auto_find_time == '15:00' else '' }}>15:00</option>
+                                            <option value="16:00" {{ 'selected' if data.auto_find_time == '16:00' else '' }}>16:00</option>
+                                            <option value="17:00" {{ 'selected' if data.auto_find_time == '17:00' else '' }}>17:00</option>
+                                            <option value="18:00" {{ 'selected' if data.auto_find_time == '18:00' else '' }}>18:00</option>
+                                            <option value="19:00" {{ 'selected' if data.auto_find_time == '19:00' else '' }}>19:00</option>
+                                            <option value="20:00" {{ 'selected' if data.auto_find_time == '20:00' else '' }}>20:00</option>
+                                            <option value="21:00" {{ 'selected' if data.auto_find_time == '21:00' else '' }}>21:00</option>
+                                            <option value="22:00" {{ 'selected' if data.auto_find_time == '22:00' else '' }}>22:00</option>
+                                            <option value="23:00" {{ 'selected' if data.auto_find_time == '23:00' else '' }}>23:00</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- 交易仓位显示区域 -->
+                                <div class="card">
+                                <form id="positionsForm">
+                                    <div class="positions-grid">
+                                        <div class="position-section up-section">
+                                            <div class="position-row header">
+                                                <div class="position-label">方向</div>
+                                                <div class="position-label">价格</div>
+                                                <div class="position-label">金额</div>
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Up1</div>
+                                                <input type="number" class="position-input" id="up1_price" name="up1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up1_amount" name="up1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Up2</div>
+                                                <input type="number" class="position-input" id="up2_price" name="up2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up2_amount" name="up2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Up3</div>
+                                                <input type="number" class="position-input" id="up3_price" name="up3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up3_amount" name="up3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Up4</div>
+                                                <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up4_amount" name="up4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+
+                                        </div>
+                                        
+                                        <div class="position-section down-section">
+                                            <div class="position-row header">
+                                                <div class="position-label">方向</div>
+                                                <div class="position-label">价格</div>
+                                                <div class="position-label">金额</div>
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Down1</div>
+                                                <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down1_amount" name="down1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Down2</div>
+                                                <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down2_amount" name="down2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Down3</div>
+                                                <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down3_amount" name="down3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+                                            <div class="position-row">
+                                                <div class="position-name">Down4</div>
+                                                <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down4_amount" name="down4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <!-- 时间显示和倒计时 -->
+                                    <div class="time-display-section">
+                                        <div class="current-time">
+                                            <span id="currentTime">2025-08-17 18:08:30</span>
+                                        </div>
+                                        <div class="countdown-container">
+                                            <span class="countdown-label">距离当天交易结束还有:</span>
+                                            <div class="simple-clock">
+                                                <span id="hours">06</span>:
+                                                <span id="minutes">50</span>:
+                                                <span id="seconds">30</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </form>                           
+                            </div>
+                            
+                        </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 网站监控信息 -->
+                        <div class="monitor-controls-section">
+                         
+                            <!-- URL输入区域 -->
+                            <div class="control-section">
+                                <div class="url-input-group">
+                                    <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
+                                </div>
+                                <div id="statusMessage" class="status-message"></div>
+                            </div>
+                        </div>
+                    
+                    <script>
+
+                    
+                    function showMessage(message, type) {
+                        const statusMessage = document.getElementById('statusMessage');
+                        statusMessage.textContent = message;
+                        statusMessage.className = `status-message ${type}`;
+                        
+                        // 5秒后隐藏消息
+                        setTimeout(() => {
+                            statusMessage.style.display = 'none';
+                        }, 5000);
+                    }
+                    
+
+                    
+                    // 检查浏览器状态的函数
+                    function checkBrowserStatus() {
+                        fetch('/api/browser_status')
+                        .then(response => response.json())
+                        .then(data => {
+                            const startBtn = document.getElementById('startBtn');
+                            if (data.browser_connected) {
+                                // 浏览器已连接，禁用启动按钮
+                                startBtn.disabled = true;
+                                startBtn.textContent = '🌐 运行中...';
+                                startBtn.style.backgroundColor = '#6c757d';
+                                startBtn.style.cursor = 'not-allowed';
+                                
+                                // 停止检查状态
+                                if (window.browserStatusInterval) {
+                                    clearInterval(window.browserStatusInterval);
+                                    window.browserStatusInterval = null;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('检查浏览器状态失败:', error);
+                        });
+                    }
+                    
+                    // 启动浏览器状态检查
+                    function startBrowserStatusCheck() {
+                        // 每2秒检查一次浏览器状态
+                        window.browserStatusInterval = setInterval(checkBrowserStatus, 2000);
+                    }
+                    
+                    // 检查监控状态的函数
+                    function checkMonitoringStatus() {
+                        fetch('/api/monitoring_status')
+                        .then(response => response.json())
+                        .then(data => {
+                            const startBtn = document.getElementById('startBtn');
+                            if (data.monitoring_active) {
+                                // 监控已启动，禁用启动按钮
+                                startBtn.disabled = true;
+                                startBtn.textContent = '程序运行中';
+                                startBtn.style.backgroundColor = '#6c757d';
+                                startBtn.style.cursor = 'not-allowed';
+                                
+                                // 停止检查状态
+                                if (window.monitoringStatusInterval) {
+                                    clearInterval(window.monitoringStatusInterval);
+                                    window.monitoringStatusInterval = null;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('检查监控状态失败:', error);
+                        });
+                    }
+                    
+                    // 启动监控状态检查
+                    function startMonitoringStatusCheck() {
+                        // 每2秒检查一次监控状态
+                        window.monitoringStatusInterval = setInterval(checkMonitoringStatus, 2000);
+                    }
+                    
+                    // 日志相关变量
+                    let autoScroll = true;
+                    let logUpdateInterval;
+                    let userScrolling = false;
+                    
+                    // ANSI颜色代码转换函数
+                    function convertAnsiToHtml(text) {
+                        // 直接使用字符串替换，避免正则表达式转义问题
+                        let result = text;
+                        
+                        // ANSI颜色代码替换
+                        result = result.replace(/\\033\\[30m/g, '<span style="color: #000000">'); // 黑色
+                        result = result.replace(/\\033\\[31m/g, '<span style="color: #dc3545">'); // 红色
+                        result = result.replace(/\\033\\[32m/g, '<span style="color: #28a745">'); // 绿色
+                        result = result.replace(/\\033\\[33m/g, '<span style="color: #ffc107">'); // 黄色
+                        result = result.replace(/\\033\\[34m/g, '<span style="color: #007bff">'); // 蓝色
+                        result = result.replace(/\\033\\[35m/g, '<span style="color: #6f42c1">'); // 紫色
+                        result = result.replace(/\\033\\[36m/g, '<span style="color: #17a2b8">'); // 青色
+                        result = result.replace(/\\033\\[37m/g, '<span style="color: #ffffff">'); // 白色
+                        result = result.replace(/\\033\\[0m/g, '</span>'); // 重置
+                        result = result.replace(/\\033\\[1m/g, '<span style="font-weight: bold">'); // 粗体
+                        result = result.replace(/\\033\\[4m/g, '<span style="text-decoration: underline">'); // 下划线
+                        
+                        return result;
+                    }
+                    
+                    // 日志相关函数
+                    function updateLogs() {
+                        fetch('/api/logs')
+                            .then(response => response.json())
+                            .then(data => {
+                                const logContainer = document.getElementById('logContainer');
+                                if (data.logs && data.logs.length > 0) {
+                                    logContainer.innerHTML = data.logs.map(log => {
+                                        const convertedMessage = convertAnsiToHtml(log.message);
+                                        return `<div class="log-entry ${log.level.toLowerCase()}">
+                                            <span class="log-time">${log.time}</span>
+                                            <span class="log-level">[${log.level}]</span>
+                                            <span class="log-message">${convertedMessage}</span>
+                                        </div>`;
+                                    }).join('');
+                                    
+                                    if (autoScroll) {
+                                        logContainer.scrollTop = logContainer.scrollHeight;
+                                    }
+                                } else {
+                                    logContainer.innerHTML = '<div class="log-empty">暂无日志记录</div>';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('获取日志失败:', error);
+                                document.getElementById('logContainer').innerHTML = '<div class="log-error">日志加载失败</div>';
+                            });
+                    }
+                    
+
+                    
+
+                    
+                    // 自动保存单个输入框的值
+                    function autoSavePosition(inputElement) {
+                        const fieldName = inputElement.name;
+                        const fieldValue = parseFloat(inputElement.value) || 0;
+                        
+                        // 创建只包含当前字段的数据对象
+                        const positions = {};
+                        positions[fieldName] = fieldValue;
+                        
+                        // 静默保存，不显示成功消息
+                        fetch('/api/positions/save', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(positions)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                console.error('自动保存失败:', data.message || '未知错误');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('自动保存错误:', error);
+                        });
+                    }
+                    
+
+                    
+                    // 页面加载完成后启动日志更新
+                    document.addEventListener('DOMContentLoaded', function() {
+                        updateLogs();
+                        // 每5秒更新一次日志
+                        logUpdateInterval = setInterval(updateLogs, 5000);
+                        
+                        // 页面加载时检查监控状态
+                        checkMonitoringStatus();
+                        // 启动定期监控状态检查
+                        startMonitoringStatusCheck();
+                        
+                        // 监听日志容器的滚动事件
+                        const logContainer = document.getElementById('logContainer');
+                        if (logContainer) {
+                            logContainer.addEventListener('scroll', function() {
+                                // 检查是否滚动到底部（允许5px的误差）
+                                const isAtBottom = logContainer.scrollTop >= (logContainer.scrollHeight - logContainer.clientHeight - 5);
+                                
+                                if (isAtBottom) {
+                                    // 用户滚动到底部，重新启用自动滚动
+                                    autoScroll = true;
+                                    userScrolling = false;
+                                } else {
+                                    // 用户手动滚动到其他位置，停止自动滚动
+                                    autoScroll = false;
+                                    userScrolling = true;
+                                }
+                            });
+                        }
+                    });
+                    
+                    // 定期检查价格更新
+                    function checkPriceUpdates() {
+                        fetch('/api/status')
+                            .then(response => response.json())
+                            .then(data => {
+                                // 更新UP1价格
+                                const up1Input = document.getElementById('up1_price');
+                                const down1Input = document.getElementById('down1_price');
+                                
+                                if (up1Input && data.yes1_price_entry && data.yes1_price_entry !== up1Input.value) {
+                                    up1Input.value = data.yes1_price_entry;
+                                }
+                                
+                                if (down1Input && data.no1_price_entry && data.no1_price_entry !== down1Input.value) {
+                                    down1Input.value = data.no1_price_entry;
+                                }
+                            })
+                            .catch(error => {
+                                console.log('价格检查失败:', error);
+                            });
+                    }
+                    
+                    // 每2秒检查一次价格更新
+                    setInterval(checkPriceUpdates, 2000);
+                    </script>
+                    
+                    <!-- 交易记录表格 -->
+                    <div style="max-width: 1160px; padding: 10px; background-color: #f8f9fa;">
+                        
+                        {% if data.cash_history and data.cash_history|length > 0 %}
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <thead>
+                                    <tr style="background: linear-gradient(135deg, #007bff, #0056b3); color: white;">
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">日期</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Cash</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">利润</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">利润率</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">总利润</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">总利润率</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">交易次数</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in data.cash_history[:91] %}
+                                    <tr style="{% if loop.index % 2 == 0 %}background-color: #f8f9fa;{% endif %}">
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">{{ record[0] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; font-weight: bold;">{{ record[1] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[2]|float > 0 %}#28a745{% elif record[2]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[2] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[3]|replace('%','')|float > 0 %}#28a745{% elif record[3]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[3] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[4]|float > 0 %}#28a745{% elif record[4]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[4] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[5]|replace('%','')|float > 0 %}#28a745{% elif record[5]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[5] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">{{ record[6] if record|length > 6 else '' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
+                            显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
+                            <a href="http://localhost:5000/history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a>
+                        </div>
+                        {% else %}
+                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                            <p style="font-size: 18px; margin: 0;">📈 暂无交易记录</p>
+                            <p style="font-size: 14px; margin: 10px 0 0 0;">数据将在每日 0:30 自动记录</p>
+                        </div>
+                        {% endif %}
+                        <div style="text-align: center; margin-top: 5px; padding: 10px; background-color: #e9ecef; border-radius: 5px; font-size: 12px; color: #6c757d;">
+                            📅 数据来源：每日 0:30 自动记录 | 💾 数据持久化：追加模式，程序重启不丢失 | 🔄 页面实时：24小时在线，随时可访问
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            from datetime import datetime
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            return render_template_string(dashboard_template, data=current_data, current_time=current_time)
+        
+        @app.route("/start", methods=['POST'])
+        def start_trading():
+            """处理启动按钮点击事件"""
+            try:
+                data = request.get_json()
+                url = data.get('url', '').strip()
+                
+                if not url:
+                    return jsonify({'success': False, 'message': '请输入有效的URL地址'})
+                
+                # 更新URL到web_values
+                self.set_web_value('url_entry', url)
+                
+                # 保存URL到配置文件
+                self.config['website']['url'] = url
+                self.save_config()
+                
+                # 启动监控
+                self.start_monitoring()
+                
+                return jsonify({'success': True, 'message': '交易监控已启动'})
+            except Exception as e:
+                self.logger.error(f"启动交易失败: {str(e)}")
+                return jsonify({'success': False, 'message': f'启动失败: {str(e)}'})
+        
+        @app.route("/stop", methods=['POST'])
+        def stop_trading():
+            """处理停止监控按钮点击事件"""
+            try:
+                # 调用完整的停止监控方法
+                self.stop_monitoring()
+                return jsonify({'success': True, 'message': '监控已停止'})
+            except Exception as e:
+                self.logger.error(f"停止监控失败: {str(e)}")
+                return jsonify({'success': False, 'message': f'停止失败: {str(e)}'})
+        
+        @app.route("/api/browser_status", methods=['GET'])
+        def get_browser_status():
+            """获取浏览器状态API"""
+            try:
+                # 检查浏览器是否已连接
+                browser_connected = self.driver is not None
+                monitoring_active = self.running
+                
+                return jsonify({
+                    'browser_connected': browser_connected,
+                    'monitoring_active': monitoring_active,
+                    'status': 'connected' if browser_connected else 'disconnected'
+                })
+            except Exception as e:
+                self.logger.error(f"获取浏览器状态失败: {str(e)}")
+                return jsonify({
+                    'browser_connected': False,
+                    'monitoring_active': False,
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
+        @app.route("/api/monitoring_status", methods=['GET'])
+        def get_monitoring_status():
+            """获取监控状态API"""
+            try:
+                # 检查监控状态
+                monitoring_status = self.get_web_value('monitoring_status') or '未启动'
+                monitoring_active = monitoring_status == '运行中'
+                
+                return jsonify({
+                    'monitoring_active': monitoring_active,
+                    'status': 'running' if monitoring_active else 'stopped'
+                })
+            except Exception as e:
+                self.logger.error(f"获取监控状态失败: {str(e)}")
+                return jsonify({
+                    'monitoring_active': False,
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
+        @app.route("/api/status")
+        def get_status():
+            """获取实时状态数据API"""
+            try:
+                # 使用新的StatusDataManager获取数据
+                current_data = self.status_data.get_legacy_format()
+                return jsonify(current_data)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        # 保持向后兼容性，保留原/api/data接口
+        @app.route("/api/data")
+        def get_data():
+            """获取实时数据API (向后兼容)"""
+            return get_status()
+        
+        @app.route("/api/positions")
+        def get_positions_api():
+            """获取持仓信息API"""
+            try:
+                # 调用get_positions函数获取持仓信息
+                position_info = self.get_positions()
+                return jsonify({
+                    'success': True,
+                    'position_info': position_info
+                })
+            except Exception as e:
+                self.logger.error(f"获取持仓信息失败: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e),
+                    'position_info': '暂无持仓信息'
+                }), 500
+        
+
+        
+        @app.route("/history")
+        def history():
+            """交易历史记录页面"""
             # 分页参数
             page = request.args.get('page', 1, type=int)
-            per_page = 200
+            per_page = 91
             
             # 按日期排序（最新日期在前）
-            sorted_history = sorted(self.cash_history, key=lambda x: x[0], reverse=True)
+            sorted_history = sorted(self.cash_history, key=lambda x: self._parse_date_for_sort(x[0]), reverse=True)
             
             # 计算分页
             total = len(sorted_history)
@@ -4658,9 +6802,9 @@ class CryptoTrader:
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
-                        padding: 20px; margin: 0; background: #f8f9fa; 
+                        padding: 5px; margin: 0; background: #f8f9fa; 
                     }
-                    .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .container { max-width: 900px; margin: 0 auto; background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
                     h2 { color: #333; text-align: center; margin-bottom: 20px; }
                     table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
                     th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
@@ -4684,6 +6828,7 @@ class CryptoTrader:
                 </style>
             </head>
             <body>
+                
                 <div class=\"container\">
                     <h2>Polymarket自动交易记录</h2>
                     <div class=\"page-info\">
@@ -4753,7 +6898,6 @@ class CryptoTrader:
                         💾 数据持久化：追加模式，程序重启不丢失<br>
                         🔄 页面实时：24小时在线，随时可访问<br>
                         📄 分页显示：每页最多 {{ per_page }} 条记录
-                    </div>
                 </div>
             </body>
             </html>
@@ -4770,24 +6914,340 @@ class CryptoTrader:
                                         prev_num=prev_num,
                                         next_num=next_num,
                                         total_pages=total_pages)
+        
+        @app.route("/api/update_coin", methods=["POST"])
+        def update_coin():
+            """更新币种API"""
+            try:
+                data = request.get_json()
+                coin = data.get('coin', '').strip()
+                
+                if not coin:
+                    return jsonify({'success': False, 'message': '请选择币种'})
+                
+                # 更新币种
+                self.set_web_value('coin_combobox', coin)
+                
+                # 保存到配置文件
+                if 'trading' not in self.config:
+                    self.config['trading'] = {}
+                self.config['trading']['coin'] = coin
+                self.save_config()
+                
+                # 调用币种变化处理函数
+                self.on_coin_changed()
+                
+                self.logger.info(f"币种已更新为: {coin}")
+                return jsonify({'success': True, 'message': f'币种已更新为: {coin}'})
+                
+            except Exception as e:
+                self.logger.error(f"更新币种失败: {e}")
+                return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
+        
+        @app.route("/api/update_time", methods=["POST"])
+        def update_time():
+            """更新时间API"""
+            try:
+                data = request.get_json()
+                time = data.get('time', '').strip()
+                
+                if not time:
+                    return jsonify({'success': False, 'message': '请选择时间'})
+                
+                # 更新时间
+                self.set_web_value('auto_find_time_combobox', time)
+                
+                # 保存到配置文件
+                if 'trading' not in self.config:
+                    self.config['trading'] = {}
+                self.config['trading']['auto_find_time'] = time
+                self.save_config()
+                
+                # 调用时间变化处理函数
+                self.on_auto_find_time_changed()
+                
+                self.logger.info(f"时间已更新为: {time}")
+                return jsonify({'success': True, 'message': f'时间已更新为: {time}'})
+                
+            except Exception as e:
+                self.logger.error(f"更新时间失败: {e}")
+                return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
+        
+        @app.route("/api/update_prices", methods=["POST"])
+        def update_prices():
+            """更新价格API"""
+            try:
+                data = request.get_json()
+                up1_price = data.get('up1_price', '')
+                down1_price = data.get('down1_price', '')
+                
+                # 更新内存中的价格数据
+                if up1_price:
+                    self.set_web_value('yes1_price_entry', up1_price)
+                if down1_price:
+                    self.set_web_value('no1_price_entry', down1_price)
+                
+                self.logger.info(f"价格已更新 - UP1: {up1_price}, DOWN1: {down1_price}")
+                return jsonify({'success': True, 'message': '价格更新成功', 'up1_price': up1_price, 'down1_price': down1_price})
+                
+            except Exception as e:
+                self.logger.error(f"更新价格失败: {e}")
+                return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
+        
+        @app.route("/api/logs", methods=['GET'])
+        def get_logs():
+            """获取系统日志"""
+            try:
+                logs = []
+                # 只读取%h/poly_16/logs/目录下的最新日志文件（监控目录）
+                latest_log_file = Logger.get_latest_log_file()
+                if latest_log_file and os.path.exists(latest_log_file):
+                    with open(latest_log_file, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()[-100:]  # 最近100行
+                        for line in lines:
+                            line = line.strip()
+                            if line:
+                                # 解析日志格式: 时间 - 级别 - 消息
+                                parts = line.split(' - ', 2)
+                                if len(parts) >= 3:
+                                    logs.append({
+                                        'time': parts[0],
+                                        'level': parts[1],
+                                        'message': parts[2]
+                                    })
+                                else:
+                                    logs.append({
+                                        'time': datetime.now().strftime('%H:%M:%S'),
+                                        'level': 'INFO',
+                                        'message': line
+                                    })
+                else:
+                    # 如果找不到日志文件，返回提示信息
+                    logs.append({
+                        'time': datetime.now().strftime('%H:%M:%S'),
+                        'level': 'INFO',
+                        'message': '未找到%h/poly_16/logs/目录下的日志文件'
+                    })
+                
+                return jsonify({'success': True, 'logs': logs})
+            except Exception as e:
+                return jsonify({'success': False, 'logs': [], 'error': str(e)})
+        
+        @app.route("/api/logs/clear", methods=['POST'])
+        def clear_logs():
+            """清空日志"""
+            try:
+                # 只清空%h/poly_16/logs/目录下的最新日志文件（监控目录）
+                latest_log_file = Logger.get_latest_log_file()
+                if latest_log_file and os.path.exists(latest_log_file):
+                    with open(latest_log_file, 'w', encoding='utf-8') as f:
+                        f.write('')
+                
+                self.logger.info("监控目录日志已清空")
+                return jsonify({'success': True, 'message': '监控目录日志已清空'})
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'清空日志失败: {str(e)}'})
+        
+        @app.route("/api/positions/save", methods=['POST'])
+        def save_positions():
+            """保存交易仓位设置"""
+            try:
+                data = request.get_json()
+                if not data:
+                    return jsonify({'success': False, 'message': '无效的数据'})
+                
+                # 获取当前配置以便比较变化
+                current_positions = self.config.get('positions', {})
+                
+                # 获取现有的positions配置，如果不存在则创建空字典
+                if 'positions' not in self.config:
+                    self.config['positions'] = {}
+                positions_config = self.config['positions'].copy()
+                
+                # 只更新实际传入的字段，保持其他字段不变
+                for field_name, field_value in data.items():
+                    positions_config[field_name] = field_value
+                
+                # 更新内存中的配置
+                self.config['positions'] = positions_config
+                
+                # 同时更新web_data，确保交易逻辑能获取到最新的价格和金额
+                # 建立字段映射关系
+                field_mapping = {
+                    'up1_price': 'yes1_price_entry',
+                    'up1_amount': 'yes1_amount_entry',
+                    'up2_price': 'yes2_price_entry',
+                    'up2_amount': 'yes2_amount_entry',
+                    'up3_price': 'yes3_price_entry',
+                    'up3_amount': 'yes3_amount_entry',
+                    'up4_price': 'yes4_price_entry',
+                    'up4_amount': 'yes4_amount_entry',
+                    'down1_price': 'no1_price_entry',
+                    'down1_amount': 'no1_amount_entry',
+                    'down2_price': 'no2_price_entry',
+                    'down2_amount': 'no2_amount_entry',
+                    'down3_price': 'no3_price_entry',
+                    'down3_amount': 'no3_amount_entry',
+                    'down4_price': 'no4_price_entry',
+                    'down4_amount': 'no4_amount_entry'
+                }
+                
+                # 只更新实际传入的字段
+                for field_name, field_value in data.items():
+                    if field_name in field_mapping:
+                        self.set_web_value(field_mapping[field_name], str(field_value))
+                
+                # 保存到文件
+                self.save_config()
+                
+                # 只记录实际发生变化的字段，使用简洁的日志格式
+                log_field_mapping = {
+                    'up1_price': 'UP1 价格',
+                    'up1_amount': 'UP1 金额',
+                    'up2_price': 'UP2 价格',
+                    'up2_amount': 'UP2 金额',
+                    'up3_price': 'UP3 价格',
+                    'up3_amount': 'UP3 金额',
+                    'up4_price': 'UP4 价格',
+                    'up4_amount': 'UP4 金额',
+                    'down1_price': 'DOWN1 价格',
+                    'down1_amount': 'DOWN1 金额',
+                    'down2_price': 'DOWN2 价格',
+                    'down2_amount': 'DOWN2 金额',
+                    'down3_price': 'DOWN3 价格',
+                    'down3_amount': 'DOWN3 金额',
+                    'down4_price': 'DOWN4 价格',
+                    'down4_amount': 'DOWN4 金额'
+                }
+                
+                # 检查并记录变化的字段
+                for field, value in data.items():
+                    current_value = current_positions.get(field, 0)
+                    if float(value) != float(current_value):
+                        field_name = log_field_mapping.get(field, field)
+                        self.logger.info(f"{field_name}设置为 {value}")
+                
+                return jsonify({'success': True, 'message': '交易仓位设置已保存'})
+            except Exception as e:
+                self.logger.error(f"保存交易仓位失败: {str(e)}")
+                return jsonify({'success': False, 'message': f'保存失败: {str(e)}'})
+
+        @app.route('/api/start_chrome', methods=['POST'])
+        def start_chrome():
+            """启动Chrome浏览器"""
+            try:
+                self.start_chrome_ubuntu()
+                
+                return jsonify({'success': True, 'message': 'Chrome浏览器启动成功'})
+            except Exception as e:
+                self.logger.error(f"启动Chrome浏览器失败: {str(e)}")
+                return jsonify({'success': False, 'message': f'启动失败: {str(e)}'})
+
+        @app.route('/api/restart_program', methods=['POST'])
+        def restart_program():
+            """重启程序"""
+            try:
+                self.logger.info("收到程序重启请求")
+                
+                # 执行重启命令
+                current_user = os.getenv('USER') or os.getenv('USERNAME') or 'admin'
+                service_name = f'run-poly.service'
+                result = subprocess.run(['sudo', 'systemctl', 'restart', service_name], 
+                                      capture_output=True, text=True, timeout=10)
+                
+                if result.returncode == 0:
+                    self.logger.info("程序重启命令执行成功")
+                    return jsonify({'success': True, 'message': '程序重启命令已发送'})
+                else:
+                    error_msg = result.stderr or result.stdout or '未知错误'
+                    self.logger.error(f"程序重启命令执行失败: {error_msg}")
+                    return jsonify({'success': False, 'message': f'重启失败: {error_msg}'})
+                    
+            except subprocess.TimeoutExpired:
+                self.logger.error("程序重启命令执行超时")
+                return jsonify({'success': False, 'message': '重启命令执行超时'})
+            except Exception as e:
+                self.logger.error(f"程序重启失败: {str(e)}")
+                return jsonify({'success': False, 'message': f'重启失败: {str(e)}'})
 
         return app
 
+    def check_and_kill_port_processes(self, port):
+        """检查端口是否被占用，如果被占用则强制杀死占用进程"""
+        try:
+            killed_processes = []
+            for proc in psutil.process_iter(['pid', 'name']):
+                try:
+                    # 获取进程的网络连接
+                    connections = proc.net_connections()
+                    if connections:
+                        for conn in connections:
+                            if hasattr(conn, 'laddr') and conn.laddr and conn.laddr.port == port:
+                                proc_name = proc.info['name']
+                                proc_pid = proc.info['pid']
+                                self.logger.warning(f"🔍 发现端口 {port} 被进程占用: {proc_name} (PID: {proc_pid})")
+                                
+                                # 强制杀死进程
+                                proc.terminate()
+                                try:
+                                    proc.wait(timeout=3)
+                                except psutil.TimeoutExpired:
+                                    proc.kill()
+                                    proc.wait()
+                                
+                                killed_processes.append(f"{proc_name} (PID: {proc_pid})")
+                                self.logger.info(f"💀 已强制杀死进程: {proc_name} (PID: {proc_pid})")
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+            
+            if killed_processes:
+                self.logger.info(f"🧹 端口 {port} 清理完成，已杀死 {len(killed_processes)} 个进程")
+                time.sleep(1)  # 等待端口释放
+            else:
+                self.logger.info(f"✅ 端口 {port} 未被占用")
+                
+        except Exception as e:
+            self.logger.error(f"检查端口 {port} 时出错: {e}")
+
     def start_flask_server(self):
         """在后台线程中启动Flask，24小时常驻"""
+        # 从环境变量读取配置，默认值为localhost:5000
+        flask_host = os.environ.get('FLASK_HOST', '127.0.0.1')
+        flask_port = int(os.environ.get('FLASK_PORT', '5000'))
+        
+        # 检查并清理端口占用
+        self.logger.info(f"🔍 检查端口 {flask_port} 是否被占用...")
+        self.check_and_kill_port_processes(flask_port)
+        
         def run():
             try:
                 # 关闭Flask详细日志
                 import logging as flask_logging
                 log = flask_logging.getLogger('werkzeug')
                 log.setLevel(flask_logging.ERROR)
-                self.flask_app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+                
+                self.flask_app.run(host=flask_host, port=flask_port, debug=False, use_reloader=False)
             except Exception as e:
                 self.logger.error(f"Flask启动失败: {e}")
+                # 如果启动失败，再次尝试清理端口
+                if "Address already in use" in str(e) or "端口" in str(e):
+                    self.logger.warning(f"🔄 端口 {flask_port} 仍被占用，再次尝试清理...")
+                    self.check_and_kill_port_processes(flask_port)
+                    time.sleep(2)
+                    try:
+                        self.flask_app.run(host=flask_host, port=flask_port, debug=False, use_reloader=False)
+                    except Exception as retry_e:
+                        self.logger.error(f"重试启动Flask失败: {retry_e}")
         
         flask_thread = threading.Thread(target=run, daemon=True)
         flask_thread.start()
-        self.logger.info("✅ Flask服务已启动，24小时在线: http://localhost:5000/")
+        
+        # 根据配置显示访问地址
+        if flask_host == '127.0.0.1' or flask_host == 'localhost':
+            self.logger.info(f"✅ Flask服务已启动，监听端口: {flask_port}")
+            self.logger.info("🔒 服务仅监听本地地址，通过NGINX反向代理访问")
+        else:
+            self.logger.info(f"✅ Flask服务已启动，监听端口: {flask_port}")
 
     def schedule_record_cash_daily(self):
         """安排每天 0:30 记录现金到CSV"""
@@ -4795,9 +7255,11 @@ class CryptoTrader:
         next_run = now.replace(hour=0, minute=30, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
-        wait_ms = int((next_run - now).total_seconds() * 1000)
+        wait_time = (next_run - now).total_seconds()
         self.logger.info(f"📅 已安排在 {next_run.strftime('%Y-%m-%d %H:%M:%S')} 记录Cash到CSV")
-        self.record_and_show_cash_timer = self.root.after(wait_ms, self.record_cash_daily)
+        self.record_and_show_cash_timer = threading.Timer(wait_time, self.record_cash_daily)
+        self.record_and_show_cash_timer.daemon = True
+        self.record_and_show_cash_timer.start()
 
     def record_cash_daily(self):
         """实际记录逻辑：读取GUI Cash，计算并追加到CSV"""
