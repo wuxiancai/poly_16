@@ -1477,13 +1477,7 @@ class CryptoTrader:
                 pass
             
     def check_balance(self):
-        """获取Portfolio和Cash值"""
-        if not self.driver and not self.is_restarting:
-            self.restart_browser(force_restart=True)
-            return
-        if self.driver is None:
-            return
-            
+        """获取Portfolio和Cash值"""  
         try:
             # 验证浏览器连接是否正常
             self.driver.execute_script("return navigator.userAgent")
@@ -1706,11 +1700,6 @@ class CryptoTrader:
 
     def start_login_monitoring(self):
         """监控登录状态"""
-        if not self.driver and not self.is_restarting:
-            self.restart_browser(force_restart=True)
-        if self.driver is None:
-            return
-
         # 检查是否已经登录
         try:
             # 查找登录按钮
@@ -2755,9 +2744,6 @@ class CryptoTrader:
     def click_position_sell_no(self):
         """点击 Positions-Sell-No 按钮"""
         try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
-
             position_value = self.find_position_label_up()
             # position_value 的值是true 或 false
             # 根据position_value的值决定点击哪个按钮
@@ -2791,9 +2777,6 @@ class CryptoTrader:
     def click_position_sell_yes(self):
         """点击 Positions-Sell-Yes 按钮"""
         try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
-
             position_value = self.find_position_label_down()
             
             # 根据position_value的值决定点击哪个按钮
@@ -2828,8 +2811,6 @@ class CryptoTrader:
     def click_sell_confirm_button(self):
         """点击sell-卖出按钮"""
         try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
             # 点击Sell-卖出按钮
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
@@ -2847,9 +2828,6 @@ class CryptoTrader:
 
     def click_buy(self):
         try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
-            # 查找买按钮
             try:
                 button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
             except (NoSuchElementException, StaleElementReferenceException):
@@ -2862,10 +2840,7 @@ class CryptoTrader:
 
     def click_buy_yes(self):
         """点击 Buy-Yes 按钮"""
-        try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
-            
+        try:           
             # 查找买YES按钮
             try:
                 button = self.driver.find_element(By.XPATH, XPathConfig.BUY_YES_BUTTON[0])
@@ -2880,8 +2855,6 @@ class CryptoTrader:
     def click_buy_no(self):
         """点击 Buy-No 按钮"""
         try:
-            if not self.driver and not self.is_restarting:
-                self.restart_browser(force_restart=True)
             # 查找买NO按钮
             try:
                 button = self.driver.find_element(By.XPATH, XPathConfig.BUY_NO_BUTTON[0])
@@ -2896,11 +2869,6 @@ class CryptoTrader:
     def close_windows(self):
         """关闭多余窗口"""
         try:
-            # 检查浏览器是否可用
-            if not self.driver:
-                self.logger.warning("浏览器驱动不可用，跳过窗口关闭")
-                return
-                
             # 检查并关闭多余的窗口，只保留一个
             all_handles = self.driver.window_handles
             
@@ -3114,9 +3082,6 @@ class CryptoTrader:
         
         for attempt in range(max_retries):
             try:
-                if not self.driver and not self.is_restarting:
-                    self.restart_browser(force_restart=True)
-                    
                 # 等待页面加载完成
                 WebDriverWait(self.driver, 3).until(
                     lambda driver: driver.execute_script('return document.readyState') == 'complete'
@@ -3161,9 +3126,6 @@ class CryptoTrader:
         
         for attempt in range(max_retries):
             try:
-                if not self.driver and not self.is_restarting:
-                    self.restart_browser(force_restart=True)
-                    
                 # 等待页面加载完成
                 WebDriverWait(self.driver, 3).until(
                     lambda driver: driver.execute_script('return document.readyState') == 'complete'
@@ -3201,7 +3163,7 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
       
-    def _find_element(self, xpaths, timeout=1):
+    def _find_element_with_retry(self, xpaths, timeout=1):
         """优化版元素查找 - 并行查找多个XPath"""
         from concurrent.futures import ThreadPoolExecutor, TimeoutError
         
@@ -3320,18 +3282,6 @@ class CryptoTrader:
     
     def find_54_coin(self):
         try:
-            # 检查浏览器状态
-            if self.driver is None:
-                self.logger.error("浏览器未初始化，无法点击卡片")
-                return False
-            
-            # 验证浏览器连接是否正常
-            try:
-                self.driver.execute_script("return navigator.userAgent")
-            except Exception as e:
-                self.logger.error(f"浏览器连接异常: {e}，无法点击卡片")
-                return False
-
             # 第一步:先点击 CRYPTO 按钮
             try:
                 crypto_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
@@ -3397,18 +3347,6 @@ class CryptoTrader:
     def click_today_card(self):
         """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
         try:
-            # 检查浏览器状态
-            if self.driver is None:
-                self.logger.error("浏览器未初始化，无法点击卡片")
-                return False
-            
-            # 验证浏览器连接是否正常
-            try:
-                self.driver.execute_script("return navigator.userAgent")
-            except Exception as e:
-                self.logger.error(f"浏览器连接异常: {e}，无法点击卡片")
-                return False
-            
             # 获取当前日期字符串，比如 "April 18"
             if platform.system() == 'Darwin':  # macOS
                 today_str = datetime.now().strftime("%B %-d")  # macOS格式
@@ -3529,11 +3467,6 @@ class CryptoTrader:
 
     def get_zero_time_cash(self):
         """获取币安BTC实时价格,并在中国时区00:00触发"""
-        # 检查浏览器状态
-        if self.driver is None:
-            self.logger.error("浏览器未初始化,无法获取CASH值")
-            return
-
         # 找币之前先查看是否有持仓
         if self.find_position_label_down():
             self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
@@ -3610,10 +3543,7 @@ class CryptoTrader:
                 self.logger.info(f"✅ \033[34m{round(seconds_until_midnight / 3600,2)}\033[0m小时后再次获取 \033[34mCASH\033[0m 值")
     
     def get_binance_zero_time_price(self):
-        """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""
-        if self.driver is None:
-            return
-            
+        """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""   
         # 先把所有 YES/NO 价格设置为 0
         for i in range(1,6):  # 1-5
             yes_entry = getattr(self, f'yes{i}_price_entry', None)
@@ -3717,9 +3647,6 @@ class CryptoTrader:
     
     def get_binance_price_websocket(self):
         """获取币安价格,并计算上涨或下跌幅度"""
-        if self.driver is None:
-            return
-            
         # 获取币种信息
         selected_coin = self.coin_combobox.get()
         coin_form_websocket = selected_coin.lower() + 'usdt'
