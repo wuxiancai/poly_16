@@ -6672,8 +6672,8 @@ class CryptoTrader:
                                             <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
                                     </div>
                                     <div class="info-item time-select-item">
-                                        <label>交易时间:</label>
-                                        <span id="timeDisplay" style="display: inline-block;">{{ data.auto_find_time }}</span>
+                                        <label>开始交易时间:</label>
+                                        <span id="timeDisplay" style="display: inline-block; padding: 5px 10px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 6px; font-weight: 600;">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
                                         <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: blue;">{{ data.remaining_trades or '--' }}</span>
@@ -6714,29 +6714,29 @@ class CryptoTrader:
                                         
                                         <div class="position-section down-section">
                                             <div class="position-row header">
-                                                <div class="position-label">方向</div>
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
+                                                <div class="position-label">方向</div>
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Down1</div>
                                                 <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down1_amount" name="down1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <div class="position-name">Down1</div>
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Down2</div>
                                                 <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down2_amount" name="down2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <div class="position-name">Down2</div>
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Down3</div>
                                                 <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down3_amount" name="down3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <div class="position-name">Down3</div>
                                             </div>
                                             <div class="position-row">
-                                                <div class="position-name">Down4</div>
                                                 <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down4_amount" name="down4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <div class="position-name">Down4</div>
                                             </div>
 
                                         </div>
