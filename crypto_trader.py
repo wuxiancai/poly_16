@@ -255,7 +255,7 @@ class CryptoTrader:
                     amount = 0
 
                 # 使用正确的配置键格式
-                config_key = f"{position}1"  # 改为Up1/Down1
+                config_key = f"{'Up' if position == 'Yes' else 'Down'}1"  # 映射Yes->Up, No->Down
                 self.config['trading'][config_key]['target_price'] = target_price
                 self.config['trading'][config_key]['amount'] = amount
 
