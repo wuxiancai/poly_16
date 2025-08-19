@@ -310,7 +310,7 @@ class CryptoTrader:
         self.reset_trade_count = 0
 
         # 买入价格冗余
-        self.price_premium = 6 # 不修改
+        self.price_premium = 4 # 不修改
         
         # 按钮区域按键 WIDTH
         self.button_width = 8 # 不修改
