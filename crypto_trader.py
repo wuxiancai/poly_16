@@ -574,35 +574,35 @@ class CryptoTrader:
             # 价格相关数据
             if 'price' in key.lower():
                 if 'yes' in key.lower() or 'up' in key.lower():
-                    self.status_data.update_data('prices', 'up_price', str(value))
+                    self.status_data.update('prices', 'polymarket_up', str(value))
                 elif 'no' in key.lower() or 'down' in key.lower():
-                    self.status_data.update_data('prices', 'down_price', str(value))
+                    self.status_data.update('prices', 'polymarket_down', str(value))
                 elif 'binance' in key.lower():
                     if 'now' in key.lower():
-                        self.status_data.update_data('prices', 'binance_current', str(value))
+                        self.status_data.update('prices', 'binance_current', str(value))
                     elif 'zero' in key.lower():
-                        self.status_data.update_data('prices', 'binance_zero', str(value))
+                        self.status_data.update('prices', 'binance_zero_time', str(value))
             
             # 账户相关数据
             elif 'cash' in key.lower():
-                self.status_data.update_data('account', 'cash', str(value))
+                self.status_data.update('account', 'available_cash', str(value))
             elif 'portfolio' in key.lower():
-                self.status_data.update_data('account', 'portfolio', str(value))
+                self.status_data.update('account', 'portfolio_value', str(value))
             
             # 交易相关数据
             elif 'amount' in key.lower():
                 if 'yes' in key.lower():
-                    self.status_data.update_data('trading', 'yes_amount', str(value))
+                    self.status_data.update('trading', 'yes_amount', str(value))
                 elif 'no' in key.lower():
-                    self.status_data.update_data('trading', 'no_amount', str(value))
+                    self.status_data.update('trading', 'no_amount', str(value))
             
             # 系统状态
             elif 'monitoring' in key.lower():
-                self.status_data.update_data('system', 'monitoring_status', str(value))
+                self.status_data.update('system', 'monitoring_status', str(value))
             elif 'url' in key.lower():
-                self.status_data.update_data('system', 'current_url', str(value))
+                self.status_data.update('trading', 'current_url', str(value))
             elif 'browser' in key.lower():
-                self.status_data.update_data('system', 'browser_status', str(value))
+                self.status_data.update('system', 'browser_status', str(value))
                 
         except Exception as e:
             self.logger.debug(f"同步数据到status_data失败: {e}")
@@ -612,7 +612,7 @@ class CryptoTrader:
         try:
             label.config(text=text)
             if data_category and data_key:
-                self.status_data.update_data(data_category, data_key, text)
+                self.status_data.update(data_category, data_key, text)
         except Exception as e:
             self.logger.debug(f"更新标签并同步失败: {e}")
 
@@ -1747,9 +1747,13 @@ class CryptoTrader:
                 
                 # 数据合理性检查
                 if 0 <= up_price_val <= 100 and 0 <= down_price_val <= 100:
-                    # 更新GUI价格显示
-                    self._update_label_and_sync(self.yes_price_label, f"Up: {up_price_val:.1f}", 'prices', 'up_price')
-                    self._update_label_and_sync(self.no_price_label, f"Down: {down_price_val:.1f}", 'prices', 'down_price')
+                    # 更新价格显示和数据
+                    self._update_label_and_sync(self.yes_price_label, f"Up: {up_price_val:.1f}", 'prices', 'polymarket_up')
+                    self._update_label_and_sync(self.no_price_label, f"Down: {down_price_val:.1f}", 'prices', 'polymarket_down')
+                    
+                    # 同时更新web_data以保持兼容性
+                    self.set_web_value('yes_price_label', f"Up: {up_price_val:.1f}")
+                    self.set_web_value('no_price_label', f"Down: {down_price_val:.1f}")
                     
                     # 重置失败计数器（价格获取成功）
                     if hasattr(self, 'price_check_fail_count'):
@@ -4294,6 +4298,9 @@ class CryptoTrader:
             self.zero_time_cash_value = round(float(cash_match.group(1).replace(',', '')), 2)
             self.zero_time_cash_label.config(text=f"{self.zero_time_cash_value}")
             self.logger.info(f"✅ 获取到原始CASH值:\033[34m${self.zero_time_cash_value}\033[0m")
+            
+            # 同步零点现金数据到StatusDataManager
+            self.status_data.update('account', 'zero_time_cash', str(self.zero_time_cash_value))
 
             # 设置 YES/NO 金额,延迟5秒确保数据稳定
             self.root.after(5000, self.schedule_update_amount)
@@ -4482,7 +4489,7 @@ class CryptoTrader:
                             foreground=rate_color,
                             font=("Arial", 18, "bold")
                         )
-                        self.status_data.update_data('prices', 'binance_rate', binance_rate_text)
+                        self.status_data.update('prices', 'price_change_rate', binance_rate_text)
                     except Exception as e:
                         self.logger.debug("❌ 更新GUI时发生错误:", e)
 
@@ -5176,16 +5183,16 @@ class CryptoTrader:
                 'coin': self.get_web_value('coin_combobox'),
                 'auto_find_time': self.get_web_value('auto_find_time_combobox'),
                 'account': {
-                    'cash': getattr(self, 'cash_value', '--') or '--',
-                    'portfolio': getattr(self, 'portfolio_value', '--') or '--',
-                    'zero_time_cash': self.get_web_value('zero_time_cash_label') or '0'
+                    'cash': self.status_data.get_value('account', 'available_cash') or self.get_web_value('cash_label') or '--',
+                    'portfolio': self.status_data.get_value('account', 'portfolio_value') or self.get_web_value('portfolio_label') or '--',
+                    'zero_time_cash': self.status_data.get_value('account', 'zero_time_cash') or self.get_web_value('zero_time_cash_label') or '0'
                 },
                 'prices': {
-                    'up_price': self.get_web_value('yes_price_label') or 'N/A',
-                    'down_price': self.get_web_value('no_price_label') or 'N/A',
-                    'binance_price': self.get_web_value('binance_now_price_label') or 'N/A',
-                    'binance_zero_price': self.get_web_value('binance_zero_price_label') or 'N/A',
-                    'binance_rate': self.get_web_value('binance_rate_label') or 'N/A'
+                    'up_price': self.status_data.get_value('prices', 'polymarket_up') or self.get_web_value('yes_price_label') or 'N/A',
+                    'down_price': self.status_data.get_value('prices', 'polymarket_down') or self.get_web_value('no_price_label') or 'N/A',
+                    'binance_price': self.status_data.get_value('prices', 'binance_current') or self.get_web_value('binance_now_price_label') or 'N/A',
+                    'binance_zero_price': self.status_data.get_value('prices', 'binance_zero_time') or self.get_web_value('binance_zero_price_label') or 'N/A',
+                    'binance_rate': self.status_data.get_value('prices', 'price_change_rate') or self.get_web_value('binance_rate_label') or 'N/A'
                 },
                 'trading_pair': self.get_web_value('trading_pair_label'),
                 'live_prices': {
@@ -6977,8 +6984,11 @@ class CryptoTrader:
                 if not coin:
                     return jsonify({'success': False, 'message': '请选择币种'})
                 
-                # 更新币种
+                # 更新币种到web_data
                 self.set_web_value('coin_combobox', coin)
+                
+                # 直接更新StatusDataManager中的币种信息
+                self.status_data.update('trading', 'selected_coin', coin)
                 
                 # 保存到配置文件
                 if 'trading' not in self.config:
@@ -7006,8 +7016,11 @@ class CryptoTrader:
                 if not time:
                     return jsonify({'success': False, 'message': '请选择时间'})
                 
-                # 更新时间
+                # 更新时间到web_data
                 self.set_web_value('auto_find_time_combobox', time)
+                
+                # 直接更新StatusDataManager中的时间信息
+                self.status_data.update('trading', 'auto_find_time', time)
                 
                 # 保存到配置文件
                 if 'trading' not in self.config:
