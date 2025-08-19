@@ -19,8 +19,6 @@ import os
 import logging
 from datetime import datetime, timedelta
 import re
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
 import pyautogui
 import smtplib
 from email.mime.text import MIMEText
@@ -6767,9 +6765,7 @@ class CryptoTrader:
                     'error': str(e),
                     'position_info': '暂无持仓信息'
                 }), 500
-        
-
-        
+         
         @app.route("/history")
         def history():
             """交易历史记录页面"""

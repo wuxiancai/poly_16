@@ -32,7 +32,9 @@ sudo apt update
 # 安装必要的系统依赖
 echo "安装系统依赖..."
 sudo apt install -y software-properties-common apt-transport-https ca-certificates gnupg lsb-release curl wget build-essential
-sudo apt install -y unzip
+sudo apt install -y unzip xvfb xauth x11-utils
+# 安装图形界面相关依赖
+sudo apt install -y libgtk-3-dev libx11-dev libxss1 libgconf-2-4 libnss3-dev libxrandr2 libasound2-dev libpangocairo-1.0-0 libatk1.0-dev libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-dev
 # 确保安装了 python3-venv 和 python3-pip
 echo "安装 python3-venv 和 python3-pip..."
 sudo apt install -y python3-venv python3-pip python3-tk python3-dev
@@ -48,11 +50,21 @@ pip install --upgrade pip
 
 # 安装依赖
 echo "安装Python依赖..."
-pip install --no-cache-dir selenium
-pip install --no-cache-dir pyautogui
-pip install --no-cache-dir screeninfo
-pip install --no-cache-dir requests
-pip install --no-cache-dir flask
+# 优先从requirements.txt安装
+if [ -f "requirements.txt" ]; then
+    echo "从requirements.txt安装依赖..."
+    pip install --no-cache-dir -r requirements.txt
+else
+    echo "requirements.txt不存在，逐个安装依赖..."
+    pip install --no-cache-dir selenium>=4.12
+    pip install --no-cache-dir pyautogui
+    pip install --no-cache-dir screeninfo
+    pip install --no-cache-dir requests
+    pip install --no-cache-dir flask>=2.2
+    pip install --no-cache-dir websocket-client
+    pip install --no-cache-dir psutil
+    pip install --no-cache-dir urllib3
+fi
 
 # 安装GUI相关依赖（Ubuntu特有）
 echo "安装GUI相关依赖..."
@@ -209,7 +221,7 @@ if ! command -v chromedriver &> /dev/null; then
 fi
 
 # 检查关键Python包
-PACKAGES=("selenium" "pyautogui" "screeninfo" "requests" "python3-xlib")
+PACKAGES=("selenium" "pyautogui" "screeninfo" "requests" "flask" "websocket-client" "psutil" "urllib3" "python3-xlib")
 for pkg in "${PACKAGES[@]}"; do
     if ! pip3 list | grep -i "$pkg" &> /dev/null; then
         ERROR_COUNT=$((ERROR_COUNT+1))

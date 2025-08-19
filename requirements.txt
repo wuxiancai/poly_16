@@ -1,2 +1,8 @@
 flask>=2.2
 selenium>=4.12
+pyautogui
+screeninfo
+requests
+websocket-client
+psutil
+urllib3
