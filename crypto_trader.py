@@ -340,6 +340,9 @@ class CryptoTrader:
         self.status_data.update('account', 'doubling_weeks', self.doubling_weeks)
         self.status_data.update('trading', 'trade_count', self.trade_count)
         
+        # 初始化币种和时间信息到StatusDataManager
+        # 注意：此时GUI还未创建，需要在setup_gui后再同步
+        
         # 保持web_data兼容性 (用于向后兼容)
         self.web_data = {
             # 金额设置
@@ -515,7 +518,7 @@ class CryptoTrader:
                 self.config['url_history'] = self.config['url_history'][:1]
                 self.url_entry['values'] = self.config['url_history']
             
-            # 保存自动找币时间设置
+            # 保存第一次交易价格的时间设置
             if hasattr(self, 'auto_find_time_combobox'):
                 self.config['auto_find_time'] = self.auto_find_time_combobox.get()
             
@@ -853,11 +856,10 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"安排每日记录任务失败: {e}")
         
-        # 自动找币时间选择
+        # 设置第一次交易价格的时间选择
         auto_find_frame = ttk.Frame(main_controls)
         auto_find_frame.pack(fill="x", pady=2)
         
-        #ttk.Label(auto_find_frame, text="Auto Find Coin Time:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 5))
         self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'], width=5, state='readonly')
         self.auto_find_time_combobox.pack(side=tk.LEFT, padx=2)
         
@@ -1100,6 +1102,12 @@ class CryptoTrader:
         
         # 最后一次更新确保布局正确
         self.root.update_idletasks()
+        
+        # 初始化币种和时间信息到StatusDataManager
+        initial_coin = self.coin_combobox.get()
+        initial_time = self.auto_find_time_combobox.get()
+        self.status_data.update('trading_info', 'coin', initial_coin)
+        self.status_data.update('trading_info', 'time', initial_time)
     
     def start_monitoring(self):
         """开始监控"""
@@ -4292,6 +4300,9 @@ class CryptoTrader:
         selected_time = self.auto_find_time_combobox.get()
         hour = int(selected_time.split(':')[0])
         
+        # 同步交易时间到StatusDataManager
+        self.status_data.update('trading_info', 'time', selected_time)
+        
         # 计算下一个指定时间的时间点（在选择时间的02分执行）
         next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
         
@@ -4312,6 +4323,10 @@ class CryptoTrader:
         """当时间选择改变时的处理函数"""
         # 保存新的时间设置到配置文件
         self.save_config()
+        
+        # 同步交易时间到StatusDataManager
+        selected_time = self.auto_find_time_combobox.get()
+        self.status_data.update('trading_info', 'time', selected_time)
         
         if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
             # 取消当前的定时器
@@ -4364,6 +4379,9 @@ class CryptoTrader:
         self.save_config()
         selected_coin = self.coin_combobox.get()
         self.logger.info(f"💰 币种选择已更改为: {selected_coin}")
+        
+        # 同步币种选择到StatusDataManager
+        self.status_data.update('trading_info', 'coin', selected_coin)
 
     def schedule_auto_find_coin(self):
         """安排每天指定时间执行自动找币"""
