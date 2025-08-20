@@ -5567,7 +5567,7 @@ class CryptoTrader:
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Polymarket自动交易系统</title>
+                <title>BTC量化交易系统</title>
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -6601,7 +6601,7 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>🚀 Polymarket自动交易系统</h1>
+                            <h1>BTC量化交易系统</h1>
                         </div>
                         
                         <!-- 主要内容区域：左右分栏 -->
@@ -7060,7 +7060,7 @@ class CryptoTrader:
                         </div>
                         <div style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
                             显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
-                            <a href="http://localhost:5000/history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a>
+                            <a href="{{ request.url_root }}history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a>
                         </div>
                         {% else %}
                         <div style="text-align: center; padding: 40px; color: #6c757d;">
