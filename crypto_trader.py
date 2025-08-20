@@ -1605,7 +1605,10 @@ class CryptoTrader:
 
             # 6.重新开始价格比较
             if hasattr(self,'comparison_binance_price_timer') and self.comparison_binance_price_timer:
-                self.root.after_cancel(self.comparison_binance_price_timer)
+                try:
+                    self.comparison_binance_price_timer.cancel()
+                except:
+                    pass
             self.comparison_binance_price()
             self.logger.info("✅ 恢复了价格比较定时器")
             
@@ -4657,7 +4660,10 @@ class CryptoTrader:
 
             # 取消已有的定时器（如果存在）
             if hasattr(self, 'get_zero_time_cash_timer') and self.get_zero_time_cash_timer:
-                self.root.after_cancel(self.get_zero_time_cash_timer)
+                try:
+                    self.get_zero_time_cash_timer.cancel()
+                except:
+                    pass
 
             # 设置下一次执行的定时器
             if self.running and not self.stop_event.is_set():
@@ -4876,7 +4882,10 @@ class CryptoTrader:
         seconds_until_next_run = (next_run_time - now).total_seconds()
         # 取消已有的定时器（如果存在）
         if hasattr(self, 'comparison_binance_price_timer') and self.comparison_binance_price_timer:
-            self.root.after_cancel(self.comparison_binance_price_timer)
+            try:
+                self.comparison_binance_price_timer.cancel()
+            except:
+                pass
 
         # 设置下一次执行的定时器
         selected_coin = self.coin_combobox.get()
@@ -5188,17 +5197,7 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"❌ 关闭Chrome进程失败: {str(e)}")
 
-    def schedule_record_and_show_cash(self):
-        """安排每天 0:30 记录现金到CSV"""
-        now = datetime.now()
-        next_run = now.replace(hour=0, minute=30, second=0, microsecond=0)
-        if now >= next_run:
-            next_run += timedelta(days=1)
-        wait_time = (next_run - now).total_seconds()
-        self.record_and_show_cash_timer = threading.Timer(wait_time, self.record_cash_daily)
-        self.record_and_show_cash_timer.daemon = True
-        self.record_and_show_cash_timer.start()
-        self.logger.info(f"✅ \033[32m已安排在 {next_run.strftime('%Y-%m-%d %H:%M:%S')} 记录利润\033[0m")
+    # 已删除重复的schedule_record_and_show_cash函数，使用schedule_record_cash_daily代替
 
     def load_cash_history(self):
         """启动时从CSV加载全部历史记录, 兼容旧4/6列并补齐为7列(日期,Cash,利润,利润率,总利润,总利润率,交易次数)"""
@@ -5551,7 +5550,16 @@ class CryptoTrader:
                     'down4_price': self.get_web_value('no4_price_entry'),
                     'down4_amount': self.get_web_value('no4_amount_entry')
                 },
-                'cash_history': sorted(self.cash_history, key=lambda x: self._parse_date_for_sort(x[0]), reverse=True) if hasattr(self, 'cash_history') else []
+                'cash_history': sorted(self.cash_history, key=lambda x: self._parse_date_for_sort(x[0]), reverse=True) if hasattr(self, 'cash_history') else [],
+                'system_info': {
+                    'cpu_percent': psutil.cpu_percent(interval=1),
+                    'cpu_cores': psutil.cpu_count(logical=False),
+                    'cpu_threads': psutil.cpu_count(logical=True),
+                    'memory_percent': psutil.virtual_memory().percent,
+                    'memory_total_gb': round(psutil.virtual_memory().total / 1024 / 1024 / 1024, 1),
+                    'memory_used_gb': round(psutil.virtual_memory().used / 1024 / 1024 / 1024, 1),
+                    'memory_free_mb': round(psutil.virtual_memory().available / 1024 / 1024)
+                }
             }
             
             dashboard_template = """
@@ -5649,7 +5657,7 @@ class CryptoTrader:
                     }
                     .monitor-controls-section {
                         max-width: 1160px;
-                        
+                         
                         padding: 2px 1px;
                         display: flex;
                         flex-wrap: wrap;
@@ -6081,6 +6089,13 @@ class CryptoTrader:
                         display: flex; gap: 15px; 
                     }
                     .url-input-group input {
+                        flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
+                        border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        color: #2F3E46;
+                        text-align: center;
+                    }
+                    .system-info {
                         flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
                         border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
@@ -6743,11 +6758,11 @@ class CryptoTrader:
                         
                         <!-- 网站监控信息 -->
                         <div class="monitor-controls-section">
-                         
                             <!-- URL输入区域 -->
                             <div class="control-section">
                                 <div class="url-input-group">
                                     <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
+                                    <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
                                 <div id="statusMessage" class="status-message"></div>
                             </div>
@@ -6986,8 +7001,29 @@ class CryptoTrader:
                             });
                     }
                     
-                    // 每2秒检查一次价格更新
+                    // 更新系统信息的函数
+                    function updateSystemInfo() {
+                        fetch('/api/system_info')
+                        .then(response => response.json())
+                        .then(data => {
+                            const systemInfoElement = document.getElementById('systemInfo');
+                            if (systemInfoElement && !data.error) {
+                                systemInfoElement.textContent = `CPU:${data.cpu_cores} Cores ${data.cpu_threads} Threads Used:${data.cpu_percent.toFixed(0)}% | MEM:${data.memory_percent.toFixed(0)}%Total:${data.memory_total_gb}G Used:${data.memory_used_gb}G Free:${data.memory_free_mb}M`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('获取系统信息失败:', error);
+                        });
+                    }
+                    
+                    // 启动价格更新检查
                     setInterval(checkPriceUpdates, 2000);
+                    
+                    // 启动系统信息更新检查（每5秒更新一次）
+                    setInterval(updateSystemInfo, 5000);
+                    
+                    // 页面加载完成后立即更新一次系统信息
+                    updateSystemInfo();
                     </script>
                     
                     <!-- 交易记录表格 -->
@@ -7146,6 +7182,23 @@ class CryptoTrader:
         def get_data():
             """获取实时数据API (向后兼容)"""
             return get_status()
+        
+        @app.route("/api/system_info")
+        def get_system_info():
+            """获取系统信息API"""
+            try:
+                system_info = {
+                    'cpu_percent': psutil.cpu_percent(interval=0.1),
+                    'cpu_cores': psutil.cpu_count(logical=False),
+                    'cpu_threads': psutil.cpu_count(logical=True),
+                    'memory_percent': psutil.virtual_memory().percent,
+                    'memory_total_gb': round(psutil.virtual_memory().total / 1024 / 1024 / 1024, 1),
+                    'memory_used_gb': round(psutil.virtual_memory().used / 1024 / 1024 / 1024, 1),
+                    'memory_free_mb': round(psutil.virtual_memory().available / 1024 / 1024)
+                }
+                return jsonify(system_info)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
         
         @app.route("/api/positions")
         def get_positions_api():
@@ -7676,6 +7729,14 @@ class CryptoTrader:
 
     def schedule_record_cash_daily(self):
         """安排每天 0:30 记录现金到CSV"""
+        # 先取消之前的定时器（如果存在）
+        if hasattr(self, 'record_and_show_cash_timer') and self.record_and_show_cash_timer:
+            try:
+                self.record_and_show_cash_timer.cancel()
+                self.logger.info("✅ 已取消之前的记录Cash定时器")
+            except Exception as e:
+                self.logger.warning(f"取消之前的记录Cash定时器失败: {e}")
+        
         now = datetime.now()
         next_run = now.replace(hour=0, minute=30, second=0, microsecond=0)
         if now >= next_run:
