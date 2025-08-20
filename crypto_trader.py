@@ -2108,7 +2108,7 @@ class CryptoTrader:
                 self.stop_refresh_page()
 
                 login_button.click()
-                time.sleep(1)
+                time.sleep(0.3)
                 
                 # 查找Google登录按钮
                 try:
@@ -2371,7 +2371,6 @@ class CryptoTrader:
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes1_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes1_amount_entry)
 
-                        time.sleep(2)
                         if self.Verify_buy_up():
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             
@@ -2465,7 +2464,6 @@ class CryptoTrader:
                         
                         self.click_buy_yes()
 
-                        time.sleep(2)
                         if self.Verify_buy_down():
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
 
@@ -2530,8 +2528,8 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            time.sleep(1)
+                            self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
+                            time.sleep(0.3)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -2569,7 +2567,6 @@ class CryptoTrader:
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes2_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes2_amount_entry)
                         
-                        time.sleep(2)
                         if self.Verify_buy_up():
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
                             
@@ -2630,8 +2627,8 @@ class CryptoTrader:
                                  
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            time.sleep(1)
+                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
+                            time.sleep(0.3)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -2658,7 +2655,6 @@ class CryptoTrader:
 
                         self.click_buy_yes()
 
-                        time.sleep(2)
                         if self.Verify_buy_down():
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
                             
@@ -2721,8 +2717,8 @@ class CryptoTrader:
                             
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            time.sleep(1)
+                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
+                            time.sleep(0.3)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -2760,7 +2756,6 @@ class CryptoTrader:
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes3_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes3_amount_entry)
 
-                        time.sleep(2)
                         if self.Verify_buy_up():
                             # 获取 YES3 的金额
                             self.buy_yes3_amount = float(self.yes3_amount_entry.get())
@@ -2859,7 +2854,6 @@ class CryptoTrader:
 
                         self.click_buy_yes()
 
-                        time.sleep(2)
                         if self.Verify_buy_down():
                             self.buy_no3_amount = float(self.no3_amount_entry.get())
                             
@@ -2969,7 +2963,6 @@ class CryptoTrader:
                         # 传 Tkinter 的 AmountEntry 对象，比如 self.yes4_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes4_amount_entry)
 
-                        time.sleep(2)
                         if self.Verify_buy_up():
                             self.yes4_amount = float(self.yes4_amount_entry.get())
                             
@@ -3067,7 +3060,6 @@ class CryptoTrader:
                         
                         self.click_buy_yes()
 
-                        time.sleep(2)
                         if self.Verify_buy_down():
                             self.no4_amount = float(self.no4_amount_entry.get())
                             # 设置 YES4/No4的价格为0
@@ -3435,10 +3427,12 @@ class CryptoTrader:
         """
         return self._verify_trade('Sold', 'Down')[0]
 
+
+
     def _verify_trade(self, action_type, direction):
         """
         验证交易是否成功完成
-        基于时间的循环:在6秒时间窗口内不断查找,时间到了就刷新,循环2次
+        智能等待3秒，如果没有出现交易记录，立即再重试一次智能等待，如果还是没有交易记录，说明交易失败
         
         Args:
             action_type: 'Bought' 或 'Sold'
@@ -3448,42 +3442,35 @@ class CryptoTrader:
             tuple: (是否成功, 价格, 金额, 份额)
         """
         try:
+            # 智能等待逻辑：最多重试2次，每次等待3秒
             for attempt in range(2):
-                #  重试 2次,每次智能等待3秒
-                max_retries = 2  # 最大重试次数
-                wait_interval = 1  # 检查间隔
-                
-                for retry in range(max_retries):
+                start_time = time.time()
+                max_wait_time = 3  # 每次智能等待3秒
+                check_interval = 0.1  # 检查间隔0.1秒
+
+                # 智能等待循环
+                while time.time() - start_time < max_wait_time:
                     try:
-                        # 等待历史记录元素出现                  
-                        try:
-                            # 将元素查找超时时间从默认值减少到0.5秒，加快查找速度
-                            history_element = WebDriverWait(self.driver, 3).until(
-                                EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0])))
-                        except (NoSuchElementException, StaleElementReferenceException, TimeoutException):
-                            # 将重试查找超时时间从2秒减少到0.5秒
-                            history_element = self._find_element_with_retry(XPathConfig.HISTORY, timeout=0.5, silent=True)
+                        # 快速检查是否有交易记录出现
+                        history_element = WebDriverWait(self.driver, 0.1).until(
+                            EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0])))
                         
                         if history_element:
-                            # 获取历史记录文本
                             history_text = history_element.text
-                            #self.logger.info(f"找到交易记录: \033[34m{history_text}\033[0m")
                             
-                            # 分别查找action_type和direction，避免同时匹配导致的问题
+                            # 分别查找action_type和direction
                             action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
                             direction_found = re.search(rf"\b{direction}\b", history_text, re.IGNORECASE)
                             
                             if action_found and direction_found:
-                                # 提取价格和金额 - 优化正则表达式
+                                # 提取价格和金额
                                 price_match = re.search(r'at\s+(\d+\.?\d*)¢', history_text)
                                 amount_match = re.search(r'\(\$(\d+\.\d+)\)', history_text)
-                                # 提取SHARES - shares是Bought/Sold后的第一个数字
                                 shares_match = re.search(r'(?:Bought|Sold)\s+(\d+(?:\.\d+)?)', history_text, re.IGNORECASE)
                                 
                                 self.price = float(price_match.group(1)) if price_match else 0
                                 self.amount = float(amount_match.group(1)) if amount_match else 0
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
-
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
                                 
                                 # 同步交易验证信息到StatusDataManager
@@ -3494,21 +3481,13 @@ class CryptoTrader:
                                     'amount': self.amount
                                 })
                                 
-                                return True, self.price, self.amount, self.shares
+                                return True, self.price, self.amount, self.shares                                
+                    except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
+                        pass
                     
-                    except StaleElementReferenceException:
-                        self.logger.warning(f"\033[31m未找到交易记录,重新定位元素\033[0m")
-                        continue  # 继续下一次重试，不退出循环
-                    except Exception as e:
-                        self.logger.warning(f"元素操作异常: {str(e)}")
-                        continue
-                    
-                    # 如果不是最后一次重试，等待1秒后继续
-                    if retry < max_retries - 1:
-                        time.sleep(wait_interval)
-            # 超时未找到匹配的交易记录
-            self.logger.warning(f"❌ \033[31m交易验证失败,已尝试2轮\033[0m")
-
+                    time.sleep(check_interval)
+            # 两次智能等待都失败
+            self.logger.warning(f"❌ \033[31m交易验证失败\033[0m")
             return False, 0, 0, 0
         except Exception as e:
             self.logger.error(f"交易验证失败: {str(e)}")
