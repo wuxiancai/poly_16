@@ -3472,9 +3472,9 @@ class CryptoTrader:
                 self.logger.error(f"回退操作也失败: {str(fallback_error)}")
 
     def click_positions_sell_and_sell_confirm_and_accept(self):
-        """卖出并点击确认 - 使用顺序执行的批量操作"""
+        """卖出并点击确认 - 使用批量DOM操作"""
         try:
-            # 定义顺序执行的操作 - 包含延迟确保按钮响应
+            # 定义批量操作 - 包含延迟确保按钮响应
             operations = [
                 {'xpath': XPathConfig.POSITION_SELL_BUTTON[0], 'action': 'click'},
                 {'xpath': XPathConfig.SELL_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 100},
@@ -3486,8 +3486,15 @@ class CryptoTrader:
                 lambda: self._fallback_sell_operation(),
             ]
             
-            # 使用顺序执行方法
-            self._execute_sequential_dom_operations(operations, fallback_operations)
+            # 使用批量DOM操作方法（与买入函数保持一致）
+            result = self._execute_batch_dom_operations(operations, fallback_operations)
+            
+            if result.get('success') or result.get('partial_success'):
+                # self.logger.info("✅ 使用批量操作卖出完成")
+                time.sleep(1)  # 等待交易处理完成
+            else:
+                self.logger.warning("⚠️ 批量操作失败，已执行回退操作")
+                time.sleep(1)
             
         except Exception as e:
             self.logger.error(f"卖出失败: {str(e)}")
