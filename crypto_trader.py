@@ -5929,7 +5929,7 @@ class CryptoTrader:
                     }
                     .info-item select {
                         padding: 4px 8px; border: 1px solid #dee2e6; border-radius: 4px;
-                        font-size: 14px; font-weight: 600; background: white;
+                        font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         font-family: 'Monaco', 'Menlo', monospace;
                         color: #2c3e50;
                         transition: all 0.3s ease; cursor: pointer;
@@ -6874,17 +6874,14 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 币种和交易时间显示区域 -->
-                                <div class="binance-price-container" style="width: 80%; margin: 0 auto; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 12px;">
-                                    <div class="info-item coin-select-item">
-                                            <label>币种:</label>
-                                            <span id="coinDisplay" style="display: inline-block;">{{ data.coin }}</span>
-                                    </div>
-                                    <div class="info-item time-select-item">
+                                <div class="binance-price-container" style="align-items: center; width: 50%; margin: 0 auto; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 8px;">
+                                    
+                                    <div class="binance-price-item binance-label" style="display: inline-block; padding: 4px 4px;">
                                             <label>开始交易时间:</label>
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}blue{% endif %};">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
@@ -8222,9 +8219,9 @@ class CryptoTrader:
         }
         
         .stats-value {
-            color: #007bff;
-            font-size: 1.5em;
-            font-weight: bold;
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 600;
         }
         
         .loading {
