@@ -3378,6 +3378,61 @@ class CryptoTrader:
         finally:
             self.trading = False
 
+    def only_sell_up(self):
+        """只卖出YES,且验证交易是否成功"""
+        # 重试 3 次
+        for retry in range(3):
+            self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
+            self.click_positions_sell_and_sell_confirm_and_accept()
+
+            if self._verify_trade('Sold', 'Up')[0]:
+                # 增加卖出计数
+                self.sell_count += 1
+                # 发送交易邮件 - 卖出YES
+                self.send_trade_email(
+                    trade_type="Sell Up",
+                    price=self.price,
+                    amount=self.amount,
+                    shares=self.shares,
+                    trade_count=self.sell_count,
+                    cash_value=self.cash_value,
+                    portfolio_value=self.portfolio_value
+                )
+                self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
+                self.driver.refresh()
+                break
+            else:
+                self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
+                time.sleep(1)
+                
+    def only_sell_down(self):
+        """只卖出Down,且验证交易是否成功"""
+        # 重试 3 次
+        for retry in range(3): 
+            self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
+            self.click_positions_sell_and_sell_confirm_and_accept()
+
+            if self._verify_trade('Sold', 'Down')[0]:
+                # 增加卖出计数
+                self.sell_count += 1
+                
+                # 发送交易邮件 - 卖出NO
+                self.send_trade_email(
+                    trade_type="Sell Down",
+                    price=self.price,
+                    amount=self.amount,
+                    shares=self.shares,
+                    trade_count=self.sell_count,
+                    cash_value=self.cash_value,
+                    portfolio_value=self.portfolio_value
+                )
+                self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
+                self.driver.refresh()
+                break
+            else:
+                self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
+                time.sleep(1)
+
     def reset_yes_no_amount(self):
         """重置 YES/NO ENTRY 金额"""
         # 设置 UP1 和 DOWN1金额
@@ -3801,62 +3856,7 @@ class CryptoTrader:
                 pass  # 弹窗没出现,不用处理
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
-
-    def only_sell_up(self):
-        """只卖出YES,且验证交易是否成功"""
-        # 重试 3 次
-        for retry in range(3):
-            self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
-            self.click_positions_sell_and_sell_confirm_and_accept()
-
-            if self._verify_trade('Sold', 'Up')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
-                # 发送交易邮件 - 卖出YES
-                self.send_trade_email(
-                    trade_type="Sell Up",
-                    price=self.price,
-                    amount=self.amount,
-                    shares=self.shares,
-                    trade_count=self.sell_count,
-                    cash_value=self.cash_value,
-                    portfolio_value=self.portfolio_value
-                )
-                self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
-                self.driver.refresh()
-                break
-            else:
-                self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
-                time.sleep(1)
       
-    def only_sell_down(self):
-        """只卖出Down,且验证交易是否成功"""
-        # 重试 3 次
-        for retry in range(3): 
-            self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
-            self.click_positions_sell_and_sell_confirm_and_accept()
-
-            if self._verify_trade('Sold', 'Down')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
-                
-                # 发送交易邮件 - 卖出NO
-                self.send_trade_email(
-                    trade_type="Sell Down",
-                    price=self.price,
-                    amount=self.amount,
-                    shares=self.shares,
-                    trade_count=self.sell_count,
-                    cash_value=self.cash_value,
-                    portfolio_value=self.portfolio_value
-                )
-                self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
-                self.driver.refresh()
-                break
-            else:
-                self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
-                time.sleep(1)
-
     def Verify_buy_up(self):
         """
         验证买入YES交易是否成功完成
@@ -3958,543 +3958,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"交易验证失败: {str(e)}")
             return False, 0, 0, 0
-
-    def click_buy_confirm_button(self):
-        try:
-            buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
-            buy_confirm_button.click()
-        except NoSuchElementException:
-            
-            buy_confirm_button = self._find_element_with_retry(
-                XPathConfig.BUY_CONFIRM_BUTTON,
-                timeout=3,
-                silent=True
-            )
-            buy_confirm_button.click()
-    
-    def click_position_sell_no(self):
-        """点击 Positions-Sell-No 按钮"""
-        try:
-            position_value = self.find_position_label_up()
-            # position_value 的值是true 或 false
-            # 根据position_value的值决定点击哪个按钮
-            if position_value:
-                # 如果第一行是Up，点击第二的按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_NO_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_NO_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            else:
-                # 如果第一行不存在或不是Up，使用默认的第一行按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            # 执行点击
-            self.driver.execute_script("arguments[0].click();", button)
-            
-        except Exception as e:
-            error_msg = f"点击 Positions-Sell-No 按钮失败: {str(e)}"
-            self.logger.error(error_msg)
-            
-    def click_position_sell_yes(self):
-        """点击 Positions-Sell-Yes 按钮"""
-        try:
-            position_value = self.find_position_label_down()
-            
-            # 根据position_value的值决定点击哪个按钮
-            
-            if position_value:
-                # 如果第二行是No，点击第一行YES 的 SELL的按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_YES_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_YES_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            else:
-                # 如果第二行不存在或不是No，使用默认的第一行按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            # 执行点击
-            self.driver.execute_script("arguments[0].click();", button)
-             
-        except Exception as e:
-            error_msg = f"点击 Positions-Sell-Yes 按钮失败: {str(e)}"
-            self.logger.error(error_msg)
-            
-    def click_sell_confirm_button(self):
-        """点击sell-卖出按钮"""
-        try:
-            # 点击Sell-卖出按钮
-            try:
-                sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-            except NoSuchElementException:
-                sell_confirm_button = self._find_element_with_retry(
-                    XPathConfig.SELL_CONFIRM_BUTTON,
-                    timeout=3,
-                    silent=True
-                )
-            sell_confirm_button.click()
-            
-        except Exception as e:
-            error_msg = f"卖出操作失败: {str(e)}"
-            self.logger.error(error_msg)
-
-    def click_buy(self):
-        try:
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
-
-            if button:
-                button.click()
-            else:
-                self.logger.warning("Buy按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
-
-    def click_buy_yes(self):
-        """点击 Buy-Yes 按钮"""
-        try:           
-            # 查找买YES按钮
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_YES_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_YES_BUTTON, timeout=2, silent=True)
-                
-            if button:
-                button.click()
-            else:
-                self.logger.warning("Buy-Yes按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy-Yes按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy-Yes 按钮失败: {str(e)}")
-
-    def click_buy_no(self):
-        """点击 Buy-No 按钮"""
-        try:
-            # 查找买NO按钮
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_NO_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_NO_BUTTON, timeout=2, silent=True)
-                
-            if button:
-                button.click()
-            else:
-                self.logger.warning("Buy-No按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy-No按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy-No 按钮失败: {str(e)}")
-    
-    def close_windows(self):
-        """关闭多余窗口"""
-        try:
-            # 检查并关闭多余的窗口，只保留一个
-            all_handles = self.driver.window_handles
-            
-            if len(all_handles) > 1:
-                # self.logger.info(f"当前窗口数: {len(all_handles)}，准备关闭多余窗口")
-                
-                # 获取目标URL
-                target_url = self.url_entry.get() if hasattr(self, 'url_entry') else None
-                target_handle = None
-                
-                # 查找包含目标URL的窗口
-                if target_url:
-                    for handle in all_handles:
-                        try:
-                            self.driver.switch_to.window(handle)
-                            current_url = self.driver.current_url
-                            # 检查当前窗口是否包含目标URL的关键部分
-                            if target_url in current_url or any(key in current_url for key in ['polymarket.com/event', 'up-or-down-on']):
-                                target_handle = handle
-                                break
-                        except Exception as e:
-                            self.logger.warning(f"检查窗口URL失败: {e}")
-                            continue
-                
-                # 如果没有找到目标窗口，使用最后一个窗口作为备选
-                if not target_handle:
-                    target_handle = all_handles[-1]
-                    self.logger.warning("未找到目标URL窗口,使用最后一个窗口")
-                
-                # 关闭除了目标窗口外的所有窗口
-                for handle in all_handles:
-                    if handle != target_handle:
-                        try:
-                            self.driver.switch_to.window(handle)
-                            self.driver.close()
-                        except Exception as e:
-                            self.logger.warning(f"关闭窗口失败: {e}")
-                            continue
-                
-                # 切换到保留的目标窗口
-                try:
-                    self.driver.switch_to.window(target_handle)
-                    self.logger.info(f"✅ 已保留目标窗口，关闭了 {len(all_handles)-1} 个多余窗口")
-                except Exception as e:
-                    self.logger.warning(f"切换到目标窗口失败: {e}")
-                
-            else:
-                self.logger.warning("❗ 当前窗口数不足2个,无需切换")
-                
-        except Exception as e:
-            self.logger.error(f"关闭窗口操作失败: {e}")
-            # 如果窗口操作失败，可能是浏览器会话已失效，不需要重启浏览器
-            # 因为调用此方法的上层代码通常会处理浏览器重启
-
-    def send_trade_email(self, trade_type, price, amount, shares, trade_count,
-                         cash_value, portfolio_value):
-        """发送交易邮件"""
-        max_retries = 2
-        retry_delay = 0.5
-        
-        for attempt in range(max_retries):
-            try:
-                hostname = socket.gethostname()
-                sender = 'huacaihuijin@126.com'
-                
-                # 根据HOSTNAME决定邮件接收者
-                receivers = ['2049330@qq.com']  # 默认接收者，必须接收所有邮件
-                if 'ZZY' in hostname:
-                    receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY，添加QQ邮箱 # 272763832@qq.com
-                
-                app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天，请及时更新，下次到期日 2025-11-29
-                
-                # 获取交易币对信息
-                full_pair = self.trading_pair_label.cget("text")
-                trading_pair = full_pair.split('-')[0]
-                if not trading_pair or trading_pair == "--":
-                    trading_pair = "未知交易币对"
-                
-                # 根据交易类型选择显示的计数
-                count_in_subject = self.sell_count if "Sell" in trade_type else trade_count
-                
-                msg = MIMEMultipart()
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
-                msg['Subject'] = Header(subject, 'utf-8')
-                msg['From'] = sender
-                msg['To'] = ', '.join(receivers)
-
-                # 修复格式化字符串问题，确保cash_value和portfolio_value是字符串
-                str_cash_value = str(cash_value)
-                str_portfolio_value = str(portfolio_value)
-                
-                content = f"""
-                交易价格: {price:.2f}¢
-                交易金额: ${amount:.2f}
-                SHARES: {shares}
-                当前买入次数: {self.buy_count}
-                当前卖出次数: {self.sell_count}
-                当前 CASH 值: {str_cash_value}
-                当前 PORTFOLIO 值: {str_portfolio_value}
-                交易时间: {current_time}
-                """
-                msg.attach(MIMEText(content, 'plain', 'utf-8'))
-                
-                # 使用126.com的SMTP服务器
-                server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)  # 使用SSL连接
-                server.set_debuglevel(0)
-                
-                try:
-                    server.login(sender, app_password)
-                    server.sendmail(sender, receivers, msg.as_string())
-                    #self.logger.info(f"✅ \033[34m邮件发送成功: {trade_type} -> {', '.join(receivers)}\033[0m")
-                    return  # 发送成功,退出重试循环
-                except Exception as e:
-                    self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
-                    if attempt < max_retries - 1:
-                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
-                        time.sleep(retry_delay)
-                finally:
-                    try:
-                        server.quit()
-                    except Exception:
-                        pass          
-            except Exception as e:
-                self.logger.error(f"❌ 邮件准备失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)     
-        # 所有重试都失败
-        error_msg = f"发送邮件失败,已重试{max_retries}次"
-        self.logger.error(error_msg)
-
-    def _send_chrome_alert_email(self):
-        """发送Chrome异常警报邮件"""
-        try:
-            hostname = socket.gethostname()
-            sender = 'huacaihuijin@126.com'
-            receiver = '2049330@qq.com'
-            app_password = 'PUaRF5FKeKJDrYH7'
-            
-            # 获取交易币对信息
-            full_pair = self.trading_pair_label.cget("text")
-            trading_pair = full_pair.split('-')[0] if full_pair and '-' in full_pair else "未知交易币对"
-            
-            msg = MIMEMultipart()
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            subject = f'🚨{hostname}-Chrome异常-{trading_pair}-需要手动介入'
-            msg['Subject'] = Header(subject, 'utf-8')
-            msg['From'] = sender
-            msg['To'] = receiver
-            
-            # 获取当前状态信息
-            try:
-                cash_value = self.cash_label.cget("text")
-                portfolio_value = self.portfolio_label.cget("text")
-            except:
-                cash_value = "无法获取"
-                portfolio_value = "无法获取"
-            
-            content = f"""
-            🚨 Chrome浏览器异常警报 🚨
-
-            异常时间: {current_time}
-            主机名称: {hostname}
-            交易币对: {trading_pair}
-            当前买入次数: {self.buy_count}
-            当前卖出次数: {self.sell_count}
-            重启次数: {self.reset_trade_count}
-            当前 CASH 值: {cash_value}
-            当前 PORTFOLIO 值: {portfolio_value}
-
-            ⚠️  请立即手动检查并介入处理！
-            """
-            
-            msg.attach(MIMEText(content, 'plain', 'utf-8'))
-            
-            # 发送邮件
-            server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)
-            server.set_debuglevel(0)
-            
-            try:
-                server.login(sender, app_password)
-                server.sendmail(sender, receiver, msg.as_string())
-                #self.logger.info(f"✅ Chrome异常警报邮件发送成功")
-            except Exception as e:
-                self.logger.error(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
-            finally:
-                try:
-                    server.quit()
-                except Exception:
-                    pass
-                    
-        except Exception as e:
-            self.logger.error(f"发送Chrome异常警报邮件时出错: {str(e)}")
-
-    def retry_operation(self, operation, *args, **kwargs):
-        """通用重试机制"""
-        for attempt in range(self.retry_count):
-            try:
-                return operation(*args, **kwargs)
-            except Exception as e:
-                self.logger.warning(f"{operation.__name__} 失败，尝试 {attempt + 1}/{self.retry_count}: {str(e)}")
-                if attempt < self.retry_count - 1:
-                    time.sleep(self.retry_interval)
-                else:
-                    raise
-
-    def find_position_label_up(self):
-        """查找Yes持仓标签"""
-        max_retries = 3
-        retry_delay = 0.3
-        
-        for attempt in range(max_retries):
-            try:
-                # 等待页面加载完成
-                WebDriverWait(self.driver, 3).until(
-                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
-                )
-                
-                # 尝试获取Up标签
-                try:
-                    position_label_up = None
-                    try:
-                        position_label_up = self.driver.find_element(By.XPATH, XPathConfig.POSITION_UP_LABEL[0])
-                    except (NoSuchElementException, StaleElementReferenceException):
-                        position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
-                        
-                    if position_label_up is not None and position_label_up:
-                        self.logger.info("✅ find-element,找到了Up持仓标签: {position_label_up.text}")
-                        return True
-                    else:
-                        self.logger.info("❌ find_element,未找到Up持仓标签")
-                        return False
-                except NoSuchElementException:
-                    position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
-                    if position_label_up is not None and position_label_up:
-                        self.logger.info(f"✅ with-retry,找到了Up持仓标签: {position_label_up.text}")
-                        return True
-                    else:
-                        self.logger.info("❌ use with-retry,未找到Up持仓标签")
-                        return False
-                         
-            except TimeoutException:
-                self.logger.debug(f"第{attempt + 1}次尝试未找到UP标签,正常情况!")
-            
-            if attempt < max_retries - 1:
-                self.logger.info(f"等待{retry_delay}秒后重试...")
-                time.sleep(retry_delay)
-                self.driver.refresh()
-        return False
-        
-    def find_position_label_down(self):
-        """查找Down持仓标签"""
-        max_retries = 3
-        retry_delay = 0.3
-        
-        for attempt in range(max_retries):
-            try:
-                # 等待页面加载完成
-                WebDriverWait(self.driver, 3).until(
-                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
-                )
-                
-                # 尝试获取Down标签
-                try:
-                    position_label_down = None
-                    try:
-                        position_label_down = self.driver.find_element(By.XPATH, XPathConfig.POSITION_DOWN_LABEL[0])
-                    except (NoSuchElementException, StaleElementReferenceException):
-                        position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
-                        
-                    if position_label_down is not None and position_label_down:
-                        self.logger.info(f"✅ find-element,找到了Down持仓标签: {position_label_down.text}")
-                        return True
-                    else:
-                        self.logger.info("❌ find-element,未找到Down持仓标签")
-                        return False
-                except NoSuchElementException:
-                    position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
-                    if position_label_down is not None and position_label_down:
-                        self.logger.info(f"✅ with-retry,找到了Down持仓标签: {position_label_down.text}")
-                        return True
-                    else:
-                        self.logger.info("❌ with-retry,未找到Down持仓标签")
-                        return False
-                               
-            except TimeoutException:
-                self.logger.warning(f"第{attempt + 1}次尝试未找到Down标签")
-                
-            if attempt < max_retries - 1:
-                self.logger.info(f"等待{retry_delay}秒后重试...")
-                time.sleep(retry_delay)
-                self.driver.refresh()
-        return False
-      
-    def _get_cached_element(self, cache_key):
-        """从缓存中获取元素"""
-        with self.cache_lock:
-            if cache_key in self.element_cache:
-                cached_data = self.element_cache[cache_key]
-                # 检查缓存是否过期
-                if time.time() - cached_data['timestamp'] < self.cache_timeout:
-                    try:
-                        # 验证元素是否仍然有效
-                        element = cached_data['element']
-                        element.is_displayed()  # 这会触发StaleElementReferenceException如果元素无效
-                        return element
-                    except (StaleElementReferenceException, NoSuchElementException):
-                        # 元素已失效，从缓存中移除
-                        del self.element_cache[cache_key]
-                else:
-                    # 缓存过期，移除
-                    del self.element_cache[cache_key]
-            return None
-    
-    def _cache_element(self, cache_key, element):
-        """将元素添加到缓存"""
-        with self.cache_lock:
-            self.element_cache[cache_key] = {
-                'element': element,
-                'timestamp': time.time()
-            }
-    
-    def _clear_element_cache(self):
-        """清空元素缓存"""
-        with self.cache_lock:
-            self.element_cache.clear()
-    
-    def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
-        """优化版元素查找 - 支持缓存和并行查找多个XPath"""
-        # 生成缓存键
-        cache_key = str(sorted(xpaths)) if use_cache else None
-        
-        # 尝试从缓存获取元素
-        if use_cache and cache_key:
-            cached_element = self._get_cached_element(cache_key)
-            if cached_element:
-                return cached_element
-        
-        try:
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError
-            
-            def find_single_xpath(xpath):
-                try:
-                    return WebDriverWait(self.driver, timeout).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
-                except (TimeoutException, NoSuchElementException):
-                    return None
-            
-            # 并行查找所有XPath
-            with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
-                futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
-                
-                for future in futures:
-                    try:
-                        result = future.result(timeout=timeout)
-                        if result:
-                            # 缓存找到的元素
-                            if use_cache and cache_key:
-                                self._cache_element(cache_key, result)
-                            return result
-                    except (TimeoutError, Exception):
-                        continue
-            
-            for future in futures:
-                try:
-                    result = future.result(timeout=timeout)
-                    if result:
-                        # 缓存找到的元素
-                        if use_cache and cache_key:
-                            self._cache_element(cache_key, result)
-                        return result
-                except (TimeoutError, Exception):
-                    continue
-        
-        except Exception as e:
-            if not silent:
-                self.logger.error(f"元素查找过程中发生错误: {str(e)}")
-        
-        return None
 
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
@@ -5718,6 +5181,543 @@ class CryptoTrader:
         # 更新内存中的历史记录
         new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)]
         self.cash_history.append(new_record)
+
+    def click_buy_confirm_button(self):
+        try:
+            buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
+            buy_confirm_button.click()
+        except NoSuchElementException:
+            
+            buy_confirm_button = self._find_element_with_retry(
+                XPathConfig.BUY_CONFIRM_BUTTON,
+                timeout=3,
+                silent=True
+            )
+            buy_confirm_button.click()
+    
+    def click_position_sell_no(self):
+        """点击 Positions-Sell-No 按钮"""
+        try:
+            position_value = self.find_position_label_up()
+            # position_value 的值是true 或 false
+            # 根据position_value的值决定点击哪个按钮
+            if position_value:
+                # 如果第一行是Up，点击第二的按钮
+                try:
+                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_NO_BUTTON[0])
+                except NoSuchElementException:
+                    button = self._find_element_with_retry(
+                        XPathConfig.POSITION_SELL_NO_BUTTON,
+                        timeout=3,
+                        silent=True
+                    )
+            else:
+                # 如果第一行不存在或不是Up，使用默认的第一行按钮
+                try:
+                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+                except NoSuchElementException:
+                    button = self._find_element_with_retry(
+                        XPathConfig.POSITION_SELL_BUTTON,
+                        timeout=3,
+                        silent=True
+                    )
+            # 执行点击
+            self.driver.execute_script("arguments[0].click();", button)
+            
+        except Exception as e:
+            error_msg = f"点击 Positions-Sell-No 按钮失败: {str(e)}"
+            self.logger.error(error_msg)
+            
+    def click_position_sell_yes(self):
+        """点击 Positions-Sell-Yes 按钮"""
+        try:
+            position_value = self.find_position_label_down()
+            
+            # 根据position_value的值决定点击哪个按钮
+            
+            if position_value:
+                # 如果第二行是No，点击第一行YES 的 SELL的按钮
+                try:
+                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_YES_BUTTON[0])
+                except NoSuchElementException:
+                    button = self._find_element_with_retry(
+                        XPathConfig.POSITION_SELL_YES_BUTTON,
+                        timeout=3,
+                        silent=True
+                    )
+            else:
+                # 如果第二行不存在或不是No，使用默认的第一行按钮
+                try:
+                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+                except NoSuchElementException:
+                    button = self._find_element_with_retry(
+                        XPathConfig.POSITION_SELL_BUTTON,
+                        timeout=3,
+                        silent=True
+                    )
+            # 执行点击
+            self.driver.execute_script("arguments[0].click();", button)
+             
+        except Exception as e:
+            error_msg = f"点击 Positions-Sell-Yes 按钮失败: {str(e)}"
+            self.logger.error(error_msg)
+            
+    def click_sell_confirm_button(self):
+        """点击sell-卖出按钮"""
+        try:
+            # 点击Sell-卖出按钮
+            try:
+                sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
+            except NoSuchElementException:
+                sell_confirm_button = self._find_element_with_retry(
+                    XPathConfig.SELL_CONFIRM_BUTTON,
+                    timeout=3,
+                    silent=True
+                )
+            sell_confirm_button.click()
+            
+        except Exception as e:
+            error_msg = f"卖出操作失败: {str(e)}"
+            self.logger.error(error_msg)
+
+    def click_buy(self):
+        try:
+            try:
+                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
+            except (NoSuchElementException, StaleElementReferenceException):
+                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
+
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy按钮未找到")
+            
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy按钮失败: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
+
+    def click_buy_yes(self):
+        """点击 Buy-Yes 按钮"""
+        try:           
+            # 查找买YES按钮
+            try:
+                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_YES_BUTTON[0])
+            except (NoSuchElementException, StaleElementReferenceException):
+                button = self._find_element_with_retry(XPathConfig.BUY_YES_BUTTON, timeout=2, silent=True)
+                
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy-Yes按钮未找到")
+            
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy-Yes按钮失败: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"点击 Buy-Yes 按钮失败: {str(e)}")
+
+    def click_buy_no(self):
+        """点击 Buy-No 按钮"""
+        try:
+            # 查找买NO按钮
+            try:
+                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_NO_BUTTON[0])
+            except (NoSuchElementException, StaleElementReferenceException):
+                button = self._find_element_with_retry(XPathConfig.BUY_NO_BUTTON, timeout=2, silent=True)
+                
+            if button:
+                button.click()
+            else:
+                self.logger.warning("Buy-No按钮未找到")
+            
+        except (TimeoutException, AttributeError) as e:
+            self.logger.error(f"浏览器连接异常，点击Buy-No按钮失败: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"点击 Buy-No 按钮失败: {str(e)}")
+    
+    def close_windows(self):
+        """关闭多余窗口"""
+        try:
+            # 检查并关闭多余的窗口，只保留一个
+            all_handles = self.driver.window_handles
+            
+            if len(all_handles) > 1:
+                # self.logger.info(f"当前窗口数: {len(all_handles)}，准备关闭多余窗口")
+                
+                # 获取目标URL
+                target_url = self.url_entry.get() if hasattr(self, 'url_entry') else None
+                target_handle = None
+                
+                # 查找包含目标URL的窗口
+                if target_url:
+                    for handle in all_handles:
+                        try:
+                            self.driver.switch_to.window(handle)
+                            current_url = self.driver.current_url
+                            # 检查当前窗口是否包含目标URL的关键部分
+                            if target_url in current_url or any(key in current_url for key in ['polymarket.com/event', 'up-or-down-on']):
+                                target_handle = handle
+                                break
+                        except Exception as e:
+                            self.logger.warning(f"检查窗口URL失败: {e}")
+                            continue
+                
+                # 如果没有找到目标窗口，使用最后一个窗口作为备选
+                if not target_handle:
+                    target_handle = all_handles[-1]
+                    self.logger.warning("未找到目标URL窗口,使用最后一个窗口")
+                
+                # 关闭除了目标窗口外的所有窗口
+                for handle in all_handles:
+                    if handle != target_handle:
+                        try:
+                            self.driver.switch_to.window(handle)
+                            self.driver.close()
+                        except Exception as e:
+                            self.logger.warning(f"关闭窗口失败: {e}")
+                            continue
+                
+                # 切换到保留的目标窗口
+                try:
+                    self.driver.switch_to.window(target_handle)
+                    self.logger.info(f"✅ 已保留目标窗口，关闭了 {len(all_handles)-1} 个多余窗口")
+                except Exception as e:
+                    self.logger.warning(f"切换到目标窗口失败: {e}")
+                
+            else:
+                self.logger.warning("❗ 当前窗口数不足2个,无需切换")
+                
+        except Exception as e:
+            self.logger.error(f"关闭窗口操作失败: {e}")
+            # 如果窗口操作失败，可能是浏览器会话已失效，不需要重启浏览器
+            # 因为调用此方法的上层代码通常会处理浏览器重启
+
+    def send_trade_email(self, trade_type, price, amount, shares, trade_count,
+                         cash_value, portfolio_value):
+        """发送交易邮件"""
+        max_retries = 2
+        retry_delay = 0.5
+        
+        for attempt in range(max_retries):
+            try:
+                hostname = socket.gethostname()
+                sender = 'huacaihuijin@126.com'
+                
+                # 根据HOSTNAME决定邮件接收者
+                receivers = ['2049330@qq.com']  # 默认接收者，必须接收所有邮件
+                if 'ZZY' in hostname:
+                    receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY，添加QQ邮箱 # 272763832@qq.com
+                
+                app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天，请及时更新，下次到期日 2025-11-29
+                
+                # 获取交易币对信息
+                full_pair = self.trading_pair_label.cget("text")
+                trading_pair = full_pair.split('-')[0]
+                if not trading_pair or trading_pair == "--":
+                    trading_pair = "未知交易币对"
+                
+                # 根据交易类型选择显示的计数
+                count_in_subject = self.sell_count if "Sell" in trade_type else trade_count
+                
+                msg = MIMEMultipart()
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
+                msg['Subject'] = Header(subject, 'utf-8')
+                msg['From'] = sender
+                msg['To'] = ', '.join(receivers)
+
+                # 修复格式化字符串问题，确保cash_value和portfolio_value是字符串
+                str_cash_value = str(cash_value)
+                str_portfolio_value = str(portfolio_value)
+                
+                content = f"""
+                交易价格: {price:.2f}¢
+                交易金额: ${amount:.2f}
+                SHARES: {shares}
+                当前买入次数: {self.buy_count}
+                当前卖出次数: {self.sell_count}
+                当前 CASH 值: {str_cash_value}
+                当前 PORTFOLIO 值: {str_portfolio_value}
+                交易时间: {current_time}
+                """
+                msg.attach(MIMEText(content, 'plain', 'utf-8'))
+                
+                # 使用126.com的SMTP服务器
+                server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)  # 使用SSL连接
+                server.set_debuglevel(0)
+                
+                try:
+                    server.login(sender, app_password)
+                    server.sendmail(sender, receivers, msg.as_string())
+                    #self.logger.info(f"✅ \033[34m邮件发送成功: {trade_type} -> {', '.join(receivers)}\033[0m")
+                    return  # 发送成功,退出重试循环
+                except Exception as e:
+                    self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                    if attempt < max_retries - 1:
+                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                        time.sleep(retry_delay)
+                finally:
+                    try:
+                        server.quit()
+                    except Exception:
+                        pass          
+            except Exception as e:
+                self.logger.error(f"❌ 邮件准备失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)     
+        # 所有重试都失败
+        error_msg = f"发送邮件失败,已重试{max_retries}次"
+        self.logger.error(error_msg)
+
+    def _send_chrome_alert_email(self):
+        """发送Chrome异常警报邮件"""
+        try:
+            hostname = socket.gethostname()
+            sender = 'huacaihuijin@126.com'
+            receiver = '2049330@qq.com'
+            app_password = 'PUaRF5FKeKJDrYH7'
+            
+            # 获取交易币对信息
+            full_pair = self.trading_pair_label.cget("text")
+            trading_pair = full_pair.split('-')[0] if full_pair and '-' in full_pair else "未知交易币对"
+            
+            msg = MIMEMultipart()
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            subject = f'🚨{hostname}-Chrome异常-{trading_pair}-需要手动介入'
+            msg['Subject'] = Header(subject, 'utf-8')
+            msg['From'] = sender
+            msg['To'] = receiver
+            
+            # 获取当前状态信息
+            try:
+                cash_value = self.cash_label.cget("text")
+                portfolio_value = self.portfolio_label.cget("text")
+            except:
+                cash_value = "无法获取"
+                portfolio_value = "无法获取"
+            
+            content = f"""
+            🚨 Chrome浏览器异常警报 🚨
+
+            异常时间: {current_time}
+            主机名称: {hostname}
+            交易币对: {trading_pair}
+            当前买入次数: {self.buy_count}
+            当前卖出次数: {self.sell_count}
+            重启次数: {self.reset_trade_count}
+            当前 CASH 值: {cash_value}
+            当前 PORTFOLIO 值: {portfolio_value}
+
+            ⚠️  请立即手动检查并介入处理！
+            """
+            
+            msg.attach(MIMEText(content, 'plain', 'utf-8'))
+            
+            # 发送邮件
+            server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)
+            server.set_debuglevel(0)
+            
+            try:
+                server.login(sender, app_password)
+                server.sendmail(sender, receiver, msg.as_string())
+                #self.logger.info(f"✅ Chrome异常警报邮件发送成功")
+            except Exception as e:
+                self.logger.error(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
+            finally:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
+                    
+        except Exception as e:
+            self.logger.error(f"发送Chrome异常警报邮件时出错: {str(e)}")
+
+    def retry_operation(self, operation, *args, **kwargs):
+        """通用重试机制"""
+        for attempt in range(self.retry_count):
+            try:
+                return operation(*args, **kwargs)
+            except Exception as e:
+                self.logger.warning(f"{operation.__name__} 失败，尝试 {attempt + 1}/{self.retry_count}: {str(e)}")
+                if attempt < self.retry_count - 1:
+                    time.sleep(self.retry_interval)
+                else:
+                    raise
+
+    def find_position_label_up(self):
+        """查找Yes持仓标签"""
+        max_retries = 3
+        retry_delay = 0.3
+        
+        for attempt in range(max_retries):
+            try:
+                # 等待页面加载完成
+                WebDriverWait(self.driver, 3).until(
+                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
+                )
+                
+                # 尝试获取Up标签
+                try:
+                    position_label_up = None
+                    try:
+                        position_label_up = self.driver.find_element(By.XPATH, XPathConfig.POSITION_UP_LABEL[0])
+                    except (NoSuchElementException, StaleElementReferenceException):
+                        position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
+                        
+                    if position_label_up is not None and position_label_up:
+                        self.logger.info("✅ find-element,找到了Up持仓标签: {position_label_up.text}")
+                        return True
+                    else:
+                        self.logger.info("❌ find_element,未找到Up持仓标签")
+                        return False
+                except NoSuchElementException:
+                    position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
+                    if position_label_up is not None and position_label_up:
+                        self.logger.info(f"✅ with-retry,找到了Up持仓标签: {position_label_up.text}")
+                        return True
+                    else:
+                        self.logger.info("❌ use with-retry,未找到Up持仓标签")
+                        return False
+                         
+            except TimeoutException:
+                self.logger.debug(f"第{attempt + 1}次尝试未找到UP标签,正常情况!")
+            
+            if attempt < max_retries - 1:
+                self.logger.info(f"等待{retry_delay}秒后重试...")
+                time.sleep(retry_delay)
+                self.driver.refresh()
+        return False
+        
+    def find_position_label_down(self):
+        """查找Down持仓标签"""
+        max_retries = 3
+        retry_delay = 0.3
+        
+        for attempt in range(max_retries):
+            try:
+                # 等待页面加载完成
+                WebDriverWait(self.driver, 3).until(
+                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
+                )
+                
+                # 尝试获取Down标签
+                try:
+                    position_label_down = None
+                    try:
+                        position_label_down = self.driver.find_element(By.XPATH, XPathConfig.POSITION_DOWN_LABEL[0])
+                    except (NoSuchElementException, StaleElementReferenceException):
+                        position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
+                        
+                    if position_label_down is not None and position_label_down:
+                        self.logger.info(f"✅ find-element,找到了Down持仓标签: {position_label_down.text}")
+                        return True
+                    else:
+                        self.logger.info("❌ find-element,未找到Down持仓标签")
+                        return False
+                except NoSuchElementException:
+                    position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
+                    if position_label_down is not None and position_label_down:
+                        self.logger.info(f"✅ with-retry,找到了Down持仓标签: {position_label_down.text}")
+                        return True
+                    else:
+                        self.logger.info("❌ with-retry,未找到Down持仓标签")
+                        return False
+                               
+            except TimeoutException:
+                self.logger.warning(f"第{attempt + 1}次尝试未找到Down标签")
+                
+            if attempt < max_retries - 1:
+                self.logger.info(f"等待{retry_delay}秒后重试...")
+                time.sleep(retry_delay)
+                self.driver.refresh()
+        return False
+      
+    def _get_cached_element(self, cache_key):
+        """从缓存中获取元素"""
+        with self.cache_lock:
+            if cache_key in self.element_cache:
+                cached_data = self.element_cache[cache_key]
+                # 检查缓存是否过期
+                if time.time() - cached_data['timestamp'] < self.cache_timeout:
+                    try:
+                        # 验证元素是否仍然有效
+                        element = cached_data['element']
+                        element.is_displayed()  # 这会触发StaleElementReferenceException如果元素无效
+                        return element
+                    except (StaleElementReferenceException, NoSuchElementException):
+                        # 元素已失效，从缓存中移除
+                        del self.element_cache[cache_key]
+                else:
+                    # 缓存过期，移除
+                    del self.element_cache[cache_key]
+            return None
+    
+    def _cache_element(self, cache_key, element):
+        """将元素添加到缓存"""
+        with self.cache_lock:
+            self.element_cache[cache_key] = {
+                'element': element,
+                'timestamp': time.time()
+            }
+    
+    def _clear_element_cache(self):
+        """清空元素缓存"""
+        with self.cache_lock:
+            self.element_cache.clear()
+    
+    def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
+        """优化版元素查找 - 支持缓存和并行查找多个XPath"""
+        # 生成缓存键
+        cache_key = str(sorted(xpaths)) if use_cache else None
+        
+        # 尝试从缓存获取元素
+        if use_cache and cache_key:
+            cached_element = self._get_cached_element(cache_key)
+            if cached_element:
+                return cached_element
+        
+        try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError
+            
+            def find_single_xpath(xpath):
+                try:
+                    return WebDriverWait(self.driver, timeout).until(
+                        EC.presence_of_element_located((By.XPATH, xpath))
+                    )
+                except (TimeoutException, NoSuchElementException):
+                    return None
+            
+            # 并行查找所有XPath
+            with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
+                futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
+                
+                for future in futures:
+                    try:
+                        result = future.result(timeout=timeout)
+                        if result:
+                            # 缓存找到的元素
+                            if use_cache and cache_key:
+                                self._cache_element(cache_key, result)
+                            return result
+                    except (TimeoutError, Exception):
+                        continue
+            
+            for future in futures:
+                try:
+                    result = future.result(timeout=timeout)
+                    if result:
+                        # 缓存找到的元素
+                        if use_cache and cache_key:
+                            self._cache_element(cache_key, result)
+                        return result
+                except (TimeoutError, Exception):
+                    continue
+        
+        except Exception as e:
+            if not silent:
+                self.logger.error(f"元素查找过程中发生错误: {str(e)}")
+        
+        return None
 
     def create_flask_app(self):
         """创建Flask应用，展示内存中的cash_history"""
