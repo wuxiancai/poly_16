@@ -38,6 +38,171 @@ import psutil
 import socket
 import urllib.request
 import requests
+from collections import defaultdict
+
+
+
+class TradeStatsManager:
+    """
+    交易统计管理器
+    负责数据存储、统计计算和API服务
+    """
+    
+    def __init__(self, data_file='trade_stats.json'):
+        self.data_file = data_file
+        self.data = self._load_data()
+        self.lock = threading.Lock()  # 线程安全锁
+        
+    def _load_data(self):
+        """加载统计数据"""
+        if os.path.exists(self.data_file):
+            try:
+                with open(self.data_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                return {}
+        return {}
+    
+    def _save_data(self):
+        """保存统计数据"""
+        try:
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+        except IOError as e:
+            logging.error(f"保存数据失败: {e}")
+    
+    def add_trade_record(self, timestamp):
+        """添加交易记录（精确到秒）"""
+        with self.lock:
+            date_str = timestamp.strftime('%Y-%m-%d')
+            hour = timestamp.hour
+            time_str = timestamp.strftime('%H:%M:%S')  # 精确到秒的时间
+            
+            if date_str not in self.data:
+                self.data[date_str] = {}
+            
+            # 保持小时级别的统计（用于图表显示）
+            if str(hour) not in self.data[date_str]:
+                self.data[date_str][str(hour)] = 0
+            
+            self.data[date_str][str(hour)] += 1
+            
+            # 添加详细的交易记录（精确到秒）
+            if 'trades' not in self.data[date_str]:
+                self.data[date_str]['trades'] = []
+            
+            self.data[date_str]['trades'].append({
+                'time': time_str,
+                'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+            self._save_data()
+            
+            logging.info(f"记录交易: {date_str} {time_str} (当日总计: {sum(self.data[date_str][h] for h in self.data[date_str] if h.isdigit())})")
+    
+    def get_daily_stats(self, date_str):
+        """获取日统计数据"""
+        with self.lock:
+            day_data = self.data.get(date_str, {})
+            
+            # 初始化24小时数据
+            counts = [0] * 24
+            for hour_str, count in day_data.items():
+                hour = int(hour_str)
+                if 0 <= hour <= 23:
+                    counts[hour] = count
+            
+            # 计算百分比
+            total = sum(counts)
+            percentages = [round(count / total * 100, 1) if total > 0 else 0 for count in counts]
+            
+            return {
+                'date': date_str,
+                'counts': counts,
+                'percentages': percentages,
+                'total': total
+            }
+    
+    def get_weekly_stats(self, date_str):
+        """获取周统计数据"""
+        with self.lock:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d')
+            # 找到本周一
+            monday = target_date - timedelta(days=target_date.weekday())
+            
+            weekly_counts = [0] * 24
+            dates = []
+            
+            for i in range(7):
+                current_date = monday + timedelta(days=i)
+                date_key = current_date.strftime('%Y-%m-%d')
+                dates.append(date_key)
+                
+                day_data = self.data.get(date_key, {})
+                for hour_str, count in day_data.items():
+                    hour = int(hour_str)
+                    if 0 <= hour <= 23:
+                        weekly_counts[hour] += count
+            
+            total = sum(weekly_counts)
+            percentages = [round(count / total * 100, 1) if total > 0 else 0 for count in weekly_counts]
+            
+            return {
+                'week_start': monday.strftime('%Y-%m-%d'),
+                'dates': dates,
+                'counts': weekly_counts,
+                'percentages': percentages,
+                'total': total
+            }
+    
+    def get_monthly_stats(self, date_str):
+        """获取月统计数据"""
+        with self.lock:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d')
+            # 本月第一天
+            first_day = target_date.replace(day=1)
+            
+            # 本月最后一天
+            if target_date.month == 12:
+                last_day = target_date.replace(year=target_date.year + 1, month=1, day=1) - timedelta(days=1)
+            else:
+                last_day = target_date.replace(month=target_date.month + 1, day=1) - timedelta(days=1)
+            
+            monthly_counts = [0] * 24
+            dates = []
+            
+            current_date = first_day
+            while current_date <= last_day:
+                date_key = current_date.strftime('%Y-%m-%d')
+                dates.append(date_key)
+                
+                day_data = self.data.get(date_key, {})
+                for hour_str, count in day_data.items():
+                    hour = int(hour_str)
+                    if 0 <= hour <= 23:
+                        monthly_counts[hour] += count
+                
+                current_date += timedelta(days=1)
+            
+            total = sum(monthly_counts)
+            percentages = [round(count / total * 100, 1) if total > 0 else 0 for count in monthly_counts]
+            
+            return {
+                'month': target_date.strftime('%Y-%m'),
+                'dates': dates,
+                'counts': monthly_counts,
+                'percentages': percentages,
+                'total': total
+            }
+    
+    def record_trade(self, trade_type, price):
+        """记录交易（兼容性方法）"""
+        # 获取当前时间并调用add_trade_record
+        current_time = datetime.now()
+        self.add_trade_record(current_time)
+        logging.info(f"记录交易: {trade_type} 价格: {price} 时间: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        return True
+
 
 
 class StatusDataManager:
@@ -297,6 +462,14 @@ class CryptoTrader:
 
         # 交易次数
         self.trade_count = 22
+        
+        # 初始化交易统计管理器
+        try:
+            self.trade_stats = TradeStatsManager()
+            self.logger.info("交易统计系统初始化成功")
+        except Exception as e:
+            self.logger.error(f"交易统计系统初始化失败: {e}")
+            self.trade_stats = None
         
         # 真实交易次数 (22减去已交易次数)
         self.last_trade_count = 0
@@ -2431,7 +2604,14 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 UP1成功\033[0m")
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("UP1", up_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
 
                             break
                         else:
@@ -2525,6 +2705,13 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("DOWN1", down_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
 
                             break
                         else:
@@ -2624,7 +2811,15 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                                 
+                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
+
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("UP2", up_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
+
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
@@ -2714,6 +2909,13 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("DOWN2", down_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
                             
                             break
                         else:
@@ -2821,6 +3023,13 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )   
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("UP3", up_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
 
                             break
                         else:
@@ -2918,6 +3127,13 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("DOWN3", down_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
 
                             break
                         else:
@@ -3028,6 +3244,13 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
+                            
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("UP4", up_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
                            
                             break
                         else:
@@ -3125,6 +3348,13 @@ class CryptoTrader:
                             )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
+                            # 记录交易统计
+                            if self.trade_stats:
+                                try:
+                                    self.trade_stats.record_trade("DOWN4", down_price)
+                                except Exception as e:
+                                    self.logger.error(f"记录交易统计失败: {e}")
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3203,7 +3433,7 @@ class CryptoTrader:
         self.logger.info("设置 YES1-4/NO1-4金额成功")
 
     def send_amount_and_click_buy_confirm(self, amount_entry):
-        """改进版买入交易执行 - 使用批量DOM操作并增强错误处理"""
+        """在 AMOUNT 输入框输入金额,然后点击买入按钮.使用批量DOM操作并增强错误处理"""
         try:
             amount = amount_entry.get()
             #self.logger.info(f"\033[34m开始执行买入交易,金额: ${amount}\033[0m")
@@ -3240,42 +3470,6 @@ class CryptoTrader:
                 self._fallback_buy_operation(amount_entry.get())
             except Exception as fallback_error:
                 self.logger.error(f"回退操作也失败: {str(fallback_error)}")
-                
-    def _fallback_buy_operation(self, amount):
-        """买入操作的回退方法"""
-        try:
-            self.logger.info("\033[34m执行买入回退操作\033[0m")
-            
-            # 查找并设置金额输入框
-            amount_input = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
-            )
-            
-            # 清空并设置新值
-            amount_input.clear()
-            amount_input.send_keys(str(amount))
-            
-            # 点击确认按钮
-            buy_confirm_button = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-            )
-            buy_confirm_button.click()
-            
-            # 处理可能的ACCEPT弹窗
-            try:
-                accept_button = WebDriverWait(self.driver, 1).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
-                )
-                accept_button.click()
-                #self.logger.info("✅ 点击了ACCEPT按钮")
-            except TimeoutException:
-                self.logger.info("ℹ️ 没有ACCEPT弹窗出现")
-                
-            self.logger.info("✅ \033[34m回退买入操作完成\033[0m")
-            
-        except Exception as e:
-            self.logger.error(f"回退买入操作失败: {str(e)}")
-            raise
 
     def click_positions_sell_and_sell_confirm_and_accept(self):
         """卖出并点击确认 - 使用顺序执行的批量操作"""
@@ -3297,7 +3491,273 @@ class CryptoTrader:
             
         except Exception as e:
             self.logger.error(f"卖出失败: {str(e)}")
+
+    def _execute_batch_dom_operations(self, operations, fallback_operations=None):
+        """批量执行DOM操作 - 支持顺序执行和延迟
+        
+        Args:
+            operations: 要执行的操作列表，每个操作包含 {xpath, action, value?, delay?, optional?}
+            fallback_operations: 批量操作失败时的回退操作函数列表
             
+        Returns:
+            dict: {success: bool, results: list, error: str?}
+        """
+        try:
+            # 对于需要顺序执行的操作，使用异步JavaScript
+            has_delays = any(op.get('delay', 0) > 0 for op in operations)
+            
+            if has_delays:
+                # 使用异步方式处理有延迟的操作
+                return self._execute_sequential_dom_operations(operations, fallback_operations)
+            
+            # 对于无延迟的操作，使用同步批量处理
+            js_operations = []
+            for i, op in enumerate(operations):
+                xpath = op['xpath']
+                action = op['action']  # 'click', 'setValue', 'getText'
+                value = op.get('value', '')
+                optional = op.get('optional', False)
+                
+                if action == 'click':
+                    action_code = f'element{i}.click();'
+                elif action == 'set_value':
+                    # 清空输入框并设置新值，触发必要的事件
+                    action_code = f'''
+                        element{i}.focus();
+                        element{i}.value = "";
+                        element{i}.value = "{value}";
+                        element{i}.dispatchEvent(new Event("input", {{bubbles: true}}));
+                        element{i}.dispatchEvent(new Event("change", {{bubbles: true}}));
+                    '''
+                elif action == 'getText':
+                    action_code = f'results.push(element{i}.textContent || element{i}.innerText);'
+                else:
+                    action_code = ''
+                
+                if optional:
+                    js_operations.append(f"""
+                        // 操作 {i+1}: {action} (可选)
+                        const element{i} = document.evaluate(
+                            '{xpath}', 
+                            document, 
+                            null, 
+                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                            null
+                        ).singleNodeValue;
+                        
+                        if (element{i}) {{
+                            {action_code}
+                            operations.push({{index: {i}, action: '{action}', success: true}});
+                        }} else {{
+                            operations.push({{index: {i}, action: '{action}', success: true, skipped: true}});
+                        }}
+                    """)
+                else:
+                    js_operations.append(f"""
+                        // 操作 {i+1}: {action}
+                        const element{i} = document.evaluate(
+                            '{xpath}', 
+                            document, 
+                            null, 
+                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                            null
+                        ).singleNodeValue;
+                        
+                        if (element{i}) {{
+                            {action_code}
+                            operations.push({{index: {i}, action: '{action}', success: true}});
+                        }} else {{
+                            operations.push({{index: {i}, action: '{action}', success: false, error: 'Element not found'}});
+                        }}
+                    """)
+            
+            js_code = f"""
+                try {{
+                    let operations = [];
+                    let results = [];
+                    
+                    {''.join(js_operations)}
+                    
+                    return {{success: true, operations: operations, results: results}};
+                }} catch (e) {{
+                    return {{success: false, error: e.message}};
+                }}
+            """
+            
+            result = self.driver.execute_script(js_code)
+            
+            if result.get('success'):
+                successful_ops = [op for op in result.get('operations', []) if op.get('success')]
+                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
+                
+                if failed_ops and fallback_operations:
+                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败，执行回退操作")
+                    # 只对失败的操作执行回退
+                    for failed_op in failed_ops:
+                        index = failed_op['index']
+                        if index < len(fallback_operations):
+                            try:
+                                fallback_operations[index]()
+                            except Exception as e:
+                                self.logger.error(f"回退操作{index}失败: {str(e)}")
+                
+                return {
+                    'success': True,
+                    'operations': result.get('operations', []),
+                    'results': result.get('results', []),
+                    'partial_success': len(successful_ops) > 0
+                }
+            else:
+                # 完全失败，执行所有回退操作
+                if fallback_operations:
+                    self.logger.warning(f"批量操作完全失败，执行所有回退操作: {result.get('error')}")
+                    for i, fallback_op in enumerate(fallback_operations):
+                        try:
+                            fallback_op()
+                        except Exception as e:
+                            self.logger.error(f"回退操作{i}失败: {str(e)}")
+                
+                return {'success': False, 'error': result.get('error')}
+                
+        except Exception as e:
+            self.logger.error(f"批量DOM操作执行失败: {str(e)}")
+            # 执行所有回退操作
+            if fallback_operations:
+                for i, fallback_op in enumerate(fallback_operations):
+                    try:
+                        fallback_op()
+                    except Exception as e:
+                        self.logger.error(f"回退操作{i}失败: {str(e)}")
+            
+            return {'success': False, 'error': str(e)}
+
+    def _execute_sequential_dom_operations(self, operations, fallback_operations=None):
+        """顺序执行DOM操作 - 支持延迟和异步操作"""
+        try:
+            results = []
+            operation_results = []
+            
+            for i, op in enumerate(operations):
+                xpath = op['xpath']
+                action = op['action']
+                value = op.get('value', '')
+                delay = op.get('delay', 0)
+                optional = op.get('optional', False)
+                
+                try:
+                    # 查找元素
+                    element = WebDriverWait(self.driver, 0.5).until(
+                        EC.presence_of_element_located((By.XPATH, xpath))
+                    )
+                    
+                    # 执行操作
+                    if action == 'click':
+                        element.click()
+                    elif action == 'set_value':
+                        # 清空输入框并设置新值，触发必要的事件
+                        self.driver.execute_script("""
+                            arguments[0].focus();
+                            arguments[0].value = '';
+                            arguments[0].value = arguments[1];
+                            arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
+                            arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
+                        """, element, value)
+                    elif action == 'getText':
+                        results.append(element.text or element.get_attribute('textContent'))
+                    
+                    operation_results.append({
+                        'index': i,
+                        'action': action,
+                        'success': True
+                    })
+                    
+                    # 如果有延迟，等待指定时间
+                    if delay > 0:
+                        time.sleep(delay / 1000.0)  # 转换为秒
+                        
+                except (TimeoutException, NoSuchElementException) as e:
+                    if optional:
+                        # 可选操作失败不影响整体结果
+                        operation_results.append({
+                            'index': i,
+                            'action': action,
+                            'success': True,
+                            'skipped': True
+                        })
+                    else:
+                        # 必需操作失败，执行回退
+                        operation_results.append({
+                            'index': i,
+                            'action': action,
+                            'success': False,
+                            'error': str(e)
+                        })
+                        
+                        if fallback_operations and i < len(fallback_operations):
+                            try:
+                                fallback_operations[i]()
+                            except Exception as fallback_error:
+                                self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+            
+            # 检查是否有失败的必需操作
+            failed_required = [op for op in operation_results if not op.get('success') and not op.get('skipped')]
+            
+            return {
+                'success': len(failed_required) == 0,
+                'operations': operation_results,
+                'results': results,
+                'partial_success': any(op.get('success') for op in operation_results)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"顺序DOM操作执行失败: {str(e)}")
+            # 执行所有回退操作
+            if fallback_operations:
+                for i, fallback_op in enumerate(fallback_operations):
+                    try:
+                        fallback_op()
+                    except Exception as fallback_error:
+                        self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+            
+            return {'success': False, 'error': str(e)}
+
+    def _fallback_buy_operation(self, amount):
+        """买入操作的回退方法"""
+        try:
+            self.logger.info("\033[34m✅ 执行买入回退操作\033[0m")
+            
+            # 查找并设置金额输入框
+            amount_input = WebDriverWait(self.driver, 1).until(
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
+            )
+            
+            # 清空并设置新值
+            amount_input.clear()
+            amount_input.send_keys(str(amount))
+            
+            # 点击确认按钮
+            buy_confirm_button = WebDriverWait(self.driver, 1).until(
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
+            )
+            buy_confirm_button.click()
+            
+            # 处理可能的ACCEPT弹窗
+            try:
+                accept_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
+                )
+                accept_button.click()
+                #self.logger.info("✅ 点击了ACCEPT按钮")
+            except TimeoutException:
+                self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
+                
+            self.logger.info("✅ \033[34m回退买入操作完成\033[0m")
+            
+        except Exception as e:
+            self.logger.error(f"回退买入操作失败: {str(e)}")
+            raise
+    
+
     def _fallback_sell_operation(self):
         """卖出操作的回退方法"""
         try:
@@ -3325,11 +3785,12 @@ class CryptoTrader:
 
             # 等待ACCEPT弹窗出现
             try:
-                accept_button = WebDriverWait(self.driver, 1).until(
+                accept_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
             except TimeoutException:
+                self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 pass  # 弹窗没出现,不用处理
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
@@ -3338,8 +3799,7 @@ class CryptoTrader:
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3):
-            self.logger.info("\033[32m执行only_sell_up\033[0m")
-
+            self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
             self.click_positions_sell_and_sell_confirm_and_accept()
 
             if self._verify_trade('Sold', 'Up')[0]:
@@ -3355,7 +3815,7 @@ class CryptoTrader:
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
-                self.logger.info(f"卖出 Up 成功")
+                self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
                 self.driver.refresh()
                 break
             else:
@@ -3366,8 +3826,7 @@ class CryptoTrader:
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3): 
-            self.logger.info("\033[32m执行only_sell_down\033[0m")
-
+            self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
             self.click_positions_sell_and_sell_confirm_and_accept()
 
             if self._verify_trade('Sold', 'Down')[0]:
@@ -3384,7 +3843,7 @@ class CryptoTrader:
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
-                self.logger.info(f"卖出 Down 成功")
+                self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
                 self.driver.refresh()
                 break
             else:
@@ -3976,235 +4435,6 @@ class CryptoTrader:
         with self.cache_lock:
             self.element_cache.clear()
     
-    def _execute_batch_dom_operations(self, operations, fallback_operations=None):
-        """批量执行DOM操作 - 支持顺序执行和延迟
-        
-        Args:
-            operations: 要执行的操作列表，每个操作包含 {xpath, action, value?, delay?, optional?}
-            fallback_operations: 批量操作失败时的回退操作函数列表
-            
-        Returns:
-            dict: {success: bool, results: list, error: str?}
-        """
-        try:
-            # 对于需要顺序执行的操作，使用异步JavaScript
-            has_delays = any(op.get('delay', 0) > 0 for op in operations)
-            
-            if has_delays:
-                # 使用异步方式处理有延迟的操作
-                return self._execute_sequential_dom_operations(operations, fallback_operations)
-            
-            # 对于无延迟的操作，使用同步批量处理
-            js_operations = []
-            for i, op in enumerate(operations):
-                xpath = op['xpath']
-                action = op['action']  # 'click', 'setValue', 'getText'
-                value = op.get('value', '')
-                optional = op.get('optional', False)
-                
-                if action == 'click':
-                    action_code = f'element{i}.click();'
-                elif action == 'set_value':
-                    # 清空输入框并设置新值，触发必要的事件
-                    action_code = f'''
-                        element{i}.focus();
-                        element{i}.value = "";
-                        element{i}.value = "{value}";
-                        element{i}.dispatchEvent(new Event("input", {{bubbles: true}}));
-                        element{i}.dispatchEvent(new Event("change", {{bubbles: true}}));
-                    '''
-                elif action == 'getText':
-                    action_code = f'results.push(element{i}.textContent || element{i}.innerText);'
-                else:
-                    action_code = ''
-                
-                if optional:
-                    js_operations.append(f"""
-                        // 操作 {i+1}: {action} (可选)
-                        const element{i} = document.evaluate(
-                            '{xpath}', 
-                            document, 
-                            null, 
-                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
-                            null
-                        ).singleNodeValue;
-                        
-                        if (element{i}) {{
-                            {action_code}
-                            operations.push({{index: {i}, action: '{action}', success: true}});
-                        }} else {{
-                            operations.push({{index: {i}, action: '{action}', success: true, skipped: true}});
-                        }}
-                    """)
-                else:
-                    js_operations.append(f"""
-                        // 操作 {i+1}: {action}
-                        const element{i} = document.evaluate(
-                            '{xpath}', 
-                            document, 
-                            null, 
-                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
-                            null
-                        ).singleNodeValue;
-                        
-                        if (element{i}) {{
-                            {action_code}
-                            operations.push({{index: {i}, action: '{action}', success: true}});
-                        }} else {{
-                            operations.push({{index: {i}, action: '{action}', success: false, error: 'Element not found'}});
-                        }}
-                    """)
-            
-            js_code = f"""
-                try {{
-                    let operations = [];
-                    let results = [];
-                    
-                    {''.join(js_operations)}
-                    
-                    return {{success: true, operations: operations, results: results}};
-                }} catch (e) {{
-                    return {{success: false, error: e.message}};
-                }}
-            """
-            
-            result = self.driver.execute_script(js_code)
-            
-            if result.get('success'):
-                successful_ops = [op for op in result.get('operations', []) if op.get('success')]
-                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
-                
-                if failed_ops and fallback_operations:
-                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败，执行回退操作")
-                    # 只对失败的操作执行回退
-                    for failed_op in failed_ops:
-                        index = failed_op['index']
-                        if index < len(fallback_operations):
-                            try:
-                                fallback_operations[index]()
-                            except Exception as e:
-                                self.logger.error(f"回退操作{index}失败: {str(e)}")
-                
-                return {
-                    'success': True,
-                    'operations': result.get('operations', []),
-                    'results': result.get('results', []),
-                    'partial_success': len(successful_ops) > 0
-                }
-            else:
-                # 完全失败，执行所有回退操作
-                if fallback_operations:
-                    self.logger.warning(f"批量操作完全失败，执行所有回退操作: {result.get('error')}")
-                    for i, fallback_op in enumerate(fallback_operations):
-                        try:
-                            fallback_op()
-                        except Exception as e:
-                            self.logger.error(f"回退操作{i}失败: {str(e)}")
-                
-                return {'success': False, 'error': result.get('error')}
-                
-        except Exception as e:
-            self.logger.error(f"批量DOM操作执行失败: {str(e)}")
-            # 执行所有回退操作
-            if fallback_operations:
-                for i, fallback_op in enumerate(fallback_operations):
-                    try:
-                        fallback_op()
-                    except Exception as e:
-                        self.logger.error(f"回退操作{i}失败: {str(e)}")
-            
-            return {'success': False, 'error': str(e)}
-    
-    def _execute_sequential_dom_operations(self, operations, fallback_operations=None):
-        """顺序执行DOM操作 - 支持延迟和异步操作"""
-        try:
-            results = []
-            operation_results = []
-            
-            for i, op in enumerate(operations):
-                xpath = op['xpath']
-                action = op['action']
-                value = op.get('value', '')
-                delay = op.get('delay', 0)
-                optional = op.get('optional', False)
-                
-                try:
-                    # 查找元素
-                    element = WebDriverWait(self.driver, 0.5).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
-                    
-                    # 执行操作
-                    if action == 'click':
-                        element.click()
-                    elif action == 'set_value':
-                        # 清空输入框并设置新值，触发必要的事件
-                        self.driver.execute_script("""
-                            arguments[0].focus();
-                            arguments[0].value = '';
-                            arguments[0].value = arguments[1];
-                            arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
-                            arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
-                        """, element, value)
-                    elif action == 'getText':
-                        results.append(element.text or element.get_attribute('textContent'))
-                    
-                    operation_results.append({
-                        'index': i,
-                        'action': action,
-                        'success': True
-                    })
-                    
-                    # 如果有延迟，等待指定时间
-                    if delay > 0:
-                        time.sleep(delay / 1000.0)  # 转换为秒
-                        
-                except (TimeoutException, NoSuchElementException) as e:
-                    if optional:
-                        # 可选操作失败不影响整体结果
-                        operation_results.append({
-                            'index': i,
-                            'action': action,
-                            'success': True,
-                            'skipped': True
-                        })
-                    else:
-                        # 必需操作失败，执行回退
-                        operation_results.append({
-                            'index': i,
-                            'action': action,
-                            'success': False,
-                            'error': str(e)
-                        })
-                        
-                        if fallback_operations and i < len(fallback_operations):
-                            try:
-                                fallback_operations[i]()
-                            except Exception as fallback_error:
-                                self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
-            
-            # 检查是否有失败的必需操作
-            failed_required = [op for op in operation_results if not op.get('success') and not op.get('skipped')]
-            
-            return {
-                'success': len(failed_required) == 0,
-                'operations': operation_results,
-                'results': results,
-                'partial_success': any(op.get('success') for op in operation_results)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"顺序DOM操作执行失败: {str(e)}")
-            # 执行所有回退操作
-            if fallback_operations:
-                for i, fallback_op in enumerate(fallback_operations):
-                    try:
-                        fallback_op()
-                    except Exception as fallback_error:
-                        self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
-            
-            return {'success': False, 'error': str(e)}
-
     def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
         """优化版元素查找 - 支持缓存和并行查找多个XPath"""
         # 生成缓存键
@@ -7039,7 +7269,8 @@ class CryptoTrader:
                         </div>
                         <div style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
                             显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
-                            <a href="{{ request.url_root }}history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a>
+                            <a href="{{ request.url_root }}history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a> | 
+                            <a href="/trade_stats.html" target="_blank" style="color: #28a745; text-decoration: none;">交易统计分析</a>
                         </div>
                         {% else %}
                         <div style="text-align: center; padding: 40px; color: #6c757d;">
@@ -7772,7 +8003,363 @@ class CryptoTrader:
 
 
 
+        # 交易统计分析功能集成
+        @app.route('/trade_stats.html')
+        def trade_stats_page():
+            """交易统计分析页面"""
+            return render_template_string(self._get_trade_stats_html())
+        
+        @app.route('/api/stats')
+        def get_stats():
+            """获取统计数据API"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            view_type = request.args.get('type', 'daily')
+            
+            if not self.trade_stats:
+                return jsonify({'error': '交易统计系统未初始化'}), 500
+            
+            try:
+                if view_type == 'daily':
+                    stats = self.trade_stats.get_daily_stats(date)
+                elif view_type == 'weekly':
+                    stats = self.trade_stats.get_weekly_stats(date)
+                elif view_type == 'monthly':
+                    stats = self.trade_stats.get_monthly_stats(date)
+                else:
+                    return jsonify({'error': '无效的统计类型'}), 400
+                
+                # 计算额外统计信息
+                counts = stats.get('counts', [])
+                total = stats.get('total', 0)
+                
+                # 找到最活跃时段
+                peak_hour = '--:--'
+                if counts and max(counts) > 0:
+                    peak_index = counts.index(max(counts))
+                    peak_hour = f'{peak_index:02d}:00'
+                
+                # 计算平均每小时
+                avg_per_hour = total / 24 if total > 0 else 0
+                
+                # 计算时段统计
+                morning_count = sum(counts[6:12]) if len(counts) >= 12 else 0  # 6-12点
+                afternoon_count = sum(counts[12:18]) if len(counts) >= 18 else 0  # 12-18点
+                
+                return jsonify({
+                    'hourly_data': counts,
+                    'total_trades': total,
+                    'peak_hour': peak_hour,
+                    'avg_per_hour': avg_per_hour,
+                    'period_stats': {
+                        'morning': {'count': morning_count},
+                        'afternoon': {'count': afternoon_count}
+                    }
+                })
+            except Exception as e:
+                self.logger.error(f'获取统计数据失败: {e}')
+                return jsonify({'error': str(e)}), 500
+        
+        @app.route('/api/trades/daily')
+        def get_daily_trades():
+            """获取日统计数据"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            return jsonify(self.trade_stats_manager.get_daily_stats(date))
+        
+        @app.route('/api/trades/weekly')
+        def get_weekly_trades():
+            """获取周统计数据"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            return jsonify(self.trade_stats_manager.get_weekly_stats(date))
+        
+        @app.route('/api/trades/monthly')
+        def get_monthly_trades():
+            """获取月统计数据"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            return jsonify(self.trade_stats.get_monthly_stats(date))
+        
+        @app.route('/api/trades/details')
+        def get_trade_details():
+            """获取详细交易记录（精确到秒）"""
+            date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+            
+            if not self.trade_stats:
+                return jsonify({'error': '交易统计系统未初始化'}), 500
+            
+            try:
+                with self.trade_stats.lock:
+                    day_data = self.trade_stats.data.get(date, {})
+                    trades = day_data.get('trades', [])
+                    
+                    # 按时间排序
+                    trades_sorted = sorted(trades, key=lambda x: x['time'])
+                    
+                    return jsonify({
+                        'date': date,
+                        'trades': trades_sorted,
+                        'total_count': len(trades_sorted)
+                    })
+            except Exception as e:
+                self.logger.error(f'获取详细交易记录失败: {e}')
+                return jsonify({'error': str(e)}), 500
+
         return app
+    
+    def _get_trade_stats_html(self):
+        """获取交易统计分析页面的HTML模板"""
+        return '''
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易统计分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin: 0;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stats-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stats-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        
+        .stats-value {
+            color: #007bff;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>交易统计分析</h1>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <input type="date" id="dateInput" />
+                <select id="viewType">
+                    <option value="daily">日统计</option>
+                    <option value="weekly">周统计</option>
+                    <option value="monthly">月统计</option>
+                </select>
+                <button class="btn" onclick="updateChart()">更新数据</button>
+            </div>
+            
+            <div class="chart-container">
+                <div id="loadingIndicator" class="loading" style="display: none;">正在加载数据...</div>
+                <canvas id="tradeChart" width="800" height="400"></canvas>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>总交易次数</h3>
+                    <div class="stats-value" id="totalTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>最活跃时段</h3>
+                    <div class="stats-value" id="peakHour">--:--</div>
+                </div>
+                <div class="stats-card">
+                    <h3>平均每小时</h3>
+                    <div class="stats-value" id="avgPerHour">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午交易</h3>
+                    <div class="stats-value" id="morningTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>下午交易</h3>
+                    <div class="stats-value" id="afternoonTrades">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let tradeChart;
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            
+            initChart();
+            updateChart();
+            
+            // 每30秒自动刷新
+            setInterval(updateChart, 30000);
+        });
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('tradeChart').getContext('2d');
+            
+            tradeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+                    datasets: [{
+                        label: '交易次数',
+                        data: new Array(24).fill(0),
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新图表数据
+        async function updateChart() {
+            const dateInput = document.getElementById('dateInput').value;
+            const viewType = document.getElementById('viewType').value;
+            
+            if (!dateInput) return;
+            
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('tradeChart').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/stats?date=${dateInput}&type=${viewType}`);
+                const data = await response.json();
+                
+                // 更新图表
+                if (data.hourly_data) {
+                    tradeChart.data.datasets[0].data = data.hourly_data;
+                    tradeChart.update();
+                }
+                
+                // 更新统计
+                document.getElementById('totalTrades').textContent = data.total_trades || 0;
+                document.getElementById('peakHour').textContent = data.peak_hour || '--:--';
+                document.getElementById('avgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
+                
+                const periods = data.period_stats || {};
+                document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
+                document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
+                
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('tradeChart').style.display = 'block';
+                
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                document.getElementById('loadingIndicator').textContent = '加载失败';
+            }
+        }
+    </script>
+</body>
+</html>
+        '''
 
     def check_and_kill_port_processes(self, port):
         """检查端口是否被占用，如果被占用则强制杀死占用进程"""

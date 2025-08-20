@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易统计分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin: 0;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .controls input, .controls select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stats-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stats-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        
+        .stats-value {
+            color: #007bff;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>交易统计分析</h1>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <input type="date" id="dateInput" />
+                <select id="viewType">
+                    <option value="daily">日统计</option>
+                    <option value="weekly">周统计</option>
+                    <option value="monthly">月统计</option>
+                </select>
+                <button class="btn" onclick="updateChart()">更新数据</button>
+            </div>
+            
+            <div class="chart-container">
+                <div id="loadingIndicator" class="loading" style="display: none;">正在加载数据...</div>
+                <canvas id="tradeChart" width="800" height="400"></canvas>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>总交易次数</h3>
+                    <div class="stats-value" id="totalTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>最活跃时段</h3>
+                    <div class="stats-value" id="peakHour">--:--</div>
+                </div>
+                <div class="stats-card">
+                    <h3>平均每小时</h3>
+                    <div class="stats-value" id="avgPerHour">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午交易</h3>
+                    <div class="stats-value" id="morningTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>下午交易</h3>
+                    <div class="stats-value" id="afternoonTrades">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let tradeChart;
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            
+            initChart();
+            updateChart();
+            
+            // 每5分钟自动刷新
+            setInterval(updateChart, 300000);
+        });
+        
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('tradeChart').getContext('2d');
+            
+            tradeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`),
+                    datasets: [{
+                        label: '交易次数',
+                        data: new Array(24).fill(0),
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新图表数据
+        async function updateChart() {
+            const dateInput = document.getElementById('dateInput').value;
+            const viewType = document.getElementById('viewType').value;
+            
+            if (!dateInput) return;
+            
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('tradeChart').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/stats?date=${dateInput}&type=${viewType}`);
+                const data = await response.json();
+                
+                // 更新图表
+                if (data.hourly_data) {
+                    tradeChart.data.datasets[0].data = data.hourly_data;
+                    tradeChart.update();
+                }
+                
+                // 更新统计
+                document.getElementById('totalTrades').textContent = data.total_trades || 0;
+                document.getElementById('peakHour').textContent = data.peak_hour || '--:--';
+                document.getElementById('avgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
+                
+                const periods = data.period_stats || {};
+                document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
+                document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
+                
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('tradeChart').style.display = 'block';
+                
+            } catch (error) {
+                console.error('获取数据失败:', error);
+                document.getElementById('loadingIndicator').textContent = '加载失败';
+            }
+        }
+    </script>
+</body>
+</html>
