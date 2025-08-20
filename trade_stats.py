@@ -71,9 +71,13 @@ class TradeStatsManager:
             # 初始化24小时数据
             counts = [0] * 24
             for hour_str, count in day_data.items():
-                hour = int(hour_str)
-                if 0 <= hour <= 23:
-                    counts[hour] = count
+                try:
+                    hour = int(hour_str)
+                    if 0 <= hour <= 23:
+                        counts[hour] = count
+                except ValueError:
+                    # 跳过无法转换为整数的键
+                    continue
             
             # 计算百分比
             total = sum(counts)
@@ -103,9 +107,13 @@ class TradeStatsManager:
                 
                 day_data = self.data.get(date_key, {})
                 for hour_str, count in day_data.items():
-                    hour = int(hour_str)
-                    if 0 <= hour <= 23:
-                        weekly_counts[hour] += count
+                    try:
+                        hour = int(hour_str)
+                        if 0 <= hour <= 23:
+                            weekly_counts[hour] += count
+                    except ValueError:
+                        # 跳过无法转换为整数的键
+                        continue
             
             total = sum(weekly_counts)
             percentages = [round(count / total * 100, 1) if total > 0 else 0 for count in weekly_counts]
@@ -141,9 +149,13 @@ class TradeStatsManager:
                 
                 day_data = self.data.get(date_key, {})
                 for hour_str, count in day_data.items():
-                    hour = int(hour_str)
-                    if 0 <= hour <= 23:
-                        monthly_counts[hour] += count
+                    try:
+                        hour = int(hour_str)
+                        if 0 <= hour <= 23:
+                            monthly_counts[hour] += count
+                    except ValueError:
+                        # 跳过无法转换为整数的键
+                        continue
                 
                 current_date += timedelta(days=1)
             
