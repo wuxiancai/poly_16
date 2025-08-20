@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>交易统计分析</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         * {
             margin: 0;
@@ -81,28 +82,51 @@
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            min-width: 0;
+        }
+        
+        @media (max-width: 1000px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         
         .stats-card {
             background: #f8f9fa;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 15px;
+            padding: 10px 6px;
             text-align: center;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .stats-card h3 {
             color: #495057;
-            margin-bottom: 10px;
-            font-size: 1em;
+            margin-bottom: 6px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 0;
         }
         
         .stats-value {
             color: #007bff;
-            font-size: 1.5em;
+            font-size: 1.1em;
             font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .loading {
@@ -155,12 +179,19 @@
                     <h3>下午交易</h3>
                     <div class="stats-value" id="afternoonTrades">0</div>
                 </div>
+                <div class="stats-card">
+                    <h3>晚上交易</h3>
+                    <div class="stats-value" id="eveningTrades">0</div>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
         let tradeChart;
+        
+        // 注册datalabels插件
+        Chart.register(ChartDataLabels);
         
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
@@ -185,8 +216,8 @@
                     datasets: [{
                         label: '交易次数',
                         data: new Array(24).fill(0),
-                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                        borderColor: 'rgba(0, 123, 255, 1)',
+                        backgroundColor: new Array(24).fill('rgba(0, 123, 255, 0.6)'),
+                        borderColor: new Array(24).fill('rgba(0, 123, 255, 1)'),
                         borderWidth: 1
                     }]
                 },
@@ -196,6 +227,17 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            },
+                            color: '#333',
+                            font: {
+                                weight: 'bold'
+                            }
                         }
                     },
                     scales: {
@@ -227,6 +269,27 @@
                 // 更新图表
                 if (data.hourly_data) {
                     tradeChart.data.datasets[0].data = data.hourly_data;
+                    
+                    // 找到最活跃的小时
+                    const maxValue = Math.max(...data.hourly_data);
+                    const peakHours = [];
+                    data.hourly_data.forEach((value, index) => {
+                        if (value === maxValue && value > 0) {
+                            peakHours.push(index);
+                        }
+                    });
+                    
+                    // 设置颜色：最活跃小时为红色，其他为蓝色
+                    const backgroundColors = new Array(24).fill('rgba(0, 123, 255, 0.6)');
+                    const borderColors = new Array(24).fill('rgba(0, 123, 255, 1)');
+                    
+                    peakHours.forEach(hour => {
+                        backgroundColors[hour] = 'rgba(255, 99, 132, 0.6)';
+                        borderColors[hour] = 'rgba(255, 99, 132, 1)';
+                    });
+                    
+                    tradeChart.data.datasets[0].backgroundColor = backgroundColors;
+                    tradeChart.data.datasets[0].borderColor = borderColors;
                     tradeChart.update();
                 }
                 
@@ -238,6 +301,7 @@
                 const periods = data.period_stats || {};
                 document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
                 document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
+                document.getElementById('eveningTrades').textContent = periods.evening?.count || 0;
                 
                 document.getElementById('loadingIndicator').style.display = 'none';
                 document.getElementById('tradeChart').style.display = 'block';

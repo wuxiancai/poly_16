@@ -8049,8 +8049,9 @@ class CryptoTrader:
                 avg_per_hour = total / 24 if total > 0 else 0
                 
                 # 计算时段统计
-                morning_count = sum(counts[6:12]) if len(counts) >= 12 else 0  # 6-12点
-                afternoon_count = sum(counts[12:18]) if len(counts) >= 18 else 0  # 12-18点
+                morning_count = sum(counts[1:12]) if len(counts) >= 12 else 0  # 1-12点
+                afternoon_count = sum(counts[12:20]) if len(counts) >= 20 else 0  # 12-20点
+                evening_count = sum(counts[20:24]) if len(counts) >= 24 else 0  # 20-24点
                 
                 return jsonify({
                     'hourly_data': counts,
@@ -8059,7 +8060,8 @@ class CryptoTrader:
                     'avg_per_hour': avg_per_hour,
                     'period_stats': {
                         'morning': {'count': morning_count},
-                        'afternoon': {'count': afternoon_count}
+                        'afternoon': {'count': afternoon_count},
+                        'evening': {'count': evening_count}
                     }
                 })
             except Exception as e:
@@ -8271,6 +8273,10 @@ class CryptoTrader:
                     <h3>下午交易</h3>
                     <div class="stats-value" id="afternoonTrades">0</div>
                 </div>
+                <div class="stats-card">
+                    <h3>晚上交易</h3>
+                    <div class="stats-value" id="eveningTrades">0</div>
+                </div>
             </div>
         </div>
     </div>
@@ -8354,6 +8360,7 @@ class CryptoTrader:
                 const periods = data.period_stats || {};
                 document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
                 document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
+                document.getElementById('eveningTrades').textContent = periods.evening?.count || 0;
                 
                 document.getElementById('loadingIndicator').style.display = 'none';
                 document.getElementById('tradeChart').style.display = 'block';
