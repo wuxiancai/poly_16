@@ -5746,6 +5746,20 @@ class CryptoTrader:
     def create_flask_app(self):
         """创建Flask应用，展示内存中的cash_history"""
         app = Flask(__name__)
+        
+        # 添加自定义过滤器来安全地处理整数转换
+        def safe_int(value, default=0):
+            """安全地将值转换为整数"""
+            try:
+                if value is None:
+                    return default
+                # 移除非数字字符
+                clean_value = re.sub(r'[^0-9]', '', str(value))
+                return int(clean_value) if clean_value else default
+            except (ValueError, TypeError):
+                return default
+        
+        app.jinja_env.filters['safe_int'] = safe_int
 
         @app.route("/")
         def index():
@@ -6905,7 +6919,7 @@ class CryptoTrader:
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|safe_int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
