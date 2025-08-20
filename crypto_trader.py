@@ -7068,193 +7068,151 @@ class CryptoTrader:
                             <p style="font-size: 14px; margin: 10px 0 0 0;">数据将在每日 0:30 自动记录</p>
                         </div>
                         {% endif %}
-                        <div style="text-align: center; margin-top: 5px; padding: 10px; background-color: #e9ecef; border-radius: 5px; font-size: 12px; color: #6c757d;">
-                            <!DOCTYPE html>
-                            <html lang="zh-CN">
-                            <head>
-                                <meta charset="UTF-8">
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                
-                                <style>
-                                    body {
-                                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                        margin: 0;
-                                        padding: 20px;
-                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                        min-height: 100vh;
-                                    }
-                                    .container {
-                                        max-width: 1200px;
-                                        margin: 0 auto;
-                                        background: rgba(255, 255, 255, 0.95);
-                                        border-radius: 15px;
-                                        padding: 30px;
-                                        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                                    }
-                                    h1 {
-                                        text-align: center;
-                                        color: #333;
-                                        margin-bottom: 30px;
-                                        font-size: 2.5em;
-                                        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-                                    }
-                                    .input-section {
-                                        display: flex;
-                                        justify-content: center;
-                                        gap: 30px;
-                                        margin-bottom: 30px;
-                                        flex-wrap: wrap;
-                                    }
-                                    .input-group {
-                                        display: flex;
-                                        flex-direction: column;
-                                        align-items: center;
-                                    }
-                                    .input-group label {
-                                        font-size: 18px;
-                                        font-weight: bold;
-                                        color: #333;
-                                        margin-bottom: 10px;
-                                    }
-                                    .input-group input {
-                                        padding: 12px 20px;
-                                        font-size: 16px;
-                                        border: 2px solid #ddd;
-                                        border-radius: 8px;
-                                        width: 150px;
-                                        text-align: center;
-                                        transition: border-color 0.3s ease;
-                                    }
-                                    .input-group input:focus {
-                                        outline: none;
-                                        border-color: #667eea;
-                                        box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
-                                    }
-                                    .results-table {
-                                        width: 100%;
-                                        border-collapse: collapse;
-                                        margin-top: 20px;
-                                        background: white;
-                                        border-radius: 10px;
-                                        overflow: hidden;
-                                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                                    }
-                                    .results-table th {
-                                        background: linear-gradient(45deg, #667eea, #764ba2);
-                                        color: white;
-                                        padding: 15px;
-                                        text-align: center;
-                                        font-weight: bold;
-                                        font-size: 16px;
-                                    }
-                                    .results-table td {
-                                        padding: 12px 15px;
-                                        text-align: center;
-                                        border-bottom: 1px solid #eee;
-                                        font-size: 14px;
-                                    }
-                                    .results-table tr:nth-child(even) {
-                                        background-color: #f8f9fa;
-                                    }
-                                    .results-table tr:hover {
-                                        background-color: #e3f2fd;
-                                        transition: background-color 0.3s ease;
-                                    }
-                                    .back-button {
-                                        display: inline-block;
-                                        background: #667eea;
-                                        color: white;
-                                        padding: 12px 24px;
-                                        text-decoration: none;
-                                        border-radius: 25px;
-                                        margin-bottom: 20px;
-                                        transition: all 0.3s ease;
-                                        font-weight: bold;
-                                    }
-                                    .back-button:hover {
-                                        background: #5a6fd8;
-                                        transform: translateY(-2px);
-                                        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                                    }
-                                    .month-header {
-                                        font-weight: bold;
-                                        color: #667eea;
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="container">
+                        <div style="text-align: center;  padding: 20px; border-radius: 12px; ">
+                            <style>
+                                .results-table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    background: white;
+                                    border-radius: 12px;
+                                    overflow: hidden;
+                                    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                }
+                                .results-table th {
+                                    background: linear-gradient(45deg, #667eea, #764ba2);
+                                    color: white;
+                                    padding: 15px 8px;
+                                    text-align: center;
+                                    font-weight: 600;
+                                    font-size: 13px;
+                                    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                                    border: none;
+                                }
+                                .results-table td {
+                                    padding: 12px 6px;
+                                    text-align: center;
+                                    border-bottom: 1px solid #f0f2f5;
+                                    font-size: 13px;
+                                    background: white;
+                                    transition: all 0.3s ease;
+                                }
+                                .results-table tr:hover td {
+                                    background-color: #f8f9ff;
+                                    transform: translateY(-1px);
+                                }
+                                .results-table input {
+                                    width: 100%;
+                                    border: none;
+                                    text-align: center;
+                                    background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    color: #2c3e50;
+                                    padding: 8px 4px;
+                                    border-radius: 6px;
+                                    transition: all 0.3s ease;
+                                }
+                                .results-table input:focus {
+                                    outline: none;
+                                    background: #f0f4ff;
+                                    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+                                }
+                                .results-table input:hover {
+                                    background: #f8f9ff;
+                                }
+                                .month-result {
+                                    font-weight: 600;
+                                    color: #2c3e50;
+                                    background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                                    border-radius: 6px;
+                                    padding: 8px 4px;
+                                    margin: 2px;
+                                    transition: all 0.3s ease;
+                                    min-height: 20px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                }
+                                .month-result:hover {
+                                    transform: translateY(-2px);
+                                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+                                }
+                            </style>
+                            <table class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>本金</th>
+                                        <th>日利率</th>
+                                        <th>1月</th>
+                                        <th>2月</th>
+                                        <th>3月</th>
+                                        <th>4月</th>
+                                        <th>5月</th>
+                                        <th>6月</th>
+                                        <th>7月</th>
+                                        <th>8月</th>
+                                        <th>9月</th>
+                                        <th>10月</th>
+                                        <th>11月</th>
+                                        <th>12月</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="results-row">
+                                        <td><input type="number" id="table-principal" value="10000" min="0" step="0.01"></td>
+                                        <td><input type="text" id="table-rate" value="1%"></td>
+                                        <td><div id="month-1" class="month-result"></div></td>
+                                        <td><div id="month-2" class="month-result"></div></td>
+                                        <td><div id="month-3" class="month-result"></div></td>
+                                        <td><div id="month-4" class="month-result"></div></td>
+                                        <td><div id="month-5" class="month-result"></div></td>
+                                        <td><div id="month-6" class="month-result"></div></td>
+                                        <td><div id="month-7" class="month-result"></div></td>
+                                        <td><div id="month-8" class="month-result"></div></td>
+                                        <td><div id="month-9" class="month-result"></div></td>
+                                        <td><div id="month-10" class="month-result"></div></td>
+                                        <td><div id="month-11" class="month-result"></div></td>
+                                        <td><div id="month-12" class="month-result"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <script>
+                                function calculateCompound() {
+                                    const principal = parseFloat(document.getElementById('table-principal').value) || 0;
+                                    const rateValue = document.getElementById('table-rate').value;
+                                    const dailyRate = parseFloat(rateValue.replace('%', '')) / 100 || 0;
                                     
-                                    <table class="results-table">
-                                        <thead>
-                                            <tr>
-                                                <th>本金</th>
-                                                <th>日利率</th>
-                                                <th class="month-header">1月</th>
-                                                <th class="month-header">2月</th>
-                                                <th class="month-header">3月</th>
-                                                <th class="month-header">4月</th>
-                                                <th class="month-header">5月</th>
-                                                <th class="month-header">6月</th>
-                                                <th class="month-header">7月</th>
-                                                <th class="month-header">8月</th>
-                                                <th class="month-header">9月</th>
-                                                <th class="month-header">10月</th>
-                                                <th class="month-header">11月</th>
-                                                <th class="month-header">12月</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr id="results-row">
-                                                <td><input type="number" id="table-principal" value="10000" min="0" step="0.01" style="width: 100%; border: none; text-align: center; background: transparent; font-size: 14px;"></td>
-                                                <td><input type="text" id="table-rate" value="1%" style="width: 100%; border: none; text-align: center; background: transparent; font-size: 14px;"></td>
-                                                <td id="month-1"></td>
-                                                <td id="month-2"></td>
-                                                <td id="month-3"></td>
-                                                <td id="month-4"></td>
-                                                <td id="month-5"></td>
-                                                <td id="month-6"></td>
-                                                <td id="month-7"></td>
-                                                <td id="month-8"></td>
-                                                <td id="month-9"></td>
-                                                <td id="month-10"></td>
-                                                <td id="month-11"></td>
-                                                <td id="month-12"></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <script>
-                                    function calculateCompound() {
-                                        const principal = parseFloat(document.getElementById('table-principal').value) || 0;
-                                        const rateValue = document.getElementById('table-rate').value;
-                                        const dailyRate = parseFloat(rateValue.replace('%', '')) / 100 || 0;
-                                        
-                                        // 计算每个月的复利金额（每月按30天计算）
-                                        for (let month = 1; month <= 12; month++) {
-                                            const days = month * 30;
-                                            const amount = principal * Math.pow(1 + dailyRate, days);
-                                            const cell = document.getElementById('month-' + month);
+                                    // 计算每个月的复利金额（每月按30天计算）
+                                    for (let month = 1; month <= 12; month++) {
+                                        const days = month * 30;
+                                        const amount = principal * Math.pow(1 + dailyRate, days);
+                                        const cell = document.getElementById('month-' + month);
+                                        if (cell) {
                                             cell.textContent = amount.toLocaleString('zh-CN', {maximumFractionDigits: 0});
                                         }
                                     }
-                                    
-                                    // 监听输入变化
-                                    document.getElementById('table-principal').addEventListener('input', calculateCompound);
-                                    document.getElementById('table-rate').addEventListener('input', function() {
-                                        let value = this.value.replace('%', '');
-                                        if (value && !isNaN(value)) {
-                                            this.value = value + '%';
-                                        }
-                                        calculateCompound();
-                                    });
-                                    
-                                    // 页面加载时计算一次
+                                }
+                                
+                                // 监听输入变化
+                                document.getElementById('table-principal').addEventListener('input', calculateCompound);
+                                document.getElementById('table-rate').addEventListener('input', function() {
+                                    let value = this.value.replace('%', '');
+                                    if (value && !isNaN(value)) {
+                                        this.value = value + '%';
+                                    }
                                     calculateCompound();
-                                </script>
-                            </body>
-                            </html>
+                                });
+                                
+                                // 页面加载时计算一次
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    calculateCompound();
+                                });
+                                
+                                // 立即执行一次计算
+                                setTimeout(calculateCompound, 100);
+                            </script>
                         </div>
                     </div>
                     </div>
@@ -7833,81 +7791,7 @@ class CryptoTrader:
                 self.logger.error(f"程序重启失败: {str(e)}")
                 return jsonify({'success': False, 'message': f'重启失败: {str(e)}'})
 
-        @app.route('/compound')
-        def compound_calculator():
-            """复利计算器页面"""
-            html_content = '''
-            <table class="results-table" style="width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
-                <thead>
-                    <tr>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px;">本金</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px;">日利率</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">1月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">2月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">3月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">4月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">5月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">6月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">7月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">8月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">9月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">10月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">11月</th>
-                        <th style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">12月</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr id="results-row">
-                        <td style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"><input type="number" id="table-principal" value="10000" min="0" step="0.01" style="width: 100%; border: none; text-align: center; background: transparent; font-size: 14px;"></td>
-                        <td style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"><input type="text" id="table-rate" value="1%" style="width: 100%; border: none; text-align: center; background: transparent; font-size: 14px;"></td>
-                        <td id="month-1" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-2" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-3" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-4" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-5" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-6" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-7" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-8" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-9" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-10" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-11" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                        <td id="month-12" style="padding: 12px 15px; text-align: center; border-bottom: 1px solid #eee; font-size: 14px;"></td>
-                    </tr>
-                </tbody>
-            </table>
-                
-                <script>
-                    function calculateCompound() {
-                        const principal = parseFloat(document.getElementById('table-principal').value) || 0;
-                        const rateValue = document.getElementById('table-rate').value;
-                        const dailyRate = parseFloat(rateValue.replace('%', '')) / 100 || 0;
-                        
-                        // 计算每个月的复利金额（每月按30天计算）
-                        for (let month = 1; month <= 12; month++) {
-                            const days = month * 30;
-                            const amount = principal * Math.pow(1 + dailyRate, days);
-                            const cell = document.getElementById('month-' + month);
-                            cell.textContent = amount.toLocaleString('zh-CN', {maximumFractionDigits: 0});
-                        }
-                    }
-                    
-                    // 监听输入变化
-                    document.getElementById('table-principal').addEventListener('input', calculateCompound);
-                    document.getElementById('table-rate').addEventListener('input', function() {
-                        let value = this.value.replace('%', '');
-                        if (value && !isNaN(value)) {
-                            this.value = value + '%';
-                        }
-                        calculateCompound();
-                    });
-                    
-                    // 页面加载时计算一次
-                    calculateCompound();
-                </script>
-            </body>
-            </html>
-            '''
-            return html_content
+
 
         return app
 
