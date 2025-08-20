@@ -8199,22 +8199,26 @@ class CryptoTrader:
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
         }
         
         .stats-card {
             background: #f8f9fa;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 15px;
+            padding: 10px 5px;
             text-align: center;
+            min-width: 0;
         }
         
         .stats-card h3 {
             color: #495057;
-            margin-bottom: 10px;
-            font-size: 1em;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .stats-value {
