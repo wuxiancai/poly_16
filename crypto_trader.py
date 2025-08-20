@@ -2423,7 +2423,7 @@ class CryptoTrader:
     def refresh_page(self):
         """智能定时刷新页面 - 优化刷新频率和条件"""
         # 增加刷新间隔到8-15分钟，减少不必要的刷新
-        random_minutes = random.uniform(8, 15)
+        random_minutes = random.uniform(2, 6)
         self.refresh_interval = int(random_minutes * 60000)  # 转换为毫秒
         
         # 初始化刷新失败计数器（如果不存在）
@@ -5746,20 +5746,6 @@ class CryptoTrader:
     def create_flask_app(self):
         """创建Flask应用，展示内存中的cash_history"""
         app = Flask(__name__)
-        
-        # 添加自定义过滤器来安全地处理整数转换
-        def safe_int(value, default=0):
-            """安全地将值转换为整数"""
-            try:
-                if value is None:
-                    return default
-                # 移除非数字字符
-                clean_value = re.sub(r'[^0-9]', '', str(value))
-                return int(clean_value) if clean_value else default
-            except (ValueError, TypeError):
-                return default
-        
-        app.jinja_env.filters['safe_int'] = safe_int
 
         @app.route("/")
         def index():
@@ -6919,7 +6905,7 @@ class CryptoTrader:
                                             <span id="timeDisplay">{{ data.auto_find_time }}</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|safe_int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
+                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 <!-- 交易仓位显示区域 -->
@@ -8107,13 +8093,13 @@ class CryptoTrader:
         def get_daily_trades():
             """获取日统计数据"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
-            return jsonify(self.trade_stats_manager.get_daily_stats(date))
+            return jsonify(self.trade_stats.get_daily_stats(date))
         
         @app.route('/api/trades/weekly')
         def get_weekly_trades():
             """获取周统计数据"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
-            return jsonify(self.trade_stats_manager.get_weekly_stats(date))
+            return jsonify(self.trade_stats.get_weekly_stats(date))
         
         @app.route('/api/trades/monthly')
         def get_monthly_trades():
