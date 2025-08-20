@@ -38,7 +38,7 @@ import psutil
 import socket
 import urllib.request
 import requests
-from trade_stats import TradeStatsManager
+from trade_stats_manager import TradeStatsManager
 import urllib3
 import warnings
 from collections import defaultdict
