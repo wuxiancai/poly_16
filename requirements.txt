@@ -6,3 +6,4 @@ requests
 websocket-client
 psutil
 urllib3
+watchdog
