@@ -111,9 +111,15 @@ class TradeStatsManager:
             # 初始化24小时数据
             counts = [0] * 24
             for hour_str, count in day_data.items():
-                hour = int(hour_str)
-                if 0 <= hour <= 23:
-                    counts[hour] = count
+                # 跳过非数字键（如'trades'）
+                if not hour_str.isdigit():
+                    continue
+                try:
+                    hour = int(hour_str)
+                    if 0 <= hour <= 23:
+                        counts[hour] = count
+                except ValueError:
+                    continue
             
             # 计算百分比
             total = sum(counts)
@@ -143,9 +149,15 @@ class TradeStatsManager:
                 
                 day_data = self.data.get(date_key, {})
                 for hour_str, count in day_data.items():
-                    hour = int(hour_str)
-                    if 0 <= hour <= 23:
-                        weekly_counts[hour] += count
+                    # 跳过非数字键（如'trades'）
+                    if not hour_str.isdigit():
+                        continue
+                    try:
+                        hour = int(hour_str)
+                        if 0 <= hour <= 23:
+                            weekly_counts[hour] += count
+                    except ValueError:
+                        continue
             
             total = sum(weekly_counts)
             percentages = [round(count / total * 100, 1) if total > 0 else 0 for count in weekly_counts]
@@ -181,9 +193,15 @@ class TradeStatsManager:
                 
                 day_data = self.data.get(date_key, {})
                 for hour_str, count in day_data.items():
-                    hour = int(hour_str)
-                    if 0 <= hour <= 23:
-                        monthly_counts[hour] += count
+                    # 跳过非数字键（如'trades'）
+                    if not hour_str.isdigit():
+                        continue
+                    try:
+                        hour = int(hour_str)
+                        if 0 <= hour <= 23:
+                            monthly_counts[hour] += count
+                    except ValueError:
+                        continue
                 
                 current_date += timedelta(days=1)
             
