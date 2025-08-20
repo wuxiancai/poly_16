@@ -38,6 +38,8 @@ import psutil
 import socket
 import urllib.request
 import requests
+import urllib3
+import warnings
 from collections import defaultdict
 
 
@@ -490,6 +492,29 @@ class CryptoTrader:
 
         # 停止事件
         self.stop_event = threading.Event()
+        
+        # 创建专用的HTTP Session，配置连接池参数
+        self.http_session = requests.Session()
+        # 配置连接池适配器，增加连接池大小
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        # 配置重试策略
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        
+        # 配置HTTP适配器，增加连接池大小
+        adapter = HTTPAdapter(
+            pool_connections=10,  # 连接池数量
+            pool_maxsize=20,      # 每个连接池的最大连接数
+            max_retries=retry_strategy
+        )
+        
+        self.http_session.mount("http://", adapter)
+        self.http_session.mount("https://", adapter)
 
         # 初始化金额为 0
         for i in range(1, 4):  # 1到4
@@ -1573,8 +1598,7 @@ class CryptoTrader:
                         time.sleep(wait_interval)
                         try:
                             # 检查调试端口是否可用
-                            import requests
-                            response = requests.get('http://127.0.0.1:9222/json', timeout=2)
+                            response = self.http_session.get('http://127.0.0.1:9222/json', timeout=2)
                             if response.status_code == 200:
                                 self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
                                 break
