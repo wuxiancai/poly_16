@@ -818,10 +818,11 @@ class CryptoTrader:
             status_forcelist=[429, 500, 502, 503, 504],
         )
         
-        # 配置HTTP适配器,增加连接池大小以应对频繁的Chrome调试端口检查
+        # 配置HTTP适配器,使用合理的连接池大小
+        # 由于主要用于检查Chrome调试端口，不需要大量连接
         adapter = HTTPAdapter(
-            pool_connections=20,  # 连接池数量 (增加到20)
-            pool_maxsize=50,      # 每个连接池的最大连接数 (增加到50)
+            pool_connections=2,   # 连接池数量 (调整为2，足够应对HTTP/HTTPS)
+            pool_maxsize=5,       # 每个连接池的最大连接数 (调整为5)
             max_retries=retry_strategy
         )
         
@@ -829,7 +830,7 @@ class CryptoTrader:
         self.http_session.mount("https://", adapter)
         
         # 记录连接池配置信息
-        self.logger.info(f"✅ HTTP连接池已配置: pool_connections=20, pool_maxsize=50")
+        self.logger.info(f"✅ HTTP连接池已配置: pool_connections=2, pool_maxsize=5")
         self.logger.info(f"✅ HTTP重试策略: total={retry_strategy.total}, backoff_factor={retry_strategy.backoff_factor}")
 
         # 初始化金额为 0
@@ -1917,13 +1918,11 @@ class CryptoTrader:
                     for wait_time in range(0, max_wait_time, wait_interval):
                         time.sleep(wait_interval)
                         try:
-                            # 检查调试端口是否可用
-                            response = self.http_session.get('http://127.0.0.1:9222/json', timeout=2)
-                            if response.status_code == 200:
-                                response.close()  # 显式关闭连接
-                                self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
-                                break
-                            response.close()  # 确保连接被关闭
+                            # 检查调试端口是否可用，使用上下文管理器确保连接正确关闭
+                            with self.http_session.get('http://127.0.0.1:9222/json', timeout=2, stream=False) as response:
+                                if response.status_code == 200:
+                                    self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
+                                    break
                         except:
                             continue
                     else:
@@ -3912,7 +3911,7 @@ class CryptoTrader:
             # 定义批量操作 - 设置金额并点击确认
             operations = [
                 {'xpath': XPathConfig.AMOUNT_INPUT[0], 'action': 'set_value', 'value': amount},
-                {'xpath': XPathConfig.BUY_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 200},
+                {'xpath': XPathConfig.BUY_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 100},
                 {'xpath': XPathConfig.ACCEPT_BUTTON[0], 'action': 'click', 'delay': 100, 'optional': True}
             ]
             
@@ -3969,147 +3968,77 @@ class CryptoTrader:
             self.logger.error(f"卖出失败: {str(e)}")
 
     def _execute_batch_dom_operations(self, operations, fallback_operations=None):
-        """批量执行DOM操作 - 支持顺序执行和延迟       
+        """批量执行DOM操作 - 专为买入/卖出操作优化，强制顺序执行  
+        买入/卖出操作必须严格按顺序执行，任何步骤的颠倒都可能导致交易失败：
+        - 买入流程：1.点击买入按钮 -> 2.输入金额 -> 3.点击买入确认按钮
+        - 卖出流程：1.点击Sell按钮 -> 2.点击 卖出确认按钮  
         Args:
-            operations: 要执行的操作列表,每个操作包含 {xpath, action, value?, delay?, optional?}
+            operations: 要执行的操作列表,每个操作包含 {xpath, action, value?, delay?, optional?, retry_count?}
             fallback_operations: 批量操作失败时的回退操作函数列表 
         Returns:
-            dict: {success: bool, results: list, error: str?}
+            dict: {success: bool, results: list, operations: list, error: str?}
         """
         try:
-            # 对于需要顺序执行的操作,使用异步JavaScript
-            has_delays = any(op.get('delay', 0) > 0 for op in operations)
+            if not operations:
+                self.logger.warning("批量DOM操作：操作列表为空")
+                return {'success': True, 'results': [], 'operations': []}
             
-            if has_delays:
-                # 使用异步方式处理有延迟的操作
-                return self._execute_sequential_dom_operations(operations, fallback_operations)
-            
-            # 对于无延迟的操作,使用同步批量处理
-            js_operations = []
+            # 记录操作序列信息
+            operation_summary = []
             for i, op in enumerate(operations):
-                xpath = op['xpath']
-                action = op['action']  # 'click', 'setValue', 'getText'
-                value = op.get('value', '')
-                optional = op.get('optional', False)
-                
-                if action == 'click':
-                    action_code = f'element{i}.click();'
-                elif action == 'set_value':
-                    # 清空输入框并设置新值,触发必要的事件
-                    action_code = f'''
-                        element{i}.focus();
-                        element{i}.value = "";
-                        element{i}.value = "{value}";
-                        element{i}.dispatchEvent(new Event("input", {{bubbles: true}}));
-                        element{i}.dispatchEvent(new Event("change", {{bubbles: true}}));
-                    '''
-                elif action == 'getText':
-                    action_code = f'results.push(element{i}.textContent || element{i}.innerText);'
-                else:
-                    action_code = ''
-                
-                if optional:
-                    js_operations.append(f"""
-                        // 操作 {i+1}: {action} (可选)
-                        const element{i} = document.evaluate(
-                            '{xpath}', 
-                            document, 
-                            null, 
-                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
-                            null
-                        ).singleNodeValue;
-                        
-                        if (element{i}) {{
-                            {action_code}
-                            operations.push({{index: {i}, action: '{action}', success: true}});
-                        }} else {{
-                            operations.push({{index: {i}, action: '{action}', success: true, skipped: true}});
-                        }}
-                    """)
-                else:
-                    js_operations.append(f"""
-                        // 操作 {i+1}: {action}
-                        const element{i} = document.evaluate(
-                            '{xpath}', 
-                            document, 
-                            null, 
-                            XPathResult.FIRST_ORDERED_NODE_TYPE, 
-                            null
-                        ).singleNodeValue;
-                        
-                        if (element{i}) {{
-                            {action_code}
-                            operations.push({{index: {i}, action: '{action}', success: true}});
-                        }} else {{
-                            operations.push({{index: {i}, action: '{action}', success: false, error: 'Element not found'}});
-                        }}
-                    """)
+                action_desc = f"{op.get('action', 'unknown')}"
+                if op.get('value'):
+                    action_desc += f"(值:{op['value']})"
+                operation_summary.append(f"{i+1}.{action_desc}")
             
-            js_code = f"""
-                try {{
-                    let operations = [];
-                    let results = [];
-                    
-                    {''.join(js_operations)}
-                    
-                    return {{success: true, operations: operations, results: results}};
-                }} catch (e) {{
-                    return {{success: false, error: e.message}};
-                }}
-            """
+            self.logger.info(f"✅ \033[34m开始批量DOM操作（强制顺序执行），共{len(operations)}个操作\033[0m")
+            self.logger.debug(f"操作序列: {' -> '.join(operation_summary)}")
             
-            result = self.driver.execute_script(js_code)
+            # 验证关键操作的存在（买入/卖出相关）
+            has_click_action = any(op.get('action') == 'click' for op in operations)
+            has_input_action = any(op.get('action') == 'set_value' for op in operations)
+            
+            if has_click_action:
+                self.logger.debug("检测到点击操作，确保严格顺序执行")
+            if has_input_action:
+                self.logger.debug("检测到输入操作，将在点击后执行")
+            
+            # 强制使用顺序执行，确保买入/卖出操作的严格顺序
+            start_time = time.time()
+            result = self._execute_sequential_dom_operations(operations, fallback_operations)
+            execution_time = time.time() - start_time
             
             if result.get('success'):
-                successful_ops = [op for op in result.get('operations', []) if op.get('success')]
-                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
-                
-                if failed_ops and fallback_operations:
-                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败,执行回退操作")
-                    # 只对失败的操作执行回退
-                    for failed_op in failed_ops:
-                        index = failed_op['index']
-                        if index < len(fallback_operations):
-                            try:
-                                fallback_operations[index]()
-                            except Exception as e:
-                                self.logger.error(f"回退操作{index}失败: {str(e)}")
-                
-                return {
-                    'success': True,
-                    'operations': result.get('operations', []),
-                    'results': result.get('results', []),
-                    'partial_success': len(successful_ops) > 0
-                }
+                self.logger.info(f"✅ \033[34m批量DOM操作全部成功完成，耗时: {execution_time:.2f}秒\033[0m")
             else:
-                # 完全失败,执行所有回退操作
-                if fallback_operations:
-                    self.logger.warning(f"批量操作完全失败,执行所有回退操作: {result.get('error')}")
-                    for i, fallback_op in enumerate(fallback_operations):
-                        try:
-                            fallback_op()
-                        except Exception as e:
-                            self.logger.error(f"回退操作{i}失败: {str(e)}")
-                
-                return {'success': False, 'error': result.get('error')}
+                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
+                self.logger.error(f"批量DOM操作失败，{len(failed_ops)}个操作失败，耗时: {execution_time:.2f}秒")
+                if result.get('error'):
+                    self.logger.error(f"错误详情: {result['error']}")
+            
+            return result
                 
         except Exception as e:
-            self.logger.error(f"批量DOM操作执行失败: {str(e)}")
+            self.logger.error(f"批量DOM操作执行异常: {str(e)}")
             # 执行所有回退操作
             if fallback_operations:
+                self.logger.warning(f"执行{len(fallback_operations)}个回退操作")
                 for i, fallback_op in enumerate(fallback_operations):
                     try:
                         fallback_op()
-                    except Exception as e:
-                        self.logger.error(f"回退操作{i}失败: {str(e)}")
+                        self.logger.debug(f"回退操作{i+1}执行成功")
+                    except Exception as fallback_error:
+                        self.logger.error(f"回退操作{i+1}失败: {str(fallback_error)}")
             
-            return {'success': False, 'error': str(e)}
+            return {'success': False, 'error': str(e), 'operations': [], 'results': []}
 
     def _execute_sequential_dom_operations(self, operations, fallback_operations=None):
-        """顺序执行DOM操作 - 支持延迟和异步操作"""
+        """顺序执行DOM操作 - 专为买入/卖出操作优化，确保严格的操作顺序"""
         try:
             results = []
             operation_results = []
+            
+            self.logger.debug(f"开始顺序执行{len(operations)}个DOM操作")
             
             for i, op in enumerate(operations):
                 xpath = op['xpath']
@@ -4117,67 +4046,107 @@ class CryptoTrader:
                 value = op.get('value', '')
                 delay = op.get('delay', 0)
                 optional = op.get('optional', False)
+                retry_count = op.get('retry_count', 2)  # 默认重试2次
                 
-                try:
-                    # 查找元素
-                    element = WebDriverWait(self.driver, 0.5).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
-                    
-                    # 执行操作
-                    if action == 'click':
-                        element.click()
-                    elif action == 'set_value':
-                        # 清空输入框并设置新值,触发必要的事件
-                        self.driver.execute_script("""
-                            arguments[0].focus();
-                            arguments[0].value = '';
-                            arguments[0].value = arguments[1];
-                            arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
-                            arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
-                        """, element, value)
-                    elif action == 'getText':
-                        results.append(element.text or element.get_attribute('textContent'))
-                    
+                operation_success = False
+                last_error = None
+                
+                # 对每个操作进行重试
+                for retry in range(retry_count + 1):
+                    try:
+                        # 查找元素 - 增加等待时间确保元素可用
+                        wait_time = 1.0 if retry == 0 else 2.0  # 重试时增加等待时间
+                        element = WebDriverWait(self.driver, wait_time).until(
+                            EC.element_to_be_clickable((By.XPATH, xpath))
+                        )
+                        
+                        # 执行操作前的小延迟，确保页面状态稳定
+                        if i > 0:  # 第一个操作不需要额外延迟
+                            time.sleep(0.1)
+                        
+                        # 执行操作
+                        if action == 'click':
+                            # 使用JavaScript点击确保可靠性
+                            self.driver.execute_script("arguments[0].click();", element)
+                            self.logger.debug(f"操作{i+1}: 点击元素成功")
+                        elif action == 'set_value':
+                            # 清空输入框并设置新值,触发必要的事件
+                            self.driver.execute_script("""
+                                arguments[0].focus();
+                                arguments[0].value = '';
+                                arguments[0].value = arguments[1];
+                                arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
+                                arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
+                            """, element, value)
+                            self.logger.debug(f"操作{i+1}: 设置值'{value}'成功")
+                        elif action == 'getText':
+                            text_content = element.text or element.get_attribute('textContent')
+                            results.append(text_content)
+                            self.logger.debug(f"操作{i+1}: 获取文本'{text_content}'成功")
+                        
+                        operation_success = True
+                        break  # 操作成功，跳出重试循环
+                        
+                    except (TimeoutException, NoSuchElementException, Exception) as e:
+                        last_error = e
+                        if retry < retry_count:
+                            self.logger.warning(f"操作{i+1}第{retry+1}次尝试失败: {str(e)}, 重试中...")
+                            time.sleep(0.5)  # 重试前等待
+                        else:
+                            self.logger.error(f"操作{i+1}所有重试均失败: {str(e)}")
+                
+                # 记录操作结果
+                if operation_success:
                     operation_results.append({
                         'index': i,
                         'action': action,
                         'success': True
                     })
                     
-                    # 如果有延迟,等待指定时间
+                    # 操作间延迟 - 确保买入/卖出步骤之间有足够间隔
                     if delay > 0:
                         time.sleep(delay / 1000.0)  # 转换为秒
+                    elif i < len(operations) - 1:  # 不是最后一个操作
+                        time.sleep(0.2)  # 默认操作间延迟
                         
-                except (TimeoutException, NoSuchElementException) as e:
-                    if optional:
-                        # 可选操作失败不影响整体结果
-                        operation_results.append({
-                            'index': i,
-                            'action': action,
-                            'success': True,
-                            'skipped': True
-                        })
-                    else:
-                        # 必需操作失败,执行回退
-                        operation_results.append({
-                            'index': i,
-                            'action': action,
-                            'success': False,
-                            'error': str(e)
-                        })
-                        
-                        if fallback_operations and i < len(fallback_operations):
-                            try:
-                                fallback_operations[i]()
-                            except Exception as fallback_error:
-                                self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+                elif optional:
+                    # 可选操作失败不影响整体结果
+                    operation_results.append({
+                        'index': i,
+                        'action': action,
+                        'success': True,
+                        'skipped': True
+                    })
+                    self.logger.info(f"可选操作{i+1}跳过: {str(last_error)}")
+                else:
+                    # 必需操作失败
+                    operation_results.append({
+                        'index': i,
+                        'action': action,
+                        'success': False,
+                        'error': str(last_error)
+                    })
+                    
+                    # 必需操作失败时，执行对应的回退操作
+                    if fallback_operations and i < len(fallback_operations):
+                        try:
+                            self.logger.warning(f"执行操作{i+1}的回退操作")
+                            fallback_operations[i]()
+                        except Exception as fallback_error:
+                            self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
+                    
+                    # 必需操作失败，停止后续操作
+                    self.logger.error(f"必需操作{i+1}失败，停止后续操作")
+                    break
             
             # 检查是否有失败的必需操作
             failed_required = [op for op in operation_results if not op.get('success') and not op.get('skipped')]
+            success = len(failed_required) == 0
+            
+            self.logger.debug(f"顺序操作完成，成功: {success}, 总操作数: {len(operation_results)}")
             
             return {
-                'success': len(failed_required) == 0,
+                'success': success,
                 'operations': operation_results,
                 'results': results,
                 'partial_success': any(op.get('success') for op in operation_results)
