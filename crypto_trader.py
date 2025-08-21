@@ -43,6 +43,17 @@ import urllib3
 import warnings
 from collections import defaultdict
 
+# 禁用urllib3的连接池警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings('ignore', message='Connection pool is full, discarding connection')
+
+# 设置urllib3的默认连接池大小
+from urllib3.util.connection import create_connection
+from urllib3.poolmanager import PoolManager
+
+# 配置urllib3的默认连接池参数
+urllib3.util.connection.HAS_IPV6 = False  # 禁用IPv6以减少连接复杂性
+
 
 
 class TradeStatsManager:
@@ -534,6 +545,10 @@ class CryptoTrader:
         
         self.http_session.mount("http://", adapter)
         self.http_session.mount("https://", adapter)
+        
+        # 记录连接池配置信息
+        self.logger.info(f"✅ HTTP连接池已配置: pool_connections={adapter.config['pool_connections']}, pool_maxsize={adapter.config['pool_maxsize']}")
+        self.logger.info(f"✅ HTTP重试策略: total={retry_strategy.total}, backoff_factor={retry_strategy.backoff_factor}")
 
         # 初始化金额为 0
         for i in range(1, 4):  # 1到4
