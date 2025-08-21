@@ -1647,7 +1647,7 @@ class CryptoTrader:
         # 1.启用设置金额按钮
         self.set_amount_button['state'] = 'normal'
 
-        # 2.检查是否登录
+        # 2.启动登录检查
         self.login_check_timer = self.root.after(4000, self.start_login_monitoring)
 
         # 3.启动URL监控
@@ -2310,6 +2310,8 @@ class CryptoTrader:
                         self.Second_trade(up_price_val, down_price_val)
                         self.Third_trade(up_price_val, down_price_val)
                         self.Forth_trade(up_price_val, down_price_val)
+                    
+                    return up_price_val, down_price_val
                         
                 else:
                     self.logger.warning(f"价格数据异常: Up={up_price_val}, Down={down_price_val}")
@@ -4048,7 +4050,10 @@ class CryptoTrader:
                 last_error = None
                 
                 # 对每个操作进行重试
-                for retry in range(retry_count + 1):
+                # 可选操作只尝试一次，避免产生过多警告日志
+                actual_retry_count = 0 if optional else retry_count
+                
+                for retry in range(actual_retry_count + 1):
                     try:
                         # 查找元素 - 增加等待时间确保元素可用
                         wait_time = 1.0 if retry == 0 else 2.0  # 重试时增加等待时间
@@ -4085,11 +4090,16 @@ class CryptoTrader:
                         
                     except (TimeoutException, NoSuchElementException, Exception) as e:
                         last_error = e
-                        if retry < retry_count:
+                        if retry < actual_retry_count:
+                            # 必需操作的重试警告
                             self.logger.warning(f"操作{i+1}第{retry+1}次尝试失败: {str(e)}, 重试中...")
                             time.sleep(0.5)  # 重试前等待
                         else:
-                            self.logger.error(f"操作{i+1}所有重试均失败: {str(e)}")
+                            # 区分可选操作和必需操作的日志级别
+                            if optional:
+                                self.logger.debug(f"可选操作{i+1}失败: {str(e)}")
+                            else:
+                                self.logger.error(f"操作{i+1}所有重试均失败: {str(e)}")
                 
                 # 记录操作结果
                 if operation_success:
@@ -4279,26 +4289,31 @@ class CryptoTrader:
     
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
-        
-        self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, "54")
-        self.no1_price_entry.configure(foreground='red')
-        self.logger.info(f"✅ 设置DOWN1价格为54成功")
-    
-        self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, "54")
-        self.yes1_price_entry.configure(foreground='red')
-        self.logger.info(f"✅ 设置UP1价格为54成功")
+        # 获取 DOWN 的实时价格
+        up_price, down_price = self.check_prices()
+        # 如果 UP 价格大于 54,这设置 DOWN 的价格为 54
+        if up_price and up_price > 54:
+            self.no1_price_entry.delete(0, tk.END)
+            self.no1_price_entry.insert(0, "54")
+            self.no1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ 设置DOWN1价格为54成功")
+            
+        # 如果 DOWN 价格大于 54,这设置 UP 的价格为 54
+        if down_price and down_price > 54:
+            self.yes1_price_entry.delete(0, tk.END)
+            self.yes1_price_entry.insert(0, "54")
+            self.yes1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ 设置UP1价格为54成功")
 
         # 同步UP1/DOWN1价格设置到StatusDataManager
         self._update_status_async('positions', 'up_positions', [
-            {"price": 54},  # UP1设置为54
+            {"price": float(self.yes1_price_entry.get())},  # UP1设置为54
             {"price": float(self.yes2_price_entry.get())},
             {"price": float(self.yes3_price_entry.get())},
             {"price": float(self.yes4_price_entry.get())}
         ])
         self._update_status_async('positions', 'down_positions', [
-            {"price": 54},  # DOWN1设置为54
+            {"price": float(self.no1_price_entry.get())},  # DOWN1设置为54  
             {"price": float(self.no2_price_entry.get())},
             {"price": float(self.no3_price_entry.get())},
             {"price": float(self.no4_price_entry.get())}
@@ -8663,7 +8678,7 @@ class CryptoTrader:
                 self.logger.info(f"✅ \033[34m端口 {port} 未被占用\033[0m")
                 
         except Exception as e:
-            self.logger.error(f"检查端口 {port} 时出错: {e}")
+            self.logger.error(f"❌ \033[31m检查端口 {port} 时出错:\033[0m {e}")
 
     def start_flask_server(self):
         """在后台线程中启动Flask,24小时常驻"""
