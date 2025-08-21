@@ -757,17 +757,17 @@ class CryptoTrader:
         # 初始化交易统计管理器
         try:
             self.trade_stats = TradeStatsManager()
-            self.logger.info("交易统计系统初始化成功")
+            self.logger.info("✅ \033[34m交易统计系统初始化成功\033[0m")
         except Exception as e:
-            self.logger.error(f"交易统计系统初始化失败: {e}")
+            self.logger.error(f"❌ \033[31m交易统计系统初始化失败:\033[0m {e}")
             self.trade_stats = None
         
         # 初始化异步邮件发送器
         try:
             self.async_email_sender = AsyncEmailSender(logger=self.logger)
-            self.logger.info("异步邮件发送器初始化成功")
+            self.logger.info("✅ \033[34m异步邮件发送器初始化成功\033[0m")
         except Exception as e:
-            self.logger.error(f"异步邮件发送器初始化失败: {e}")
+            self.logger.error(f"❌ \033[31m异步邮件发送器初始化失败:\033[0m {e}")
             self.async_email_sender = None
         
         # 初始化状态数据管理器（必须在AsyncDataUpdater之前）
@@ -776,9 +776,9 @@ class CryptoTrader:
         # 初始化异步数据更新器
         try:
             self.async_data_updater = AsyncDataUpdater(self.status_data, logger=self.logger)
-            self.logger.info("异步数据更新器初始化成功")
+            self.logger.info("✅ \033[34m异步数据更新器初始化成功\033[0m")
         except Exception as e:
-            self.logger.error(f"异步数据更新器初始化失败: {e}")
+            self.logger.error(f"❌ \033[31m异步数据更新器初始化失败:\033[0m {e}")
             self.async_data_updater = None
         
         # 真实交易次数 (22减去已交易次数)
@@ -826,8 +826,8 @@ class CryptoTrader:
         self.http_session.mount("https://", adapter)
         
         # 记录连接池配置信息
-        self.logger.info(f"✅ HTTP连接池已配置: pool_connections=2, pool_maxsize=5")
-        self.logger.info(f"✅ HTTP重试策略: total={retry_strategy.total}, backoff_factor={retry_strategy.backoff_factor}")
+        self.logger.info(f"✅ \033[34mHTTP连接池已配置:\033[0m pool_connections=2, pool_maxsize=5")
+        self.logger.info(f"✅ \033[34mHTTP重试策略:\033[0m total={retry_strategy.total}, backoff_factor={retry_strategy.backoff_factor}")
 
         # 初始化金额为 0
         for i in range(1, 4):  # 1到4
@@ -8657,10 +8657,10 @@ class CryptoTrader:
                     continue
             
             if killed_processes:
-                self.logger.info(f"🧹 端口 {port} 清理完成,已杀死 {len(killed_processes)} 个进程")
+                self.logger.info(f"🧹 \033[34m端口 {port} 清理完成,已杀死 {len(killed_processes)} 个进程\033[0m")
                 time.sleep(1)  # 等待端口释放
             else:
-                self.logger.info(f"✅ 端口 {port} 未被占用")
+                self.logger.info(f"✅ \033[34m端口 {port} 未被占用\033[0m")
                 
         except Exception as e:
             self.logger.error(f"检查端口 {port} 时出错: {e}")
