@@ -2207,9 +2207,9 @@ class CryptoTrader:
             
             # 12. 重新启动设置默认目标价格定时器（如果需要）
             # 注意：这个定时器通常由用户操作触发,这里只是确保清理状态
-            if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
-                self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
-                self.set_yes1_no1_default_target_price_timer = None
+            if hasattr(self, 'set_up1_down1_default_target_price_timer') and self.set_up1_down1_default_target_price_timer:
+                self.root.after_cancel(self.set_up1_down1_default_target_price_timer)
+                self.set_up1_down1_default_target_price_timer = None
             self.logger.info("✅ 清理了设置默认目标价格定时器状态")
             
             # 13. 重新启动重试更新金额定时器（如果需要）
@@ -4336,7 +4336,7 @@ class CryptoTrader:
         wait_time_hours = wait_time / 3600000
         
         # 设置定时器
-        self.set_yes1_no1_default_target_price_timer = self.root.after(int(wait_time), lambda: self.set_yes1_no1_default_target_price())
+        self.set_up1_down1_default_target_price_timer = self.root.after(int(wait_time), lambda: self.set_up1_down1_default_target_price())
         self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后开始设置 YES1/NO1 价格为54")
 
     def on_auto_find_time_changed(self, event=None):
@@ -4351,9 +4351,9 @@ class CryptoTrader:
         # 异步同步交易时间到StatusDataManager
         self._update_status_async('trading_info', 'time', selected_time)
         
-        if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
+        if hasattr(self, 'set_up1_down1_default_target_price_timer') and self.set_up1_down1_default_target_price_timer:
             # 取消当前的定时器
-            self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
+            self.root.after_cancel(self.set_up1_down1_default_target_price_timer)
             self.logger.info("🔄 设置 YES1/NO1 价格时间已更改,重新安排定时任务")
         else:
             self.logger.info("🔄 首次设置时间,安排定时任务")
@@ -4361,23 +4361,24 @@ class CryptoTrader:
         # 使用新的时间设置重新安排定时任务,确保使用正确的时间计算
         self.schedule_price_setting()
     
-    def set_yes1_no1_default_target_price(self):
+    def set_up1_down1_default_target_price(self):
         """设置默认目标价格54"""
         # 获取 DOWN 的实时价格
         up_price, down_price = self.check_prices()
+        self.logger.info(f"up:{up_price},down{down_price}")
         # 如果 UP 价格大于 54,这设置 DOWN 的价格为 54
-        if up_price and up_price > 54:
+        if up_price and (up_price >= 54):
             self.no1_price_entry.delete(0, tk.END)
-            self.no1_price_entry.insert(0, "54")
+            self.no1_price_entry.insert(0, str(self.default_target_price))
             self.no1_price_entry.configure(foreground='red')
-            self.logger.info(f"✅ 设置DOWN1价格为54成功")
+            self.logger.info(f"✅ \033[34m设置DOWN1价格为54成功\033[0m")
             
         # 如果 DOWN 价格大于 54,这设置 UP 的价格为 54
-        if down_price and down_price > 54:
+        if down_price and (down_price >= 54):
             self.yes1_price_entry.delete(0, tk.END)
-            self.yes1_price_entry.insert(0, "54")
+            self.yes1_price_entry.insert(0, str(self.default_target_price))
             self.yes1_price_entry.configure(foreground='red')
-            self.logger.info(f"✅ 设置UP1价格为54成功")
+            self.logger.info(f"✅ \033[34m设置UP1价格为54成功\033[0m")
 
         # 同步UP1/DOWN1价格设置到StatusDataManager
         self._update_status_async('positions', 'up_positions', [
