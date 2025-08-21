@@ -1667,7 +1667,7 @@ class CryptoTrader:
         button_configs = [
             # 第一行：主要交易按钮
             [("buy_button", "Buy", self.click_buy_button),
-             ("buy_yes_button", "Buy-Up", self.click_buy_up),
+             ("buy_yes_button", "Buy-Up", self.click_buy_up_button),
              ("buy_no_button", "Buy-Down", self.click_buy_down_button)],
             # 第二行：确认和金额按钮
             [("buy_confirm_button", "Buy-confirm", self.click_buy_confirm_button),
