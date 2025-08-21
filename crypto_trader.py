@@ -1666,9 +1666,9 @@ class CryptoTrader:
         # 按钮配置
         button_configs = [
             # 第一行：主要交易按钮
-            [("buy_button", "Buy", self.click_buy),
-             ("buy_yes_button", "Buy-Up", self.click_buy_yes),
-             ("buy_no_button", "Buy-Down", self.click_buy_no)],
+            [("buy_button", "Buy", self.click_buy_button),
+             ("buy_yes_button", "Buy-Up", self.click_buy_up),
+             ("buy_no_button", "Buy-Down", self.click_buy_down_button)],
             # 第二行：确认和金额按钮
             [("buy_confirm_button", "Buy-confirm", self.click_buy_confirm_button),
              ("amount_yes1_button", "Amount-Up1", None),
@@ -3027,7 +3027,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.info("\033[34m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败\033[0m")
 
-
     def First_trade(self, up_price, down_price):
         """第一次交易价格设置为 0.54 买入,最多重试3次,失败发邮件"""
         try:
@@ -3098,6 +3097,7 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
                             time.sleep(1)
                     else:
                         # 3次失败后发邮件
@@ -3118,13 +3118,11 @@ class CryptoTrader:
                         if self.buy_count > 14:
                             self.only_sell_up()
 
-                        # 执行交易操作
-                        self.buy_no_button.invoke() 
+                        # 点击buy_down按钮  
+                        self.click_buy_down_button()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no1_amount_entry
                         self.buy_operation(self.no1_amount_entry.get())
-                        
-                        self.click_buy_yes()
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
@@ -3175,8 +3173,9 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
-                            time.sleep(0.3)
+                            self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -3261,8 +3260,9 @@ class CryptoTrader:
 
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
-                            time.sleep(0.3)
+                            self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -3282,12 +3282,10 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.click_buy_no()
+                        self.click_buy_down_button()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no2_amount_entry
                         self.buy_operation(self.no2_amount_entry.get())
-
-                        self.click_buy_yes()
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
@@ -3338,8 +3336,9 @@ class CryptoTrader:
                             
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待0.3秒后重试\033[0m")
-                            time.sleep(0.3)
+                            self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -3428,6 +3427,7 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
+                            self.driver.refresh()
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -3450,12 +3450,10 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.click_buy_no()
+                        self.click_buy_down_button()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no3_amount_entry
                         self.buy_operation(self.no3_amount_entry.get())
-
-                        self.click_buy_yes()
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no3_amount = float(self.no3_amount_entry.get())
@@ -3507,6 +3505,7 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -3598,8 +3597,9 @@ class CryptoTrader:
                            
                             break
                         else:
-                            self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待2秒后重试\033[0m")
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
+                            time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3620,13 +3620,11 @@ class CryptoTrader:
                             self.only_sell_up()
 
                         # 执行交易操作
-                        self.click_buy_no()
+                        self.click_buy_down_button()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no4_amount_entry
                         self.buy_operation(self.no4_amount_entry.get())
-                        
-                        self.click_buy_yes()
-
+ 
                         if self.verify_trade('Bought', 'Down')[0]:
                             self.no4_amount = float(self.no4_amount_entry.get())
                             # 设置 YES4/No4的价格为0
@@ -3676,6 +3674,7 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
+                            self.driver.refresh()
                             time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
@@ -3731,6 +3730,9 @@ class CryptoTrader:
             self.sell_operation()
 
             if self.verify_trade('Sold', 'Down')[0]:
+                
+                self.click_buy_up_button()
+                self.click_buy_button()
                 # 增加卖出计数
                 self.sell_count += 1
                 
@@ -3815,293 +3817,6 @@ class CryptoTrader:
             self.logger.error(f"交易验证失败: {str(e)}")
             return False, 0, 0, 0
 
-    def send_amount_and_click_buy_confirm(self, amount_entry):
-        """在 AMOUNT 输入框输入金额,然后点击买入按钮.使用批量DOM操作并增强错误处理"""
-        try:
-            amount = amount_entry.get()
-            #self.logger.info(f"\033[34m开始执行买入交易,金额: ${amount}\033[0m")
-            
-            # 定义批量操作 - 设置金额并点击确认
-            operations = [
-                {'xpath': XPathConfig.AMOUNT_INPUT[0], 'action': 'set_value', 'value': amount},
-                {'xpath': XPathConfig.BUY_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 100},
-                {'xpath': XPathConfig.ACCEPT_BUTTON[0], 'action': 'click', 'delay': 100, 'optional': True}
-            ]
-            
-            # 定义回退操作
-            fallback_operations = [
-                lambda: self._fallback_buy_operation(amount),
-            ]
-            
-            # 使用批量DOM操作方法
-            result = self._execute_batch_dom_operations(operations, fallback_operations)
-            
-            if result.get('success') or result.get('partial_success'):
-                self.logger.info("✅ \033[34m使用批量操作买入完成\033[0m")
-
-            else:
-                self.logger.warning("⚠️ \033[31m批量操作失败,已执行回退操作\033[0m")
-                # 回退操作后也需要等待
-                time.sleep(2)
-                
-        except Exception as e:
-            self.logger.error(f"买入交易执行失败: {str(e)}")
-            # 尝试回退操作
-            try:
-                self._fallback_buy_operation(amount_entry.get())
-            except Exception as fallback_error:
-                self.logger.error(f"回退操作也失败: {str(fallback_error)}")
-
-    def click_positions_sell_and_sell_confirm_and_accept(self):
-        """卖出并点击确认 - 使用批量DOM操作"""
-        try:
-            # 定义批量操作 - 包含延迟确保按钮响应
-            operations = [
-                {'xpath': XPathConfig.POSITION_SELL_BUTTON[0], 'action': 'click'},
-                {'xpath': XPathConfig.SELL_CONFIRM_BUTTON[0], 'action': 'click', 'delay': 100},
-                {'xpath': XPathConfig.ACCEPT_BUTTON[0], 'action': 'click', 'delay': 100, 'optional': True}
-            ]
-            
-            # 定义回退操作
-            fallback_operations = [
-                lambda: self._fallback_sell_operation(),
-            ]
-            
-            # 使用批量DOM操作方法（与买入函数保持一致）
-            result = self._execute_batch_dom_operations(operations, fallback_operations)
-            
-            if result.get('success') or result.get('partial_success'):
-                # self.logger.info("✅ 使用批量操作卖出完成")
-                time.sleep(1)  # 等待交易处理完成
-            else:
-                self.logger.warning("⚠️ 批量操作失败,已执行回退操作")
-                time.sleep(1)
-            
-        except Exception as e:
-            self.logger.error(f"卖出失败: {str(e)}")
-
-    def _execute_batch_dom_operations(self, operations, fallback_operations=None):
-        """批量执行DOM操作 - 专为买入/卖出操作优化，强制顺序执行  
-        买入/卖出操作必须严格按顺序执行，任何步骤的颠倒都可能导致交易失败：
-        - 买入流程：1.点击买入按钮 -> 2.输入金额 -> 3.点击买入确认按钮
-        - 卖出流程：1.点击Sell按钮 -> 2.点击 卖出确认按钮  
-        Args:
-            operations: 要执行的操作列表,每个操作包含 {xpath, action, value?, delay?, optional?, retry_count?}
-            fallback_operations: 批量操作失败时的回退操作函数列表 
-        Returns:
-            dict: {success: bool, results: list, operations: list, error: str?}
-        """
-        try:
-            if not operations:
-                self.logger.warning("批量DOM操作：操作列表为空")
-                return {'success': True, 'results': [], 'operations': []}
-            
-            # 记录操作序列信息
-            operation_summary = []
-            for i, op in enumerate(operations):
-                action_desc = f"{op.get('action', 'unknown')}"
-                if op.get('value'):
-                    action_desc += f"(值:{op['value']})"
-                operation_summary.append(f"{i+1}.{action_desc}")
-            
-            self.logger.info(f"✅ \033[34m开始批量DOM操作（强制顺序执行），共{len(operations)}个操作\033[0m")
-            self.logger.debug(f"操作序列: {' -> '.join(operation_summary)}")
-            
-            # 验证关键操作的存在（买入/卖出相关）
-            has_click_action = any(op.get('action') == 'click' for op in operations)
-            has_input_action = any(op.get('action') == 'set_value' for op in operations)
-            
-            if has_click_action:
-                self.logger.debug("检测到点击操作，确保严格顺序执行")
-            if has_input_action:
-                self.logger.debug("检测到输入操作，将在点击后执行")
-            
-            # 强制使用顺序执行，确保买入/卖出操作的严格顺序
-            start_time = time.time()
-            result = self._execute_sequential_dom_operations(operations, fallback_operations)
-            execution_time = time.time() - start_time
-            
-            if result.get('success'):
-                self.logger.info(f"✅ \033[34m批量DOM操作全部成功完成，耗时: {execution_time:.2f}秒\033[0m")
-            else:
-                failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
-                self.logger.error(f"批量DOM操作失败，{len(failed_ops)}个操作失败，耗时: {execution_time:.2f}秒")
-                if result.get('error'):
-                    self.logger.error(f"错误详情: {result['error']}")
-            
-            return result
-                
-        except Exception as e:
-            self.logger.error(f"批量DOM操作执行异常: {str(e)}")
-            # 执行所有回退操作
-            if fallback_operations:
-                self.logger.warning(f"执行{len(fallback_operations)}个回退操作")
-                for i, fallback_op in enumerate(fallback_operations):
-                    try:
-                        fallback_op()
-                        self.logger.debug(f"回退操作{i+1}执行成功")
-                    except Exception as fallback_error:
-                        self.logger.error(f"回退操作{i+1}失败: {str(fallback_error)}")
-            
-            return {'success': False, 'error': str(e), 'operations': [], 'results': []}
-
-    def _execute_sequential_dom_operations(self, operations, fallback_operations=None):
-        """顺序执行DOM操作 - 专为买入/卖出操作优化，确保严格的操作顺序"""
-        try:
-            results = []
-            operation_results = []
-            
-            self.logger.debug(f"开始顺序执行{len(operations)}个DOM操作")
-            
-            for i, op in enumerate(operations):
-                xpath = op['xpath']
-                action = op['action']
-                value = op.get('value', '')
-                delay = op.get('delay', 0)
-                optional = op.get('optional', False)
-                retry_count = op.get('retry_count', 2)  # 默认重试2次
-                
-                operation_success = False
-                last_error = None
-                
-                # 对每个操作进行重试
-                # 可选操作只尝试一次，避免产生过多警告日志
-                actual_retry_count = 0 if optional else retry_count
-                
-                for retry in range(actual_retry_count + 1):
-                    try:
-                        # 查找元素 - 增加等待时间确保元素可用
-                        wait_time = 1.0 if retry == 0 else 2.0  # 重试时增加等待时间
-                        element = WebDriverWait(self.driver, wait_time).until(
-                            EC.element_to_be_clickable((By.XPATH, xpath))
-                        )
-                        
-                        # 执行操作前的小延迟，确保页面状态稳定
-                        if i > 0:  # 第一个操作不需要额外延迟
-                            time.sleep(0.1)
-                        
-                        # 执行操作
-                        if action == 'click':
-                            # 对于BUY_CONFIRM_BUTTON使用更可靠的点击方法
-                            if 'BUY_CONFIRM_BUTTON' in xpath or 'buy-confirm' in xpath.lower():
-                                # 使用WebDriverWait确保元素可点击
-                                buy_confirm_button = WebDriverWait(self.driver, 1).until(
-                                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-                                )
-                                buy_confirm_button.click()
-                                self.logger.debug(f"操作{i+1}: BUY_CONFIRM_BUTTON点击成功")
-                                # 点击后等待页面响应
-                                time.sleep(0.5)
-                            else:
-                                # 使用JavaScript点击确保可靠性
-                                self.driver.execute_script("arguments[0].click();", element)
-                                self.logger.debug(f"操作{i+1}: 点击元素成功")
-                        elif action == 'set_value':
-                            # 清空输入框并设置新值,触发必要的事件
-                            self.driver.execute_script("""
-                                arguments[0].focus();
-                                arguments[0].value = '';
-                                arguments[0].value = arguments[1];
-                                arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
-                                arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
-                            """, element, value)
-                            self.logger.debug(f"操作{i+1}: 设置值'{value}'成功")
-                        elif action == 'getText':
-                            text_content = element.text or element.get_attribute('textContent')
-                            results.append(text_content)
-                            self.logger.debug(f"操作{i+1}: 获取文本'{text_content}'成功")
-                        
-                        operation_success = True
-                        break  # 操作成功，跳出重试循环
-                        
-                    except (TimeoutException, NoSuchElementException, Exception) as e:
-                        last_error = e
-                        if retry < actual_retry_count:
-                            # 必需操作的重试警告
-                            self.logger.warning(f"操作{i+1}第{retry+1}次尝试失败: {str(e)}, 重试中...")
-                            time.sleep(0.5)  # 重试前等待
-                        else:
-                            # 区分可选操作和必需操作的日志级别
-                            if optional:
-                                # 对于ACCEPT_BUTTON这种正常情况下可能不出现的元素，不记录任何日志
-                                if 'ACCEPT_BUTTON' in xpath or 'accept' in xpath.lower():
-                                    pass  # 静默跳过，这是正常现象
-                                else:
-                                    self.logger.debug(f"可选操作{i+1}失败: {str(e)}")
-                            else:
-                                self.logger.error(f"操作{i+1}所有重试均失败: {str(e)}")
-                
-                # 记录操作结果
-                if operation_success:
-                    operation_results.append({
-                        'index': i,
-                        'action': action,
-                        'success': True
-                    })
-                    
-                    # 操作间延迟 - 确保买入/卖出步骤之间有足够间隔
-                    if delay > 0:
-                        time.sleep(delay / 1000.0)  # 转换为秒
-                    elif i < len(operations) - 1:  # 不是最后一个操作
-                        time.sleep(0.2)  # 默认操作间延迟
-                        
-                elif optional:
-                    # 可选操作失败不影响整体结果
-                    operation_results.append({
-                        'index': i,
-                        'action': action,
-                        'success': True,
-                        'skipped': True
-                    })
-                    # 对于ACCEPT_BUTTON这种正常情况下可能不出现的元素，不记录日志
-                    if not ('ACCEPT_BUTTON' in xpath or 'accept' in xpath.lower()):
-                        self.logger.info(f"可选操作{i+1}跳过: {str(last_error)}")
-                else:
-                    # 必需操作失败
-                    operation_results.append({
-                        'index': i,
-                        'action': action,
-                        'success': False,
-                        'error': str(last_error)
-                    })
-                    
-                    # 必需操作失败时，执行对应的回退操作
-                    if fallback_operations and i < len(fallback_operations):
-                        try:
-                            self.logger.warning(f"执行操作{i+1}的回退操作")
-                            fallback_operations[i]()
-                        except Exception as fallback_error:
-                            self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
-                    
-                    # 必需操作失败，停止后续操作
-                    self.logger.error(f"必需操作{i+1}失败，停止后续操作")
-                    break
-            
-            # 检查是否有失败的必需操作
-            failed_required = [op for op in operation_results if not op.get('success') and not op.get('skipped')]
-            success = len(failed_required) == 0
-            
-            self.logger.debug(f"顺序操作完成，成功: {success}, 总操作数: {len(operation_results)}")
-            
-            return {
-                'success': success,
-                'operations': operation_results,
-                'results': results,
-                'partial_success': any(op.get('success') for op in operation_results)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"顺序DOM操作执行失败: {str(e)}")
-            # 执行所有回退操作
-            if fallback_operations:
-                for i, fallback_op in enumerate(fallback_operations):
-                    try:
-                        fallback_op()
-                    except Exception as fallback_error:
-                        self.logger.error(f"回退操作{i}失败: {str(fallback_error)}")
-            
-            return {'success': False, 'error': str(e)}
-
     def buy_operation(self, amount):
         """买入操作的回退方法"""
         try:
@@ -4136,12 +3851,12 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
-                #self.logger.info("✅ 点击了ACCEPT按钮")
+
             except TimeoutException:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 
             self.logger.info("✅ \033[34m买入操作完成\033[0m")
-            
+
         except Exception as e:
             self.logger.error(f"回退买入操作失败: {str(e)}")
             raise
@@ -4149,7 +3864,6 @@ class CryptoTrader:
 
     def sell_operation(self):
         """卖出操作的回退方法"""
-        self.logger.info("\033[34m执行卖出操作\033[0m")
         try:
             # 点击position_sell按钮
             start_time = time.perf_counter()
@@ -4198,6 +3912,10 @@ class CryptoTrader:
                 pass  # 弹窗没出现,不用处理
 
             self.logger.info("✅ \033[34m买入操作完成\033[0m")
+
+            # 预防价格接近时在卖的时候又买了
+            self.click_buy_up_button()
+            self.click_buy_button()
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
       
@@ -5561,13 +5279,17 @@ class CryptoTrader:
                     timeout=3,
                     silent=True
                 )
-            sell_confirm_button.click()
+            
+            if sell_confirm_button:
+                sell_confirm_button.click()
+            else:
+                self.logger.warning("❗Sell-Confirm按钮未找到")
             
         except Exception as e:
             error_msg = f"卖出操作失败: {str(e)}"
             self.logger.error(error_msg)
 
-    def click_buy(self):
+    def click_buy_button(self):
         try:
             try:
                 button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
@@ -5577,50 +5299,50 @@ class CryptoTrader:
             if button:
                 button.click()
             else:
-                self.logger.warning("Buy按钮未找到")
+                self.logger.warning("❗Buy按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
             self.logger.error(f"浏览器连接异常,点击Buy按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
 
-    def click_buy_yes(self):
-        """点击 Buy-Yes 按钮"""
+    def click_buy_up_button(self):
+        """点击 Buy-UP 按钮"""
         try:           
             # 查找买YES按钮
             try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_YES_BUTTON[0])
+                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_UP_BUTTON[0])
             except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_YES_BUTTON, timeout=2, silent=True)
+                button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=2, silent=True)
                 
             if button:
                 button.click()
             else:
-                self.logger.warning("Buy-Yes按钮未找到")
+                self.logger.warning("❗Buy-UP按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常,点击Buy-Yes按钮失败: {str(e)}")
+            self.logger.error(f"浏览器连接异常,点击Buy-UP按钮失败: {str(e)}")
         except Exception as e:
-            self.logger.error(f"点击 Buy-Yes 按钮失败: {str(e)}")
+            self.logger.error(f"点击 Buy-UP 按钮失败: {str(e)}")
 
-    def click_buy_no(self):
-        """点击 Buy-No 按钮"""
+    def click_buy_down_button(self):
+        """点击 Buy-DOWN 按钮"""
         try:
             # 查找买NO按钮
             try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_NO_BUTTON[0])
+                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0])
             except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_NO_BUTTON, timeout=2, silent=True)
+                button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=2, silent=True)
                 
             if button:
                 button.click()
             else:
-                self.logger.warning("Buy-No按钮未找到")
+                self.logger.warning("❗Buy-DOWN按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常,点击Buy-No按钮失败: {str(e)}")
+            self.logger.error(f"浏览器连接异常,点击Buy-DOWN按钮失败: {str(e)}")
         except Exception as e:
-            self.logger.error(f"点击 Buy-No 按钮失败: {str(e)}")
+            self.logger.error(f"点击 Buy-DOWN 按钮失败: {str(e)}")
     
     def close_windows(self):
         """关闭多余窗口"""
