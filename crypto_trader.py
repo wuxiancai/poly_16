@@ -1151,6 +1151,21 @@ class CryptoTrader:
             self.async_data_updater.update_async(category, key, str(value))
         except Exception as e:
             self.logger.debug(f"异步更新状态数据失败 [{category}.{key}]: {e}")
+    
+    def on_entry_changed(self, event):
+        """处理GUI输入框修改事件，同步数据到Web界面"""
+        try:
+            widget = event.widget
+            # 获取输入框的属性名
+            for attr_name in dir(self):
+                if hasattr(self, attr_name) and getattr(self, attr_name) is widget:
+                    value = widget.get()
+                    self.logger.info(f"GUI输入框 {attr_name} 值已修改为: {value}")
+                    # 同步到web_data
+                    self.set_web_value(attr_name, value)
+                    break
+        except Exception as e:
+            self.logger.error(f"处理GUI输入框修改事件失败: {e}")
 
     def setup_gui(self):
         """优化后的GUI界面设置"""
@@ -1531,6 +1546,10 @@ class CryptoTrader:
             price_entry = ttk.Entry(self.yes_frame, font=base_font)
             price_entry.insert(0, price_val)
             price_entry.grid(row=row_base, column=1, padx=3, pady=2, sticky="ew")
+            # 绑定事件以同步数据到Web界面
+            price_entry.bind('<FocusOut>', self.on_entry_changed)
+            price_entry.bind('<Return>', self.on_entry_changed)
+            price_entry.bind('<KeyRelease>', self.on_entry_changed)
             setattr(self, price_attr, price_entry)
             
             # 金额标签和输入框（仅当amount_attr不为None时创建）
@@ -1540,6 +1559,10 @@ class CryptoTrader:
                 amount_entry = ttk.Entry(self.yes_frame, font=base_font)
                 amount_entry.insert(0, amount_val)
                 amount_entry.grid(row=row_base+1, column=1, padx=3, pady=2, sticky="ew")
+                # 绑定事件以同步数据到Web界面
+                amount_entry.bind('<FocusOut>', self.on_entry_changed)
+                amount_entry.bind('<Return>', self.on_entry_changed)
+                amount_entry.bind('<KeyRelease>', self.on_entry_changed)
                 setattr(self, amount_attr, amount_entry)
         
         # 配置列权重
@@ -1563,6 +1586,10 @@ class CryptoTrader:
             price_entry = ttk.Entry(self.no_frame, font=base_font)
             price_entry.insert(0, price_val)
             price_entry.grid(row=row_base, column=1, padx=3, pady=2, sticky="ew")
+            # 绑定事件以同步数据到Web界面
+            price_entry.bind('<FocusOut>', self.on_entry_changed)
+            price_entry.bind('<Return>', self.on_entry_changed)
+            price_entry.bind('<KeyRelease>', self.on_entry_changed)
             setattr(self, price_attr, price_entry)
             
             # 金额标签和输入框（仅当amount_attr不为None时创建）
@@ -1572,6 +1599,10 @@ class CryptoTrader:
                 amount_entry = ttk.Entry(self.no_frame, font=base_font)
                 amount_entry.insert(0, amount_val)
                 amount_entry.grid(row=row_base+1, column=1, padx=3, pady=2, sticky="ew")
+                # 绑定事件以同步数据到Web界面
+                amount_entry.bind('<FocusOut>', self.on_entry_changed)
+                amount_entry.bind('<Return>', self.on_entry_changed)
+                amount_entry.bind('<KeyRelease>', self.on_entry_changed)
                 setattr(self, amount_attr, amount_entry)
         
         # 配置列权重
@@ -2947,7 +2978,7 @@ class CryptoTrader:
                         self.buy_operation(self.yes1_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            self.buy_yes1_amount = float(self.yes1_amount_entry.get().get())
+                            self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             
                             # 重置Up1和Down1价格为0
                             self.yes1_price_entry.configure(foreground='black')
