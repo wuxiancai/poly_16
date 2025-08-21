@@ -1387,7 +1387,8 @@ class CryptoTrader:
         
         # 分钟选择 Spinbox
         self.auto_find_time_combobox_minute = tk.Spinbox(
-            auto_find_frame, from_=0, to=59, wrap=True, width=3, format="%02.0f"
+            auto_find_frame, from_=0, to=59, wrap=True, width=3, format="%02.0f",
+            command=self.on_auto_find_time_changed
         )
         self.auto_find_time_combobox_minute.pack(side=tk.LEFT, padx=2)
         
@@ -1403,6 +1404,8 @@ class CryptoTrader:
         # 只在分钟修改时触发时间调整，避免重复触发
         self.auto_find_time_combobox_minute.bind('<FocusOut>', self.on_auto_find_time_changed)
         self.auto_find_time_combobox_minute.bind('<Return>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_minute.bind('<KeyRelease>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_minute.bind('<ButtonRelease-1>', self.on_auto_find_time_changed)
 
         # 交易币对显示
         pair_container = ttk.Frame(scrollable_frame)
@@ -2941,7 +2944,7 @@ class CryptoTrader:
 
                         # 买入 UP1
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes1_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.yes1_amount_entry)
+                        self.buy_operation(self.yes1_amount_entry)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
@@ -3036,7 +3039,7 @@ class CryptoTrader:
                         self.buy_no_button.invoke() 
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no1_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.no1_amount_entry)
+                        self.buy_operation(self.no1_amount_entry)
                         
                         self.click_buy_yes()
 
@@ -3146,7 +3149,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes2_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.yes2_amount_entry)
+                        self.buy_operation(self.yes2_amount_entry)
                         
                         if self.verify_trade('Bought', 'Up')[0]:
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
@@ -3240,7 +3243,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no2_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.no2_amount_entry)
+                        self.buy_operation(self.no2_amount_entry)
 
                         self.click_buy_yes()
 
@@ -3350,7 +3353,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes3_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.yes3_amount_entry)
+                        self.buy_operation(self.yes3_amount_entry)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
@@ -3453,7 +3456,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no3_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.no3_amount_entry)
+                        self.buy_operation(self.no3_amount_entry)
 
                         self.click_buy_yes()
 
@@ -3571,7 +3574,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes4_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.yes4_amount_entry)
+                        self.buy_operation(self.yes4_amount_entry)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             self.yes4_amount = float(self.yes4_amount_entry.get())
@@ -3687,7 +3690,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no4_amount_entry
-                        self.send_amount_and_click_buy_confirm(self.no4_amount_entry)
+                        self.buy_operation(self.no4_amount_entry)
                         
                         self.click_buy_yes()
 
@@ -3805,7 +3808,7 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3):
             self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
-            self.click_positions_sell_and_sell_confirm_and_accept()
+            self.sell_operation()
 
             if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
@@ -3832,7 +3835,7 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3): 
             self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
-            self.click_positions_sell_and_sell_confirm_and_accept()
+            self.sell_operation()
 
             if self.verify_trade('Sold', 'Down')[0]:
                 # 增加卖出计数
@@ -4206,11 +4209,12 @@ class CryptoTrader:
             
             return {'success': False, 'error': str(e)}
 
-    def _fallback_buy_operation(self, amount):
+    def buy_operation(self, amount):
         """买入操作的回退方法"""
         try:
             self.logger.info("\033[34m✅ 执行买入回退操作\033[0m")
-            
+            start_time = time.perf_counter()
+
             # 查找并设置金额输入框
             amount_input = WebDriverWait(self.driver, 1).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
@@ -4219,13 +4223,20 @@ class CryptoTrader:
             # 清空并设置新值
             amount_input.clear()
             amount_input.send_keys(str(amount))
-            
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
+            start_time = time.perf_counter()
             # 点击确认按钮
             buy_confirm_button = WebDriverWait(self.driver, 1).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
             )
             buy_confirm_button.click()
-            
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
             # 处理可能的ACCEPT弹窗
             try:
                 accept_button = WebDriverWait(self.driver, 0.5).until(
@@ -4243,40 +4254,55 @@ class CryptoTrader:
             raise
     
 
-    def _fallback_sell_operation(self):
+    def sell_operation(self):
         """卖出操作的回退方法"""
         try:
-            # 点击卖出按钮
+            # 点击position_sell按钮
+            start_time = time.perf_counter()
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                positions_sell_button.click()
             except TimeoutException:
                 positions_sell_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
                 )
+                
+            if positions_sell_button:
                 positions_sell_button.click()
-                #self.logger.error("❌ \033[31m没有出现SELL按钮,跳过点击\033[0m")
+            else:
+                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 点击卖出确认按钮
+            start_time = time.perf_counter()
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-                sell_confirm_button.click()
             except TimeoutException:
                 sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
                 )
+
+            if sell_confirm_button:
                 sell_confirm_button.click()
-                #self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
+            else:
+                self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 等待ACCEPT弹窗出现
             try:
                 accept_button = WebDriverWait(self.driver, 0.5).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
-                accept_button.click()
+
+                if accept_button:
+                    accept_button.click()    
             except TimeoutException:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 pass  # 弹窗没出现,不用处理
+
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
       
@@ -4313,19 +4339,25 @@ class CryptoTrader:
 
     def on_auto_find_time_changed(self, event=None):
         """当时间选择改变时的处理函数"""
+        # 添加日志确认函数被调用
+        selected_time = self.get_selected_time()
+        self.logger.info(f"⏰ 时间选择已更改为: {selected_time}")
+        
         # 保存新的时间设置到配置文件
         self.save_config()
         
         # 异步同步交易时间到StatusDataManager
-        selected_time = self.get_selected_time()
         self._update_status_async('trading_info', 'time', selected_time)
         
         if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
             # 取消当前的定时器
             self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
             self.logger.info("🔄 设置 YES1/NO1 价格时间已更改,重新安排定时任务")
-            # 使用新的时间设置重新安排定时任务,确保使用正确的时间计算
-            self.schedule_price_setting()
+        else:
+            self.logger.info("🔄 首次设置时间,安排定时任务")
+        
+        # 使用新的时间设置重新安排定时任务,确保使用正确的时间计算
+        self.schedule_price_setting()
     
     def set_yes1_no1_default_target_price(self):
         """设置默认目标价格54"""
@@ -4975,7 +5007,7 @@ class CryptoTrader:
                     self.logger.info(f"✅ 交易次数 {self.trade_count} <= 14,执行夜间自动卖出仓位")
                     
                     # 执行卖出仓位操作
-                    self.click_positions_sell_and_sell_confirm_and_accept()
+                    self.sell_operation()
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
 
                     # 设置 YES1-4/NO1-4 价格为 0
@@ -5536,7 +5568,7 @@ class CryptoTrader:
         self.cash_history.append(new_record)
 
     def click_buy_confirm_button(self):
-        """点击买入确认按钮 - 已弃用，建议使用send_amount_and_click_buy_confirm"""
+        """点击买入确认按钮 - 已弃用,建议使用buy_operation"""
         try:
             buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
             buy_confirm_button.click()
