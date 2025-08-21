@@ -4086,9 +4086,24 @@ class CryptoTrader:
                         
                         # 执行操作
                         if action == 'click':
-                            # 使用JavaScript点击确保可靠性
-                            self.driver.execute_script("arguments[0].click();", element)
-                            self.logger.debug(f"操作{i+1}: 点击元素成功")
+                            # 对于BUY_CONFIRM_BUTTON使用更强的点击方法
+                            if 'BUY_CONFIRM_BUTTON' in xpath or 'buy-confirm' in xpath.lower():
+                                # 先尝试滚动到元素可见
+                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+                                time.sleep(0.2)
+                                # 使用多种点击方法确保成功
+                                try:
+                                    element.click()
+                                    self.logger.debug(f"操作{i+1}: 普通点击BUY_CONFIRM_BUTTON成功")
+                                except:
+                                    self.driver.execute_script("arguments[0].click();", element)
+                                    self.logger.debug(f"操作{i+1}: JavaScript点击BUY_CONFIRM_BUTTON成功")
+                                # 点击后等待页面响应
+                                time.sleep(0.5)
+                            else:
+                                # 使用JavaScript点击确保可靠性
+                                self.driver.execute_script("arguments[0].click();", element)
+                                self.logger.debug(f"操作{i+1}: 点击元素成功")
                         elif action == 'set_value':
                             # 清空输入框并设置新值,触发必要的事件
                             self.driver.execute_script("""
@@ -4116,7 +4131,11 @@ class CryptoTrader:
                         else:
                             # 区分可选操作和必需操作的日志级别
                             if optional:
-                                self.logger.debug(f"可选操作{i+1}失败: {str(e)}")
+                                # 对于ACCEPT_BUTTON这种正常情况下可能不出现的元素，不记录任何日志
+                                if 'ACCEPT_BUTTON' in xpath or 'accept' in xpath.lower():
+                                    pass  # 静默跳过，这是正常现象
+                                else:
+                                    self.logger.debug(f"可选操作{i+1}失败: {str(e)}")
                             else:
                                 self.logger.error(f"操作{i+1}所有重试均失败: {str(e)}")
                 
@@ -4142,7 +4161,9 @@ class CryptoTrader:
                         'success': True,
                         'skipped': True
                     })
-                    self.logger.info(f"可选操作{i+1}跳过: {str(last_error)}")
+                    # 对于ACCEPT_BUTTON这种正常情况下可能不出现的元素，不记录日志
+                    if not ('ACCEPT_BUTTON' in xpath or 'accept' in xpath.lower()):
+                        self.logger.info(f"可选操作{i+1}跳过: {str(last_error)}")
                 else:
                     # 必需操作失败
                     operation_results.append({
@@ -5519,11 +5540,11 @@ class CryptoTrader:
         self.cash_history.append(new_record)
 
     def click_buy_confirm_button(self):
+        """点击买入确认按钮 - 已弃用，建议使用send_amount_and_click_buy_confirm"""
         try:
             buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
             buy_confirm_button.click()
         except NoSuchElementException:
-            
             buy_confirm_button = self._find_element_with_retry(
                 XPathConfig.BUY_CONFIRM_BUTTON,
                 timeout=3,
