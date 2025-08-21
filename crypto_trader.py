@@ -42,6 +42,9 @@ from trade_stats_manager import TradeStatsManager
 import urllib3
 import warnings
 from collections import defaultdict
+import queue
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 
 # 禁用urllib3的连接池警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -378,6 +381,166 @@ class StatusDataManager:
             }
 
 
+class SMTPConnectionManager:
+    """SMTP连接管理器，实现连接复用和连接池管理"""
+    
+    def __init__(self, smtp_server='smtp.126.com', smtp_port=465, max_connections=3):
+        self.smtp_server = smtp_server
+        self.smtp_port = smtp_port
+        self.max_connections = max_connections
+        self.connection_pool = queue.Queue(maxsize=max_connections)
+        self.pool_lock = threading.Lock()
+        self.active_connections = 0
+        self.persistent_connection = None
+        self.connection_lock = threading.Lock()
+        
+        # 在初始化时建立持久连接
+        self._establish_persistent_connection()
+        
+    def _create_connection(self):
+        """创建新的SMTP连接"""
+        try:
+            server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10)
+            server.set_debuglevel(0)
+            return server
+        except Exception as e:
+            raise Exception(f"创建SMTP连接失败: {str(e)}")
+    
+    def _establish_persistent_connection(self):
+        """建立持久SMTP连接"""
+        try:
+            self.persistent_connection = self._create_connection()
+            print(f"✅ SMTP持久连接已建立: {self.smtp_server}:{self.smtp_port}")
+        except Exception as e:
+            print(f"❌ 建立SMTP持久连接失败: {str(e)}")
+            self.persistent_connection = None
+    
+    def _ensure_connection_alive(self):
+        """确保连接存活，如果断开则重新连接"""
+        with self.connection_lock:
+            if self.persistent_connection is None:
+                self._establish_persistent_connection()
+                return self.persistent_connection
+            
+            try:
+                # 测试连接是否存活
+                self.persistent_connection.noop()
+                return self.persistent_connection
+            except Exception:
+                # 连接已断开，重新建立
+                try:
+                    self.persistent_connection.quit()
+                except:
+                    pass
+                self._establish_persistent_connection()
+                return self.persistent_connection
+    
+    @contextmanager
+    def get_connection(self):
+        """获取SMTP连接的上下文管理器 - 使用持久连接"""
+        connection = self._ensure_connection_alive()
+        if connection is None:
+            raise Exception("无法建立SMTP连接")
+        
+        try:
+            yield connection
+        except Exception as e:
+            # 连接出错时，标记连接为无效，下次使用时会重新建立
+            with self.connection_lock:
+                self.persistent_connection = None
+            raise e
+    
+    def close_all_connections(self):
+        """关闭持久连接"""
+        with self.connection_lock:
+            if self.persistent_connection:
+                try:
+                    self.persistent_connection.quit()
+                    print("✅ SMTP持久连接已关闭")
+                except Exception as e:
+                    print(f"❌ 关闭SMTP连接时出错: {str(e)}")
+                finally:
+                    self.persistent_connection = None
+
+
+class AsyncEmailSender:
+    """异步邮件发送器"""
+    
+    def __init__(self, max_workers=2, logger=None):
+        self.smtp_manager = SMTPConnectionManager()
+        self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="EmailSender")
+        self.email_queue = queue.Queue()
+        self.is_running = True
+        self.logger = logger
+        
+        # 邮件配置
+        self.sender = 'huacaihuijin@126.com'
+        self.app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
+        
+    def set_logger(self, logger):
+        """设置日志记录器"""
+        self.logger = logger
+        
+    def send_email_async(self, subject, content, receivers, trade_type=""):
+        """异步发送邮件 - 简化接口"""
+        future = self.executor.submit(
+            self._send_email_sync, 
+            self.sender, self.app_password, receivers, subject, content, trade_type
+        )
+        return future
+        
+    def _send_email_sync(self, sender, app_password, receivers, subject, content, trade_type=""):
+        """同步发送邮件的内部方法"""
+        max_retries = 2
+        retry_delay = 0.5
+        
+        for attempt in range(max_retries):
+            try:
+                with self.smtp_manager.get_connection() as server:
+                    try:
+                        server.login(sender, app_password)
+                        
+                        # 构建邮件
+                        msg = MIMEMultipart()
+                        msg['Subject'] = Header(subject, 'utf-8')
+                        msg['From'] = sender
+                        msg['To'] = ', '.join(receivers)
+                        msg.attach(MIMEText(content, 'plain', 'utf-8'))
+                        
+                        # 发送邮件
+                        server.sendmail(sender, receivers, msg.as_string())
+                        
+                        if self.logger:
+                            self.logger.info(f"✅ 邮件发送成功: {trade_type} -> {', '.join(receivers)}")
+                        return True
+                        
+                    except Exception as e:
+                        if self.logger:
+                            self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                        if attempt < max_retries - 1:
+                            if self.logger:
+                                self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                            time.sleep(retry_delay)
+                        else:
+                            raise e
+                            
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    return False
+        
+        return False
+        
+    def shutdown(self):
+        """关闭邮件发送器"""
+        self.is_running = False
+        self.executor.shutdown(wait=True)
+        self.smtp_manager.close_all_connections()
+
+
 class Logger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
@@ -503,6 +666,14 @@ class CryptoTrader:
             self.logger.error(f"交易统计系统初始化失败: {e}")
             self.trade_stats = None
         
+        # 初始化异步邮件发送器
+        try:
+            self.async_email_sender = AsyncEmailSender(logger=self.logger)
+            self.logger.info("异步邮件发送器初始化成功")
+        except Exception as e:
+            self.logger.error(f"异步邮件发送器初始化失败: {e}")
+            self.async_email_sender = None
+        
         # 真实交易次数 (22减去已交易次数)
         self.last_trade_count = 0
 
@@ -536,10 +707,10 @@ class CryptoTrader:
             status_forcelist=[429, 500, 502, 503, 504],
         )
         
-        # 配置HTTP适配器,增加连接池大小
+        # 配置HTTP适配器,增加连接池大小以应对频繁的Chrome调试端口检查
         adapter = HTTPAdapter(
-            pool_connections=10,  # 连接池数量
-            pool_maxsize=20,      # 每个连接池的最大连接数
+            pool_connections=20,  # 连接池数量 (增加到20)
+            pool_maxsize=50,      # 每个连接池的最大连接数 (增加到50)
             max_retries=retry_strategy
         )
         
@@ -547,7 +718,7 @@ class CryptoTrader:
         self.http_session.mount("https://", adapter)
         
         # 记录连接池配置信息
-        self.logger.info(f"✅ HTTP连接池已配置: pool_connections={adapter.config['pool_connections']}, pool_maxsize={adapter.config['pool_maxsize']}")
+        self.logger.info(f"✅ HTTP连接池已配置: pool_connections=20, pool_maxsize=50")
         self.logger.info(f"✅ HTTP重试策略: total={retry_strategy.total}, backoff_factor={retry_strategy.backoff_factor}")
 
         # 初始化金额为 0
@@ -1634,8 +1805,10 @@ class CryptoTrader:
                             # 检查调试端口是否可用
                             response = self.http_session.get('http://127.0.0.1:9222/json', timeout=2)
                             if response.status_code == 200:
+                                response.close()  # 显式关闭连接
                                 self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
                                 break
+                            response.close()  # 确保连接被关闭
                         except:
                             continue
                     else:
@@ -5419,80 +5592,60 @@ class CryptoTrader:
 
     def send_trade_email(self, trade_type, price, amount, shares, trade_count,
                          cash_value, portfolio_value):
-        """发送交易邮件"""
-        max_retries = 2
-        retry_delay = 0.5
-        
-        for attempt in range(max_retries):
-            try:
-                hostname = socket.gethostname()
-                sender = 'huacaihuijin@126.com'
-                
-                # 根据HOSTNAME决定邮件接收者
-                receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
-                if 'ZZY' in hostname:
-                    receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱 # 272763832@qq.com
-                
-                app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
-                
-                # 获取交易币对信息
-                full_pair = self.trading_pair_label.cget("text")
-                trading_pair = full_pair.split('-')[0]
-                if not trading_pair or trading_pair == "--":
-                    trading_pair = "未知交易币对"
-                
-                # 根据交易类型选择显示的计数
-                count_in_subject = self.sell_count if "Sell" in trade_type else trade_count
-                
-                msg = MIMEMultipart()
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
-                msg['Subject'] = Header(subject, 'utf-8')
-                msg['From'] = sender
-                msg['To'] = ', '.join(receivers)
-
-                # 修复格式化字符串问题,确保cash_value和portfolio_value是字符串
-                str_cash_value = str(cash_value)
-                str_portfolio_value = str(portfolio_value)
-                
-                content = f"""
-                交易价格: {price:.2f}¢
-                交易金额: ${amount:.2f}
-                SHARES: {shares}
-                当前买入次数: {self.buy_count}
-                当前卖出次数: {self.sell_count}
-                当前 CASH 值: {str_cash_value}
-                当前 PORTFOLIO 值: {str_portfolio_value}
-                交易时间: {current_time}
-                """
-                msg.attach(MIMEText(content, 'plain', 'utf-8'))
-                
-                # 使用126.com的SMTP服务器
-                server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)  # 使用SSL连接
-                server.set_debuglevel(0)
-                
-                try:
-                    server.login(sender, app_password)
-                    server.sendmail(sender, receivers, msg.as_string())
-                    #self.logger.info(f"✅ \033[34m邮件发送成功: {trade_type} -> {', '.join(receivers)}\033[0m")
-                    return  # 发送成功,退出重试循环
-                except Exception as e:
-                    self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
-                    if attempt < max_retries - 1:
-                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
-                        time.sleep(retry_delay)
-                finally:
-                    try:
-                        server.quit()
-                    except Exception:
-                        pass          
-            except Exception as e:
-                self.logger.error(f"❌ 邮件准备失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)     
-        # 所有重试都失败
-        error_msg = f"发送邮件失败,已重试{max_retries}次"
-        self.logger.error(error_msg)
+        """发送交易邮件 - 使用异步发送器"""
+        try:
+            # 检查异步邮件发送器是否可用
+            if not self.async_email_sender:
+                self.logger.error("异步邮件发送器未初始化，无法发送邮件")
+                return
+            
+            hostname = socket.gethostname()
+            
+            # 根据HOSTNAME决定邮件接收者
+            receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
+            if 'ZZY' in hostname:
+                receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱
+            
+            # 获取交易币对信息
+            full_pair = self.trading_pair_label.cget("text")
+            trading_pair = full_pair.split('-')[0]
+            if not trading_pair or trading_pair == "--":
+                trading_pair = "未知交易币对"
+            
+            # 根据交易类型选择显示的计数
+            count_in_subject = self.sell_count if "Sell" in trade_type else trade_count
+            
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
+            
+            # 修复格式化字符串问题,确保cash_value和portfolio_value是字符串
+            str_cash_value = str(cash_value)
+            str_portfolio_value = str(portfolio_value)
+            
+            content = f"""
+            交易价格: {price:.2f}¢
+            交易金额: ${amount:.2f}
+            SHARES: {shares}
+            当前买入次数: {self.buy_count}
+            当前卖出次数: {self.sell_count}
+            当前 CASH 值: {str_cash_value}
+            当前 PORTFOLIO 值: {str_portfolio_value}
+            交易时间: {current_time}
+            """
+            
+            # 使用异步邮件发送器发送邮件
+            self.async_email_sender.send_email_async(
+                subject=subject,
+                content=content,
+                receivers=receivers
+            )
+            
+            self.logger.info(f"✅ 邮件已提交异步发送队列: {trade_type} -> {', '.join(receivers)}")
+            
+        except Exception as e:
+             self.logger.error(f"❌ 提交邮件到异步发送队列失败: {str(e)}")
+             # 如果异步发送失败，可以考虑降级到同步发送（可选）
+             # self._send_email_sync_fallback(trade_type, price, amount, shares, trade_count, cash_value, portfolio_value)
 
     def _send_chrome_alert_email(self):
         """发送Chrome异常警报邮件"""
@@ -8525,6 +8678,7 @@ class CryptoTrader:
         self.record_cash_daily()
 
 if __name__ == "__main__":
+    app = None
     try:
         # 打印启动参数,用于调试
         
@@ -8540,4 +8694,22 @@ if __name__ == "__main__":
         if 'logger' in locals():
             logger.error(f"程序启动失败: {str(e)}")
         sys.exit(1)
+    finally:
+        # 程序退出时的清理工作
+        if app and hasattr(app, 'async_email_sender'):
+            try:
+                app.async_email_sender.shutdown()
+                print("✅ 邮件发送器已关闭")
+            except Exception as e:
+                print(f"❌ 邮件发送器关闭时出错: {str(e)}")
+        
+        # 关闭HTTP session
+        if app and hasattr(app, 'http_session'):
+            try:
+                app.http_session.close()
+                print("✅ HTTP连接池已关闭")
+            except Exception as e:
+                print(f"❌ HTTP连接池关闭时出错: {str(e)}")
+        
+        print("✅ 程序清理完成")
     
