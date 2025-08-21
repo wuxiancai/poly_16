@@ -2944,10 +2944,10 @@ class CryptoTrader:
 
                         # 买入 UP1
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes1_amount_entry
-                        self.buy_operation(self.yes1_amount_entry)
+                        self.buy_operation(self.yes1_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            self.buy_yes1_amount = float(self.yes1_amount_entry.get())
+                            self.buy_yes1_amount = float(self.yes1_amount_entry.get().get())
                             
                             # 重置Up1和Down1价格为0
                             self.yes1_price_entry.configure(foreground='black')
@@ -3039,7 +3039,7 @@ class CryptoTrader:
                         self.buy_no_button.invoke() 
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no1_amount_entry
-                        self.buy_operation(self.no1_amount_entry)
+                        self.buy_operation(self.no1_amount_entry.get())
                         
                         self.click_buy_yes()
 
@@ -3149,7 +3149,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes2_amount_entry
-                        self.buy_operation(self.yes2_amount_entry)
+                        self.buy_operation(self.yes2_amount_entry.get())
                         
                         if self.verify_trade('Bought', 'Up')[0]:
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
@@ -3243,7 +3243,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no2_amount_entry
-                        self.buy_operation(self.no2_amount_entry)
+                        self.buy_operation(self.no2_amount_entry.get())
 
                         self.click_buy_yes()
 
@@ -3353,7 +3353,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes3_amount_entry
-                        self.buy_operation(self.yes3_amount_entry)
+                        self.buy_operation(self.yes3_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
@@ -3456,7 +3456,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no3_amount_entry
-                        self.buy_operation(self.no3_amount_entry)
+                        self.buy_operation(self.no3_amount_entry.get())
 
                         self.click_buy_yes()
 
@@ -3574,7 +3574,7 @@ class CryptoTrader:
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes4_amount_entry
-                        self.buy_operation(self.yes4_amount_entry)
+                        self.buy_operation(self.yes4_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             self.yes4_amount = float(self.yes4_amount_entry.get())
@@ -3690,7 +3690,7 @@ class CryptoTrader:
                         self.click_buy_no()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no4_amount_entry
-                        self.buy_operation(self.no4_amount_entry)
+                        self.buy_operation(self.no4_amount_entry.get())
                         
                         self.click_buy_yes()
 
@@ -4212,7 +4212,7 @@ class CryptoTrader:
     def buy_operation(self, amount):
         """买入操作的回退方法"""
         try:
-            self.logger.info("\033[34m✅ 执行买入回退操作\033[0m")
+            self.logger.info("\033[34m✅ 执行买入操作\033[0m")
             start_time = time.perf_counter()
 
             # 查找并设置金额输入框
@@ -4225,7 +4225,7 @@ class CryptoTrader:
             amount_input.send_keys(str(amount))
 
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"\033[34m买入金额{amount},点击按钮耗时 {elapsed:.3f} 秒\033[0m")
 
             start_time = time.perf_counter()
             # 点击确认按钮
@@ -4247,7 +4247,7 @@ class CryptoTrader:
             except TimeoutException:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 
-            self.logger.info("✅ \033[34m回退买入操作完成\033[0m")
+            self.logger.info("✅ \033[34m买入操作完成\033[0m")
             
         except Exception as e:
             self.logger.error(f"回退买入操作失败: {str(e)}")
@@ -4256,6 +4256,7 @@ class CryptoTrader:
 
     def sell_operation(self):
         """卖出操作的回退方法"""
+        self.logger.info("\033[34m执行卖出操作\033[0m")
         try:
             # 点击position_sell按钮
             start_time = time.perf_counter()
@@ -4303,6 +4304,7 @@ class CryptoTrader:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 pass  # 弹窗没出现,不用处理
 
+            self.logger.info("✅ \033[34m买入操作完成\033[0m")
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
       
