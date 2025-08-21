@@ -4267,25 +4267,23 @@ class CryptoTrader:
             self.logger.info(f"✅ \033[34m设置DOWN1价格为54成功\033[0m")
             
         # 如果 DOWN 价格大于 54,这设置 UP 的价格为 54
-        if down_price and (down_price >= 54):
+        elif down_price and (down_price >= 54):
             self.yes1_price_entry.delete(0, tk.END)
             self.yes1_price_entry.insert(0, str(self.default_target_price))
             self.yes1_price_entry.configure(foreground='red')
             self.logger.info(f"✅ \033[34m设置UP1价格为54成功\033[0m")
+        
+        else:
+            self.no1_price_entry.delete(0, tk.END)
+            self.no1_price_entry.insert(0, str(self.default_target_price))
+            self.no1_price_entry.configure(foreground='red')
+            self.yes1_price_entry.delete(0, tk.END)
+            self.yes1_price_entry.insert(0, str(self.default_target_price))
+            self.yes1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ \033[34m设置UP1/DOWN1价格为54成功\033[0m")
 
-        # 同步UP1/DOWN1价格设置到StatusDataManager
-        self._update_status_async('positions', 'up_positions', [
-            {"price": float(self.yes1_price_entry.get())},  # UP1设置为54
-            {"price": float(self.yes2_price_entry.get())},
-            {"price": float(self.yes3_price_entry.get())},
-            {"price": float(self.yes4_price_entry.get())}
-        ])
-        self._update_status_async('positions', 'down_positions', [
-            {"price": float(self.no1_price_entry.get())},  # DOWN1设置为54  
-            {"price": float(self.no2_price_entry.get())},
-            {"price": float(self.no3_price_entry.get())},
-            {"price": float(self.no4_price_entry.get())}
-        ])
+        # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
+        self.async_gui_price_amount_to_web()
 
         self.close_windows()
         
