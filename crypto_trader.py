@@ -4086,18 +4086,14 @@ class CryptoTrader:
                         
                         # 执行操作
                         if action == 'click':
-                            # 对于BUY_CONFIRM_BUTTON使用更强的点击方法
+                            # 对于BUY_CONFIRM_BUTTON使用更可靠的点击方法
                             if 'BUY_CONFIRM_BUTTON' in xpath or 'buy-confirm' in xpath.lower():
-                                # 先尝试滚动到元素可见
-                                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
-                                time.sleep(0.2)
-                                # 使用多种点击方法确保成功
-                                try:
-                                    element.click()
-                                    self.logger.debug(f"操作{i+1}: 普通点击BUY_CONFIRM_BUTTON成功")
-                                except:
-                                    self.driver.execute_script("arguments[0].click();", element)
-                                    self.logger.debug(f"操作{i+1}: JavaScript点击BUY_CONFIRM_BUTTON成功")
+                                # 使用WebDriverWait确保元素可点击
+                                buy_confirm_button = WebDriverWait(self.driver, 1).until(
+                                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
+                                )
+                                buy_confirm_button.click()
+                                self.logger.debug(f"操作{i+1}: BUY_CONFIRM_BUTTON点击成功")
                                 # 点击后等待页面响应
                                 time.sleep(0.5)
                             else:
