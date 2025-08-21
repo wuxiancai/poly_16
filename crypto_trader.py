@@ -321,7 +321,7 @@ class StatusDataManager:
             return self._data.get(category, {}).get(key)
     
     def get_legacy_format(self):
-        """获取兼容旧格式的数据结构，用于API接口"""
+        """获取兼容旧格式的数据结构,用于API接口"""
         with self._lock:
             data = self._data
             return {
@@ -372,7 +372,7 @@ class Logger:
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
 
-        # 如果logger已经有处理器，则不再添加新的处理器
+        # 如果logger已经有处理器,则不再添加新的处理器
         if not self.logger.handlers:
             # 创建logs目录（如果不存在）
             if not os.path.exists('logs'):
@@ -410,7 +410,7 @@ class Logger:
         if not log_files:
             return None
         
-        # 按文件名排序，获取最新的文件
+        # 按文件名排序,获取最新的文件
         log_files.sort(reverse=True)
         return os.path.join(logs_dir, log_files[0])
     
@@ -512,9 +512,9 @@ class CryptoTrader:
         # 停止事件
         self.stop_event = threading.Event()
         
-        # 创建专用的HTTP Session，配置连接池参数
+        # 创建专用的HTTP Session,配置连接池参数
         self.http_session = requests.Session()
-        # 配置连接池适配器，增加连接池大小
+        # 配置连接池适配器,增加连接池大小
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
         
@@ -525,7 +525,7 @@ class CryptoTrader:
             status_forcelist=[429, 500, 502, 503, 504],
         )
         
-        # 配置HTTP适配器，增加连接池大小
+        # 配置HTTP适配器,增加连接池大小
         adapter = HTTPAdapter(
             pool_connections=10,  # 连接池数量
             pool_maxsize=20,      # 每个连接池的最大连接数
@@ -558,7 +558,7 @@ class CryptoTrader:
         self.status_data.update('trading', 'trade_count', self.trade_count)
         
         # 初始化币种和时间信息到StatusDataManager
-        # 注意：此时GUI还未创建，需要在setup_gui后再同步
+        # 注意：此时GUI还未创建,需要在setup_gui后再同步
         
         # 保持web_data兼容性 (用于向后兼容)
         self.web_data = {
@@ -631,14 +631,14 @@ class CryptoTrader:
             
         except Exception as e:
             self.logger.error(f"初始化失败: {str(e)}")
-            messagebox.showerror("错误", "程序初始化失败，请检查日志文件")
+            messagebox.showerror("错误", "程序初始化失败,请检查日志文件")
             sys.exit(1)
 
         # 打印启动参数
         self.logger.info(f"✅ 初始化成功: {sys.argv}")
       
     def load_config(self):
-        """加载配置文件，保持默认格式"""
+        """加载配置文件,保持默认格式"""
         try:
             # 默认配置
             default_config = {
@@ -676,12 +676,12 @@ class CryptoTrader:
                                     saved_config[key][sub_key] = default_config[key][sub_key]
                     return saved_config
             except FileNotFoundError:
-                self.logger.warning("配置文件不存在，创建默认配置")
+                self.logger.warning("配置文件不存在,创建默认配置")
                 with open('config.json', 'w', encoding='utf-8') as f:
                     json.dump(default_config, f, indent=4, ensure_ascii=False)
                 return default_config
             except json.JSONDecodeError:
-                self.logger.error("配置文件格式错误，使用默认配置")
+                self.logger.error("配置文件格式错误,使用默认配置")
                 with open('config.json', 'w', encoding='utf-8') as f:
                     json.dump(default_config, f, indent=4, ensure_ascii=False)
                 return default_config
@@ -743,7 +743,7 @@ class CryptoTrader:
             if hasattr(self, 'coin_combobox'):
                 self.config['selected_coin'] = self.coin_combobox.get()
             
-            # 保存配置到文件，使用indent=4确保格式化
+            # 保存配置到文件,使用indent=4确保格式化
             with open('config.json', 'w', encoding='utf-8') as f:
                 json.dump(self.config, f)
                 
@@ -752,9 +752,9 @@ class CryptoTrader:
             raise
     
     def setup_web_mode(self):
-        """初始化Web模式，替代GUI界面"""
+        """初始化Web模式,替代GUI界面"""
         self.logger.info("Web模式初始化完成")
-        print("Web模式已启动，请在浏览器中访问 http://localhost:5000")
+        print("Web模式已启动,请在浏览器中访问 http://localhost:5000")
         
         # 加载配置到web_data
         if hasattr(self, 'config') and self.config:
@@ -763,7 +763,7 @@ class CryptoTrader:
             self.web_data['auto_find_time_combobox'] = self.auto_find_time_combobox.get() if hasattr(self, 'auto_find_time_combobox') else self.config.get('auto_find_time', '2:00')
     
     def get_web_value(self, key):
-        """获取web数据值，替代GUI的get()方法"""
+        """获取web数据值,替代GUI的get()方法"""
         return self.web_data.get(key, '')
     
     def get_gui_label_value(self, label_name):
@@ -773,7 +773,7 @@ class CryptoTrader:
                 label = getattr(self, label_name)
                 if hasattr(label, 'cget'):
                     text = label.cget('text')
-                    # 处理带前缀的文本，如"Portfolio: 123.45" -> "123.45"
+                    # 处理带前缀的文本,如"Portfolio: 123.45" -> "123.45"
                     if ':' in text:
                         return text.split(':', 1)[1].strip()
                     return text
@@ -783,7 +783,7 @@ class CryptoTrader:
             return '--'
     
     def _parse_date_for_sort(self, date_str):
-        """解析日期字符串用于排序，支持多种日期格式"""
+        """解析日期字符串用于排序,支持多种日期格式"""
         try:
             return datetime.strptime(date_str, "%Y/%m/%d")
         except:
@@ -793,13 +793,13 @@ class CryptoTrader:
                 return datetime.min
     
     def set_web_value(self, key, value):
-        """设置web数据值，替代GUI的config()方法"""
+        """设置web数据值,替代GUI的config()方法"""
         self.web_data[key] = str(value)
         # 同步更新到status_data
         self._sync_to_status_data(key, value)
     
     def set_web_state(self, key, state):
-        """设置web组件状态，替代GUI的config(state=)方法"""
+        """设置web组件状态,替代GUI的config(state=)方法"""
         state_key = f"{key}_state"
         if state_key in self.web_data:
             self.web_data[state_key] = state
@@ -863,7 +863,7 @@ class CryptoTrader:
         main_canvas = tk.Canvas(self.root, bg='#f8f9fa', highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
         
-        # 创建内容Frame，放在Canvas里
+        # 创建内容Frame,放在Canvas里
         scrollable_frame = ttk.Frame(main_canvas)
         
         # 让Frame成为Canvas的一个window
@@ -879,7 +879,7 @@ class CryptoTrader:
             main_canvas.configure(scrollregion=main_canvas.bbox("all"))
         scrollable_frame.bind('<Configure>', _on_frame_configure)
 
-        # pack布局，保证canvas和scrollbar都能自适应
+        # pack布局,保证canvas和scrollbar都能自适应
         main_canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
@@ -1020,7 +1020,7 @@ class CryptoTrader:
             self.config['url_history'] = []
         self.url_entry['values'] = self.config['url_history']
         
-        # 如果有当前URL，设置为默认值
+        # 如果有当前URL,设置为默认值
         current_url = self.config.get('website', {}).get('url', '')
         if current_url:
             self.url_entry.set(current_url)
@@ -1041,7 +1041,7 @@ class CryptoTrader:
         
         # 设置金额按钮
         self.set_amount_button = ttk.Button(main_controls, text="Set Amount", width=10,
-                                           command=self.set_yes_no_cash, style='LeftAligned.TButton')
+                                           command=self.set_yes_no_amount, style='LeftAligned.TButton')
         self.set_amount_button.pack(side=tk.LEFT, padx=3)
         self.set_amount_button['state'] = 'disabled'
 
@@ -1311,7 +1311,7 @@ class CryptoTrader:
         
         # 计算并设置窗口的初始大小
         final_width = 550
-        # 高度自适应，确保能显示所有内容
+        # 高度自适应,确保能显示所有内容
         final_height = max(300, content_height)
 
         self.root.geometry(f'{final_width}x{final_height}+0+0')
@@ -1332,7 +1332,7 @@ class CryptoTrader:
         target_url = self.url_entry.get().strip()
         self.logger.info(f"\033[34m✅ 开始监控网址: {target_url}\033[0m")
         
-        # 启用开始按钮，启用停止按钮
+        # 启用开始按钮,启用停止按钮
         self.start_button['state'] = 'disabled'
             
         # 将"开始监控"文字变为红色
@@ -1489,12 +1489,12 @@ class CryptoTrader:
     def _show_error_and_reset(self, error_msg):
         """显示错误并重置按钮状态"""
         # 用after方法确保在线程中执行GUI操作
-        # 在尝试显示消息框之前，检查Tkinter主窗口是否仍然存在
+        # 在尝试显示消息框之前,检查Tkinter主窗口是否仍然存在
         if self.root and self.root.winfo_exists():
             self.root.after(0, lambda: messagebox.showerror("错误", error_msg))
             self.root.after(0, lambda: self.start_button.config(state='normal'))
         else:
-            # 如果主窗口不存在，则直接记录错误到日志
+            # 如果主窗口不存在,则直接记录错误到日志
             self.logger.error(f"GUI主窗口已销毁,无法显示错误消息: {error_msg}")
         self.running = False
 
@@ -1529,7 +1529,7 @@ class CryptoTrader:
                 # 浏览器级别重试
                 sleep_time = min(5, base_interval * (2 ** error_count))
                 if error_count > 3:
-                    self.logger.error("连续浏览器异常，尝试重启")
+                    self.logger.error("连续浏览器异常,尝试重启")
                     self.restart_browser()
                     error_count = 0
                 time.sleep(sleep_time)
@@ -1545,7 +1545,7 @@ class CryptoTrader:
         Args:
             force_restart: True=强制重启Chrome进程,False=尝试重连现有进程
         """
-        # 清空元素缓存，因为浏览器即将重启
+        # 清空元素缓存,因为浏览器即将重启
         self._clear_element_cache()
         
         # 先关闭浏览器
@@ -1578,7 +1578,7 @@ class CryptoTrader:
         # 检查是否已在重启中
         with self.restart_lock:
             if self.is_restarting:
-                self.logger.info("浏览器正在重启中，跳过重复重启")
+                self.logger.info("浏览器正在重启中,跳过重复重启")
                 return True
             self.is_restarting = True
 
@@ -1593,7 +1593,7 @@ class CryptoTrader:
                     pass
                 self.driver = None
             
-            # 2. 如果需要强制重启，启动新的Chrome进程
+            # 2. 如果需要强制重启,启动新的Chrome进程
             if force_restart:
                 try:
                     # 根据操作系统选择启动脚本
@@ -1688,7 +1688,7 @@ class CryptoTrader:
                     
                     self.logger.info("✅ 浏览器连接成功")
 
-                    # 连接成功后，重置监控线程
+                    # 连接成功后,重置监控线程
                     self._restore_monitoring_state()
                     return True
                     
@@ -1748,7 +1748,7 @@ class CryptoTrader:
                 self.logger.info("📅 日期匹配,无需更新URL")
                 return
             
-            # 日期不匹配，需要更新URL
+            # 日期不匹配,需要更新URL
             self.logger.info(f"\033[31m日期不匹配,更新URL中的日期从 {url_date_str} 到 {current_date_str}\033[0m")
             
             # 替换URL中的日期
@@ -1778,7 +1778,7 @@ class CryptoTrader:
             
             self.logger.info(f"✅ \033[34mURL已更新为: {updated_url}\033[0m")
             
-            # 如果浏览器已经打开，导航到新URL
+            # 如果浏览器已经打开,导航到新URL
             if self.driver:
                 try:
                     self.driver.get(updated_url)
@@ -1790,7 +1790,7 @@ class CryptoTrader:
             self.logger.error(f"日期检查和更新失败: {e}")
 
     def _restore_monitoring_state(self):
-        """恢复监控状态 - 重新同步监控逻辑，确保所有监控功能正常工作"""
+        """恢复监控状态 - 重新同步监控逻辑,确保所有监控功能正常工作"""
         try:
             self.logger.info("🔄 恢复监控状态...")
             
@@ -1800,7 +1800,7 @@ class CryptoTrader:
             # 重连浏览器后自动检查并更新URL中的日期
             self.restart_browser_after_auto_find_coin()
             
-            # 重新启动各种监控功能（不是重新创建定时器，而是确保监控逻辑正常）
+            # 重新启动各种监控功能（不是重新创建定时器,而是确保监控逻辑正常）
             # 1. 重新启动登录监控（如果当前没有运行）
             if hasattr(self, 'login_check_timer') and self.login_check_timer:
                 self.root.after_cancel(self.login_check_timer)
@@ -1865,10 +1865,10 @@ class CryptoTrader:
             # 只在合理的时间范围内恢复零点价格定时器
             if seconds_until_next_run > 0:
                 self.get_binance_zero_time_price_timer = self.root.after(seconds_until_next_run, self.get_binance_zero_time_price)
-                self.logger.info(f"✅ 恢复获取币安零点价格定时器，{round(seconds_until_next_run / 3600000, 2)} 小时后执行")
+                self.logger.info(f"✅ 恢复获取币安零点价格定时器,{round(seconds_until_next_run / 3600000, 2)} 小时后执行")
             
             # 9. zero_cash_timer: 类似的计算逻辑
-            # 现金监控可以稍微提前一点，比如在23:59:30开始
+            # 现金监控可以稍微提前一点,比如在23:59:30开始
             next_cash_time = current_time.replace(hour=23, minute=59, second=30, microsecond=0)
             if current_time >= next_cash_time:
                 next_cash_time += timedelta(days=1)
@@ -1886,21 +1886,21 @@ class CryptoTrader:
             self.logger.info("✅ 恢复了币安价格WebSocket定时器")
             
             # 12. 重新启动设置默认目标价格定时器（如果需要）
-            # 注意：这个定时器通常由用户操作触发，这里只是确保清理状态
+            # 注意：这个定时器通常由用户操作触发,这里只是确保清理状态
             if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
                 self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
                 self.set_yes1_no1_default_target_price_timer = None
             self.logger.info("✅ 清理了设置默认目标价格定时器状态")
             
             # 13. 重新启动重试更新金额定时器（如果需要）
-            # 注意：这个定时器通常由错误情况触发，这里只是确保清理状态
+            # 注意：这个定时器通常由错误情况触发,这里只是确保清理状态
             if hasattr(self, 'retry_update_amount_timer') and self.retry_update_amount_timer:
                 self.root.after_cancel(self.retry_update_amount_timer)
                 self.retry_update_amount_timer = None
             self.logger.info("✅ 清理了重试更新金额定时器状态")
             
             # 14. 重新启动币安零点价格线程定时器（如果需要）
-            # 注意：这个是threading.Timer，需要特殊处理
+            # 注意：这个是threading.Timer,需要特殊处理
             if hasattr(self, 'binance_zero_price_timer') and self.binance_zero_price_timer:
                 try:
                     if self.binance_zero_price_timer.is_alive():
@@ -1912,7 +1912,7 @@ class CryptoTrader:
             
             # 15. 恢复记录利润定时器（安排每日0:30记录）
             if hasattr(self, 'record_and_show_cash_timer') and self.record_and_show_cash_timer:
-                self.logger.info("✅ 记录利润定时器已存在，保持不变")
+                self.logger.info("✅ 记录利润定时器已存在,保持不变")
             else:
                 self.schedule_record_cash_daily()
                 self.logger.info("✅ 恢复记录利润定时器（每日0:30）")
@@ -1923,12 +1923,12 @@ class CryptoTrader:
             self.logger.error(f"恢复所有监控状态失败: {e}")
 
     def check_prices(self):
-        """检查价格变化 - 增强版本，支持多种获取方式和更好的错误处理"""
-        # 直接检查driver是否存在，不存在就重启
+        """检查价格变化 - 增强版本,支持多种获取方式和更好的错误处理"""
+        # 直接检查driver是否存在,不存在就重启
         if not self.driver and not self.is_restarting:
-            self.logger.warning("浏览器未初始化，尝试重启...")
+            self.logger.warning("浏览器未初始化,尝试重启...")
             if not self.restart_browser(force_restart=True):
-                self.logger.error("浏览器重启失败，跳过本次检查")
+                self.logger.error("浏览器重启失败,跳过本次检查")
                 return
         if self.driver is None:
             return
@@ -1943,7 +1943,7 @@ class CryptoTrader:
                     const prices = {up: null, down: null};
                     const priceRegex = /(\\d+(?:\\.\\d+)?)¢/;
                     
-                    // 使用更精确的选择器，减少遍历范围
+                    // 使用更精确的选择器,减少遍历范围
                     const selectors = [
                         'button[class*="btn"]',
                         'button[class*="button"]', 
@@ -1968,14 +1968,14 @@ class CryptoTrader:
                                     if (match) prices.down = parseFloat(match[1]);
                                 }
                                 
-                                // 如果两个价格都找到了，立即返回
+                                // 如果两个价格都找到了,立即返回
                                 if (prices.up !== null && prices.down !== null) return prices;
                             }
                             
-                            // 如果当前选择器找到了价格，不再尝试其他选择器
+                            // 如果当前选择器找到了价格,不再尝试其他选择器
                             if (prices.up !== null || prices.down !== null) break;
                         } catch (e) {
-                            continue; // 忽略选择器错误，继续下一个
+                            continue; // 忽略选择器错误,继续下一个
                         }
                     }
                     
@@ -2026,7 +2026,7 @@ class CryptoTrader:
                 if prices['down'] is None:
                     missing_info.append("Down价格")
                     
-                self.logger.warning(f"数据获取不完整，缺失: {', '.join(missing_info)}")
+                self.logger.warning(f"数据获取不完整,缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
                 # 智能刷新：仅在连续失败时才刷新
@@ -2036,7 +2036,7 @@ class CryptoTrader:
                 
                 if self.price_check_fail_count >= 3:
                     try:
-                        self.logger.info("连续3次价格获取失败，执行页面刷新")
+                        self.logger.info("连续3次价格获取失败,执行页面刷新")
                         self.driver.refresh()
                         time.sleep(2)
                         self.price_check_fail_count = 0
@@ -2054,7 +2054,7 @@ class CryptoTrader:
             
             if self.element_fail_count >= 2:
                 try:
-                    self.logger.info("连续2次元素失效，执行页面刷新")
+                    self.logger.info("连续2次元素失效,执行页面刷新")
                     self.driver.refresh()
                     time.sleep(2)
                     self.element_fail_count = 0
@@ -2135,14 +2135,14 @@ class CryptoTrader:
     def try_update_amount(self, current_retry=0):
         """尝试设置金额"""
         try:
-            self.set_yes_no_cash()
+            self.set_yes_no_amount()
             
         except Exception as e:
             self.logger.error(f"更新金额操作失败 (尝试 {current_retry + 1}/15): {str(e)}")
-            # 如果失败，安排下一次重试
+            # 如果失败,安排下一次重试
             self.schedule_update_amount(current_retry + 1)
 
-    def set_yes_no_cash(self):
+    def set_yes_no_amount(self):
         """设置 Yes/No 各级金额"""
         try:
             #设置重试参数
@@ -2171,52 +2171,43 @@ class CryptoTrader:
 
             # 设置 UP1 和 DOWN1金额
             base_amount = cash_value * initial_percent
-            self.yes1_entry = self.yes_frame.grid_slaves(row=1, column=1)[0]
             self.yes1_amount_entry.delete(0, tk.END)
             self.yes1_amount_entry.insert(0, f"{base_amount:.2f}")
-            self.no1_entry = self.no_frame.grid_slaves(row=1, column=1)[0]
             self.no1_amount_entry.delete(0, tk.END)
             self.no1_amount_entry.insert(0, f"{base_amount:.2f}")
             
             # 计算并设置 UP2/DOWN2金额
             self.yes2_amount = base_amount * first_rebound_percent
-            self.yes2_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
-            self.yes2_entry.delete(0, tk.END)
-            self.yes2_entry.insert(0, f"{self.yes2_amount:.2f}")
-            self.no2_entry = self.no_frame.grid_slaves(row=3, column=1)[0]
-            self.no2_entry.delete(0, tk.END)
-            self.no2_entry.insert(0, f"{self.yes2_amount:.2f}")
+            self.yes2_amount_entry.delete(0, tk.END)
+            self.yes2_amount_entry.insert(0, f"{self.yes2_amount:.2f}")
+            self.no2_amount_entry.delete(0, tk.END)
+            self.no2_amount_entry.insert(0, f"{self.yes2_amount:.2f}")
             
             # 计算并设置 UP3/DOWN3 金额
             self.yes3_amount = self.yes2_amount * n_rebound_percent
-            self.yes3_entry = self.yes_frame.grid_slaves(row=5, column=1)[0]
-            self.yes3_entry.delete(0, tk.END)
-            self.yes3_entry.insert(0, f"{self.yes3_amount:.2f}")
-            self.no3_entry = self.no_frame.grid_slaves(row=5, column=1)[0]
-            self.no3_entry.delete(0, tk.END)
-            self.no3_entry.insert(0, f"{self.yes3_amount:.2f}")
+            self.yes3_amount_entry.delete(0, tk.END)
+            self.yes3_amount_entry.insert(0, f"{self.yes3_amount:.2f}")
+            self.no3_amount_entry.delete(0, tk.END)
+            self.no3_amount_entry.insert(0, f"{self.yes3_amount:.2f}")
 
             # 计算并设置 UP4/DOWN4金额
             self.yes4_amount = self.yes3_amount * n_rebound_percent
-            self.yes4_entry = self.yes_frame.grid_slaves(row=7, column=1)[0]
-            self.yes4_entry.delete(0, tk.END)
-            self.yes4_entry.insert(0, f"{self.yes4_amount:.2f}")
-            self.no4_entry = self.no_frame.grid_slaves(row=7, column=1)[0]
-            self.no4_entry.delete(0, tk.END)
-            self.no4_entry.insert(0, f"{self.yes4_amount:.2f}")
+            self.yes4_amount_entry.delete(0, tk.END)
+            self.yes4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
+            self.no4_amount_entry.delete(0, tk.END)
+            self.no4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
 
-            # 同步金额到StatusDataManager
             self.status_data.update('positions', 'up_positions', [
-                {'price': '0', 'amount': f"{base_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes2_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes3_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes4_amount:.2f}"}
+                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
             self.status_data.update('positions', 'down_positions', [
-                {'price': '0', 'amount': f"{base_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes2_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes3_amount:.2f}"},
-                {'price': '0', 'amount': f"{self.yes4_amount:.2f}"}
+                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
             
             # 获取当前CASH并显示,此CASH再次点击start按钮时会更新
@@ -2227,11 +2218,57 @@ class CryptoTrader:
             
             self.schedule_retry_update_amount()
 
+    def reset_yes_no_amount(self):
+        """重置 YES/NO ENTRY 金额"""
+        # 设置 UP1 和 DOWN1金额
+        yes1_amount = float(self.yes4_amount_entry.get()) * (self.n_rebound / 100)
+        self.yes1_amount_entry.delete(0, tk.END)
+        self.yes1_amount_entry.insert(0, f"{yes1_amount:.2f}")
+        self.no1_amount_entry.delete(0, tk.END)
+        self.no1_amount_entry.insert(0, f"{yes1_amount:.2f}")
+        
+        # 计算并设置 UP2/DOWN2金额
+        yes2_amount = yes1_amount * (self.n_rebound / 100)
+        self.yes2_amount_entry.delete(0, tk.END)
+        self.yes2_amount_entry.insert(0, f"{yes2_amount:.2f}")
+        self.no2_amount_entry.delete(0, tk.END)
+        self.no2_amount_entry.insert(0, f"{yes2_amount:.2f}")
+        
+        # 计算并设置 UP3/DOWN3 金额
+        yes3_amount = yes2_amount * (self.n_rebound / 100)
+        self.yes3_amount_entry.delete(0, tk.END)
+        self.yes3_amount_entry.insert(0, f"{yes3_amount:.2f}")
+        self.no3_amount_entry.delete(0, tk.END)
+        self.no3_amount_entry.insert(0, f"{yes3_amount:.2f}")
+
+        # 计算并设置 UP4/DOWN4金额
+        yes4_amount = yes3_amount * (self.n_rebound / 100)
+        self.yes4_amount_entry.delete(0, tk.END)
+        self.yes4_amount_entry.insert(0, f"{yes4_amount:.2f}")
+        self.no4_amount_entry.delete(0, tk.END)
+        self.no4_amount_entry.insert(0, f"{yes4_amount:.2f}")
+        
+        # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
+        self.status_data.update('positions', 'up_positions', [
+            {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+            {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+            {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+            {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+        ])
+        self.status_data.update('positions', 'down_positions', [
+            {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+            {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+            {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+            {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+        ])
+        
+        self.logger.info("✅ \033[32m设置 YES1-4/NO1-4金额成功\033[0m")
+
     def schedule_retry_update_amount(self):
         """安排重试更新金额"""
         if hasattr(self, 'retry_update_amount_timer'):
             self.root.after_cancel(self.retry_update_amount_timer)
-        self.retry_update_amount_timer = self.root.after(3000, self.set_yes_no_cash)  # 3秒后重试
+        self.retry_update_amount_timer = self.root.after(3000, self.set_yes_no_amount)  # 3秒后重试
     
     def start_url_monitoring(self):
         """启动URL监控"""
@@ -2258,7 +2295,7 @@ class CryptoTrader:
                         clean_current = clean_url(current_page_url)
                         clean_target = clean_url(target_url)
                         
-                        # 如果URL基础部分不匹配，重新导航
+                        # 如果URL基础部分不匹配,重新导航
                         if clean_current != clean_target:
                             self.logger.info(f"❌ URL不匹配,重新导航到: {target_url}")
                             self.driver.get(target_url)
@@ -2340,7 +2377,7 @@ class CryptoTrader:
                         self.logger.info(f"❌ 点击Google登录按钮失败,使用坐标法点击")
                         self.use_x_y_click_google_login_button()
                     
-                    # 不再固定等待15秒，而是循环检测CASH值
+                    # 不再固定等待15秒,而是循环检测CASH值
                     max_attempts = 20 # 最多检测20次
                     check_interval = 1 # 每1秒检测一次
                     cash_value = None
@@ -2369,8 +2406,8 @@ class CryptoTrader:
                     self.logger.info("✅ 已重新启用URL监控和页面刷新")
 
         except NoSuchElementException as e:
-            # 未找到登录按钮，可能已经登录
-            self.logger.debug(f"未找到登录按钮，可能已经登录: {str(e)}")
+            # 未找到登录按钮,可能已经登录
+            self.logger.debug(f"未找到登录按钮,可能已经登录: {str(e)}")
         except Exception as e:
             # 处理其他所有异常
             self.logger.error(f"登录监控过程中发生错误: {str(e)}")
@@ -2401,7 +2438,7 @@ class CryptoTrader:
                 target_y = 548
                 
             # 移动鼠标到目标位置并点击
-            pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选，平滑移动
+            pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选,平滑移动
             pyautogui.click(target_x, target_y)
             
             self.logger.info("✅ \033[34m使用坐标法点击ACCEPT成功\033[0m")
@@ -2430,7 +2467,7 @@ class CryptoTrader:
                 target_y = 724
                 
             # 移动鼠标到目标位置并点击
-            pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选，平滑移动
+            pyautogui.moveTo(target_x, target_y, duration=0.2) # 可选,平滑移动
             pyautogui.click(target_x, target_y)
             
             self.logger.info("✅ \033[34m使用坐标法点击ACCEPT成功\033[0m")
@@ -2441,7 +2478,7 @@ class CryptoTrader:
 
     def refresh_page(self):
         """智能定时刷新页面 - 优化刷新频率和条件"""
-        # 增加刷新间隔到8-15分钟，减少不必要的刷新
+        # 增加刷新间隔到8-15分钟,减少不必要的刷新
         random_minutes = random.uniform(2, 6)
         self.refresh_interval = int(random_minutes * 60000)  # 转换为毫秒
         
@@ -2469,21 +2506,21 @@ class CryptoTrader:
                         self.driver.execute_script("return navigator.userAgent")
                         refresh_time = self.refresh_interval / 60000 # 转换为分钟,用于输入日志
                         
-                        # 清空元素缓存，因为页面即将刷新
+                        # 清空元素缓存,因为页面即将刷新
                         self._clear_element_cache()
                         self.driver.refresh()
                         
                         # 重置失败计数器
                         self.refresh_fail_count = 0
-                        #self.logger.info(f"✅ 页面已刷新，{round(refresh_time, 2)}分钟后再次检查")
+                        #self.logger.info(f"✅ 页面已刷新,{round(refresh_time, 2)}分钟后再次检查")
                         
                     except Exception as e:
                         self.refresh_fail_count += 1
-                        self.logger.warning(f"浏览器连接异常，无法刷新页面 (失败次数: {self.refresh_fail_count})")
+                        self.logger.warning(f"浏览器连接异常,无法刷新页面 (失败次数: {self.refresh_fail_count})")
                         
                         # 连续失败3次后尝试重启浏览器
                         if self.refresh_fail_count >= 3 and not self.is_restarting:
-                            self.logger.warning("连续刷新失败3次，尝试重启浏览器")
+                            self.logger.warning("连续刷新失败3次,尝试重启浏览器")
                             self.refresh_fail_count = 0
                             self.restart_browser()
                 else:
@@ -2510,22 +2547,22 @@ class CryptoTrader:
             # 检查页面加载状态
             ready_state = self.driver.execute_script("return document.readyState")
             if ready_state != "complete":
-                return True  # 页面未完全加载，需要刷新
+                return True  # 页面未完全加载,需要刷新
                 
             # 检查是否存在关键元素（价格按钮）
             try:
                 buttons = self.driver.find_elements(By.TAG_NAME, "button")
                 price_buttons = [btn for btn in buttons if '¢' in btn.text and ('Up' in btn.text or 'Down' in btn.text)]
                 if len(price_buttons) < 2:
-                    return True  # 关键元素缺失，需要刷新
+                    return True  # 关键元素缺失,需要刷新
             except Exception:
-                return True  # 元素查找失败，需要刷新
+                return True  # 元素查找失败,需要刷新
                 
             # 检查页面是否有错误信息
             try:
                 error_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Error') or contains(text(), '错误') or contains(text(), 'Failed')]") 
                 if error_elements:
-                    return True  # 页面有错误，需要刷新
+                    return True  # 页面有错误,需要刷新
             except Exception:
                 pass
                 
@@ -2533,15 +2570,15 @@ class CryptoTrader:
             try:
                 online_status = self.driver.execute_script("return navigator.onLine")
                 if not online_status:
-                    return True  # 网络断开，需要刷新
+                    return True  # 网络断开,需要刷新
             except Exception:
                 pass
                 
-            return False  # 页面状态良好，无需刷新
+            return False  # 页面状态良好,无需刷新
             
         except Exception as e:
             self.logger.debug(f"页面状态检查失败: {str(e)}")
-            return True  # 检查失败，保守起见进行刷新
+            return True  # 检查失败,保守起见进行刷新
     
     def stop_refresh_page(self):
         """停止页面刷新"""
@@ -2579,15 +2616,15 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             self.only_sell_down()
 
                         # 买入 UP1
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.yes1_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes1_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes1_amount_entry)
 
-                        if self.Verify_buy_up():
+                        if self.verify_trade('Bought', 'Up')[0]:
                             self.buy_yes1_amount = float(self.yes1_amount_entry.get())
                             
                             # 重置Up1和Down1价格为0
@@ -2600,25 +2637,24 @@ class CryptoTrader:
                             
                             # 同步UP1和DOWN1价格到StatusDataManager
                             self.status_data.update('positions', 'up_positions', [
-                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][0]['amount']},
-                                self.status_data._data['positions']['up_positions'][1],
-                                self.status_data._data['positions']['up_positions'][2],
-                                self.status_data._data['positions']['up_positions'][3]
+                                {"price": 0},  # UP1重置为0
+                                {"price": float(self.yes2_price_entry.get())},
+                                {"price": float(self.yes3_price_entry.get())},
+                                {"price": float(self.yes4_price_entry.get())}
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][0]['amount']},
-                                self.status_data._data['positions']['down_positions'][1],
-                                self.status_data._data['positions']['down_positions'][2],
-                                self.status_data._data['positions']['down_positions'][3]
+                                {"price": 0},  # DOWN1重置为0
+                                {"price": float(self.no2_price_entry.get())},
+                                {"price": float(self.no3_price_entry.get())},
+                                {"price": float(self.no4_price_entry.get())}
                             ])
-                            #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
-
+                            
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
                                 # 因为不会双持仓,所以不用判断卖 UP 还是卖 DOWN,直接卖点击 SELL 卖出仓位
                                 self.only_sell_down()
 
-                            # 设置No2价格为默认值
+                            # 设置No2价格为str(self.default_target_price)
                             self.no2_price_entry = self.no_frame.grid_slaves(row=2, column=1)[0]
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, str(self.default_target_price))
@@ -2632,7 +2668,7 @@ class CryptoTrader:
                                 self.status_data._data['positions']['down_positions'][3]
                             ])
                             
-                            self.logger.info(f"\033[34m✅ No2价格已重置为默认值{self.default_target_price}\033[0m")
+                            self.logger.info("\033[34m✅ No2价格已重置为默认值54\033[0m")
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
@@ -2682,12 +2718,12 @@ class CryptoTrader:
                         # 执行交易操作
                         self.buy_no_button.invoke() 
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.no1_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no1_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no1_amount_entry)
                         
                         self.click_buy_yes()
 
-                        if self.Verify_buy_down():
+                        if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no1_amount = float(self.no1_amount_entry.get())
 
                             # 重置Up1和Down1价格为0
@@ -2698,18 +2734,18 @@ class CryptoTrader:
                             self.no1_price_entry.insert(0, "0")
                             self.no1_price_entry.configure(foreground='black')
                             
-                            # 同步UP1和DOWN1价格到StatusDataManager
+                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.status_data.update('positions', 'up_positions', [
-                                {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][0]['amount']},
-                                self.status_data._data['positions']['up_positions'][1],
-                                self.status_data._data['positions']['up_positions'][2],
-                                self.status_data._data['positions']['up_positions'][3]
+                                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
                             ])
                             self.status_data.update('positions', 'down_positions', [
-                                {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][0]['amount']},
-                                self.status_data._data['positions']['down_positions'][1],
-                                self.status_data._data['positions']['down_positions'][2],
-                                self.status_data._data['positions']['down_positions'][3]
+                                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
                             ])
                             #self.logger.info("\033[34m✅ Up1和Down1价格已重置为0\033[0m")
 
@@ -2718,7 +2754,7 @@ class CryptoTrader:
                                 # 因为不会双持仓,所以不用判断卖 UP 还是卖 DOWN,直接卖点击 SELL 卖出仓位
                                 self.only_sell_up()
 
-                            # 设置Yes2价格为默认值
+                            # 设置Yes2价格为str(self.default_target_price)
                             self.yes2_price_entry = self.yes_frame.grid_slaves(row=2, column=1)[0]
                             self.yes2_price_entry.delete(0, tk.END)
                             self.yes2_price_entry.insert(0, str(self.default_target_price))
@@ -2794,10 +2830,10 @@ class CryptoTrader:
                         if self.buy_count > 14:
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.yes2_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes2_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes2_amount_entry)
                         
-                        if self.Verify_buy_up():
+                        if self.verify_trade('Bought', 'Up')[0]:
                             self.buy_yes2_amount = float(self.yes2_amount_entry.get())
                             
                             # 重置Yes2和No2价格为0
@@ -2826,7 +2862,7 @@ class CryptoTrader:
                             # 卖出DOWN
                             self.only_sell_down()
 
-                            # 设置No3价格为默认值
+                            # 设置No3价格为str(self.default_target_price)
                             self.no3_price_entry = self.no_frame.grid_slaves(row=4, column=1)[0]
                             self.no3_price_entry.delete(0, tk.END)
                             self.no3_price_entry.insert(0, str(self.default_target_price))
@@ -2888,12 +2924,12 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_no()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.no2_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no2_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no2_amount_entry)
 
                         self.click_buy_yes()
 
-                        if self.Verify_buy_down():
+                        if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no2_amount = float(self.no2_amount_entry.get())
                             
                             # 重置Yes2和No2价格为0
@@ -2922,7 +2958,7 @@ class CryptoTrader:
                             # 卖出UP
                             self.only_sell_up()
 
-                            # 设置YES3价格为默认值
+                            # 设置YES3价格为str(self.default_target_price)
                             self.yes3_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
                             self.yes3_price_entry.delete(0, tk.END)
                             self.yes3_price_entry.insert(0, str(self.default_target_price))
@@ -2998,10 +3034,10 @@ class CryptoTrader:
                         if self.buy_count > 14:
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.yes3_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes3_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes3_amount_entry)
 
-                        if self.Verify_buy_up():
+                        if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
                             self.buy_yes3_amount = float(self.yes3_amount_entry.get())
                             
@@ -3031,7 +3067,7 @@ class CryptoTrader:
                             # 卖出DOWN
                             self.only_sell_down()
 
-                            # 设置No4价格为默认值
+                            # 设置No4价格为str(self.default_target_price)
                             self.no4_price_entry = self.no_frame.grid_slaves(row=6, column=1)[0]
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, str(self.default_target_price))
@@ -3101,12 +3137,12 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_no()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.no3_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no3_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no3_amount_entry)
 
                         self.click_buy_yes()
 
-                        if self.Verify_buy_down():
+                        if self.verify_trade('Bought', 'Down')[0]:
                             self.buy_no3_amount = float(self.no3_amount_entry.get())
                             
                             # 重置Yes3和No3价格为0
@@ -3135,7 +3171,7 @@ class CryptoTrader:
                             # 卖出UP
                             self.only_sell_up()
 
-                            # 设置Yes4价格为默认值
+                            # 设置Yes4价格为str(self.default_target_price)
                             self.yes4_price_entry = self.yes_frame.grid_slaves(row=6, column=1)[0]
                             self.yes4_price_entry.delete(0, tk.END)
                             self.yes4_price_entry.insert(0, str(self.default_target_price))
@@ -3219,10 +3255,10 @@ class CryptoTrader:
                         if self.buy_count > 14:
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.yes4_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes4_amount_entry
                         self.send_amount_and_click_buy_confirm(self.yes4_amount_entry)
 
-                        if self.Verify_buy_up():
+                        if self.verify_trade('Bought', 'Up')[0]:
                             self.yes4_amount = float(self.yes4_amount_entry.get())
                             
                             # 设置 YES4/No4的价格为0
@@ -3251,7 +3287,7 @@ class CryptoTrader:
                             # 卖出DOWN
                             self.only_sell_down()
 
-                            # 设置 NO1 价格为默认值
+                            # 设置 NO1 价格为str(self.default_target_price)
                             self.no1_price_entry.delete(0, tk.END)
                             self.no1_price_entry.insert(0, str(self.default_target_price))
                             self.no1_price_entry.configure(foreground='red')
@@ -3272,7 +3308,21 @@ class CryptoTrader:
 
                             # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
-
+                            
+                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
+                            self.status_data.update('positions', 'up_positions', [
+                                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                            ])
+                            
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
@@ -3321,12 +3371,12 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_no()
 
-                        # 传 Tkinter 的 AmountEntry 对象，比如 self.no4_amount_entry
+                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no4_amount_entry
                         self.send_amount_and_click_buy_confirm(self.no4_amount_entry)
                         
                         self.click_buy_yes()
 
-                        if self.Verify_buy_down():
+                        if self.verify_trade('Bought', 'Down')[0]:
                             self.no4_amount = float(self.no4_amount_entry.get())
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
@@ -3354,7 +3404,7 @@ class CryptoTrader:
                             # 卖出UP
                             self.only_sell_up()
 
-                            #设置 YES1价格为默认买入价
+                            # 设置 YES1价格为str(self.default_target_price)
                             self.yes1_price_entry.configure(foreground='red')
                             self.yes1_price_entry.delete(0, tk.END)
                             self.yes1_price_entry.insert(0, str(self.default_target_price))
@@ -3373,9 +3423,23 @@ class CryptoTrader:
                                 {"price": 0}
                             ])
 
-                            # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
+                            # 设置 UP1-4/DOWN1-4 的金额,这里也要同步到StatusDataManager
                             self.reset_yes_no_amount()
-
+                            
+                            # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
+                            self.status_data.update('positions', 'up_positions', [
+                                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                            ])
+                            self.status_data.update('positions', 'down_positions', [
+                                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                            ])
+                            
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
@@ -3428,7 +3492,7 @@ class CryptoTrader:
             self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
             self.click_positions_sell_and_sell_confirm_and_accept()
 
-            if self._verify_trade('Sold', 'Up')[0]:
+            if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
                 self.sell_count += 1
                 # 发送交易邮件 - 卖出YES
@@ -3455,7 +3519,7 @@ class CryptoTrader:
             self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
             self.click_positions_sell_and_sell_confirm_and_accept()
 
-            if self._verify_trade('Sold', 'Down')[0]:
+            if self.verify_trade('Sold', 'Down')[0]:
                 # 增加卖出计数
                 self.sell_count += 1
                 
@@ -3476,59 +3540,69 @@ class CryptoTrader:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
                 time.sleep(1)
 
-    def reset_yes_no_amount(self):
-        """重置 YES/NO ENTRY 金额"""
-        # 设置 UP1 和 DOWN1金额
-        yes1_amount = float(self.yes4_amount_entry.get()) * (self.n_rebound / 100)
-        self.yes1_entry = self.yes_frame.grid_slaves(row=1, column=1)[0]
-        self.yes1_amount_entry.delete(0, tk.END)
-        self.yes1_amount_entry.insert(0, f"{yes1_amount:.2f}")
-        self.no1_entry = self.no_frame.grid_slaves(row=1, column=1)[0]
-        self.no1_amount_entry.delete(0, tk.END)
-        self.no1_amount_entry.insert(0, f"{yes1_amount:.2f}")
-        
-        # 计算并设置 UP2/DOWN2金额
-        yes2_amount = yes1_amount * (self.n_rebound / 100)
-        self.yes2_entry = self.yes_frame.grid_slaves(row=3, column=1)[0]
-        self.yes2_entry.delete(0, tk.END)
-        self.yes2_entry.insert(0, f"{yes2_amount:.2f}")
-        self.no2_entry = self.no_frame.grid_slaves(row=3, column=1)[0]
-        self.no2_entry.delete(0, tk.END)
-        self.no2_entry.insert(0, f"{yes2_amount:.2f}")
-        
-        # 计算并设置 UP3/DOWN3 金额
-        yes3_amount = yes2_amount * (self.n_rebound / 100)
-        self.yes3_entry = self.yes_frame.grid_slaves(row=5, column=1)[0]
-        self.yes3_entry.delete(0, tk.END)
-        self.yes3_entry.insert(0, f"{yes3_amount:.2f}")
-        self.no3_entry = self.no_frame.grid_slaves(row=5, column=1)[0]
-        self.no3_entry.delete(0, tk.END)
-        self.no3_entry.insert(0, f"{yes3_amount:.2f}")
+    def verify_trade(self, action_type, direction):
+        """
+        验证交易是否成功完成
+        智能等待3秒,如果没有出现交易记录,立即再重试一次智能等待,如果还是没有交易记录,说明交易失败
+        Args:
+            action_type: 'Bought' 或 'Sold'
+            direction: 'Up' 或 'Down'
+        Returns:
+            tuple: (是否成功, 价格, 金额, 份额)
+        """
+        try:
+            self.logger.info("\033[34m✅ 开始验证交易\033[0m")
+            # 智能等待逻辑：最多重试2次,每次等待3秒
+            for attempt in range(2):
+                start_time = time.time()
+                max_wait_time = 3  # 每次智能等待3秒
+                check_interval = 0.1  # 检查间隔0.1秒
 
-        # 计算并设置 UP4/DOWN4金额
-        yes4_amount = yes3_amount * (self.n_rebound / 100)
-        self.yes4_entry = self.yes_frame.grid_slaves(row=7, column=1)[0]
-        self.yes4_entry.delete(0, tk.END)
-        self.yes4_entry.insert(0, f"{yes4_amount:.2f}")
-        self.no4_entry = self.no_frame.grid_slaves(row=7, column=1)[0]
-        self.no4_entry.delete(0, tk.END)
-        self.no4_entry.insert(0, f"{yes4_amount:.2f}")
-        
-        # 同步金额到StatusDataManager
-        self.status_data.update('positions', 'up_positions', [
-            {'price': '0', 'amount': f"{yes1_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes2_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes3_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes4_amount:.2f}"}
-        ])
-        self.status_data.update('positions', 'down_positions', [
-            {'price': '0', 'amount': f"{yes1_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes2_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes3_amount:.2f}"},
-            {'price': '0', 'amount': f"{yes4_amount:.2f}"}
-        ])
-        
-        self.logger.info("设置 YES1-4/NO1-4金额成功")
+                # 智能等待循环
+                while time.time() - start_time < max_wait_time:
+                    try:
+                        # 快速检查是否有交易记录出现
+                        history_element = WebDriverWait(self.driver, 0.1).until(
+                            EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0])))
+                        
+                        if history_element:
+                            history_text = history_element.text
+                            
+                            # 分别查找action_type和direction
+                            action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
+                            direction_found = re.search(rf"\b{direction}\b", history_text, re.IGNORECASE)
+                            
+                            if action_found and direction_found:
+                                # 提取价格和金额
+                                price_match = re.search(r'at\s+(\d+\.?\d*)¢', history_text)
+                                amount_match = re.search(r'\(\$(\d+\.\d+)\)', history_text)
+                                shares_match = re.search(r'(?:Bought|Sold)\s+(\d+(?:\.\d+)?)', history_text, re.IGNORECASE)
+                                
+                                self.price = float(price_match.group(1)) if price_match else 0
+                                self.amount = float(amount_match.group(1)) if amount_match else 0
+                                self.shares = float(shares_match.group(1)) if shares_match else 0
+                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
+                                
+                                # 同步交易验证信息到StatusDataManager
+                                self.status_data.update_data('trading', 'trade_verification', {
+                                    'direction': direction,
+                                    'shares': self.shares,
+                                    'price': self.price,
+                                    'amount': self.amount
+                                })
+                                
+                                return True, self.price, self.amount, self.shares  
+
+                    except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
+                        pass
+                    
+                    time.sleep(check_interval)
+            # 两次智能等待都失败
+            self.logger.warning(f"❌ \033[31m交易验证失败\033[0m")
+            return False, 0, 0, 0
+        except Exception as e:
+            self.logger.error(f"交易验证失败: {str(e)}")
+            return False, 0, 0, 0
 
     def send_amount_and_click_buy_confirm(self, amount_entry):
         """在 AMOUNT 输入框输入金额,然后点击买入按钮.使用批量DOM操作并增强错误处理"""
@@ -3552,12 +3626,10 @@ class CryptoTrader:
             result = self._execute_batch_dom_operations(operations, fallback_operations)
             
             if result.get('success') or result.get('partial_success'):
-                # self.logger.info("✅ \033[34m使用批量操作买入完成\033[0m")
-                # 增加等待时间让交易完成 - 给服务器更多时间处理交易
-                # self.logger.info("等待交易处理完成...")
-                time.sleep(2)  # 增加到2秒
+                self.logger.info("✅ \033[34m使用批量操作买入完成\033[0m")
+
             else:
-                self.logger.warning("⚠️ \033[31m批量操作失败，已执行回退操作\033[0m")
+                self.logger.warning("⚠️ \033[31m批量操作失败,已执行回退操作\033[0m")
                 # 回退操作后也需要等待
                 time.sleep(2)
                 
@@ -3591,31 +3663,29 @@ class CryptoTrader:
                 # self.logger.info("✅ 使用批量操作卖出完成")
                 time.sleep(1)  # 等待交易处理完成
             else:
-                self.logger.warning("⚠️ 批量操作失败，已执行回退操作")
+                self.logger.warning("⚠️ 批量操作失败,已执行回退操作")
                 time.sleep(1)
             
         except Exception as e:
             self.logger.error(f"卖出失败: {str(e)}")
 
     def _execute_batch_dom_operations(self, operations, fallback_operations=None):
-        """批量执行DOM操作 - 支持顺序执行和延迟
-        
+        """批量执行DOM操作 - 支持顺序执行和延迟       
         Args:
-            operations: 要执行的操作列表，每个操作包含 {xpath, action, value?, delay?, optional?}
-            fallback_operations: 批量操作失败时的回退操作函数列表
-            
+            operations: 要执行的操作列表,每个操作包含 {xpath, action, value?, delay?, optional?}
+            fallback_operations: 批量操作失败时的回退操作函数列表 
         Returns:
             dict: {success: bool, results: list, error: str?}
         """
         try:
-            # 对于需要顺序执行的操作，使用异步JavaScript
+            # 对于需要顺序执行的操作,使用异步JavaScript
             has_delays = any(op.get('delay', 0) > 0 for op in operations)
             
             if has_delays:
                 # 使用异步方式处理有延迟的操作
                 return self._execute_sequential_dom_operations(operations, fallback_operations)
             
-            # 对于无延迟的操作，使用同步批量处理
+            # 对于无延迟的操作,使用同步批量处理
             js_operations = []
             for i, op in enumerate(operations):
                 xpath = op['xpath']
@@ -3626,7 +3696,7 @@ class CryptoTrader:
                 if action == 'click':
                     action_code = f'element{i}.click();'
                 elif action == 'set_value':
-                    # 清空输入框并设置新值，触发必要的事件
+                    # 清空输入框并设置新值,触发必要的事件
                     action_code = f'''
                         element{i}.focus();
                         element{i}.value = "";
@@ -3696,7 +3766,7 @@ class CryptoTrader:
                 failed_ops = [op for op in result.get('operations', []) if not op.get('success')]
                 
                 if failed_ops and fallback_operations:
-                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败，执行回退操作")
+                    self.logger.warning(f"批量操作中有{len(failed_ops)}个失败,执行回退操作")
                     # 只对失败的操作执行回退
                     for failed_op in failed_ops:
                         index = failed_op['index']
@@ -3713,9 +3783,9 @@ class CryptoTrader:
                     'partial_success': len(successful_ops) > 0
                 }
             else:
-                # 完全失败，执行所有回退操作
+                # 完全失败,执行所有回退操作
                 if fallback_operations:
-                    self.logger.warning(f"批量操作完全失败，执行所有回退操作: {result.get('error')}")
+                    self.logger.warning(f"批量操作完全失败,执行所有回退操作: {result.get('error')}")
                     for i, fallback_op in enumerate(fallback_operations):
                         try:
                             fallback_op()
@@ -3759,7 +3829,7 @@ class CryptoTrader:
                     if action == 'click':
                         element.click()
                     elif action == 'set_value':
-                        # 清空输入框并设置新值，触发必要的事件
+                        # 清空输入框并设置新值,触发必要的事件
                         self.driver.execute_script("""
                             arguments[0].focus();
                             arguments[0].value = '';
@@ -3776,7 +3846,7 @@ class CryptoTrader:
                         'success': True
                     })
                     
-                    # 如果有延迟，等待指定时间
+                    # 如果有延迟,等待指定时间
                     if delay > 0:
                         time.sleep(delay / 1000.0)  # 转换为秒
                         
@@ -3790,7 +3860,7 @@ class CryptoTrader:
                             'skipped': True
                         })
                     else:
-                        # 必需操作失败，执行回退
+                        # 必需操作失败,执行回退
                         operation_results.append({
                             'index': i,
                             'action': action,
@@ -3900,108 +3970,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"回退卖出操作失败: {str(e)}")
       
-    def Verify_buy_up(self):
-        """
-        验证买入YES交易是否成功完成
-        
-        Returns:
-            bool: 交易是否成功
-        """
-        return self._verify_trade('Bought', 'Up')[0]
-        
-    def Verify_buy_down(self):
-        """
-        验证买入NO交易是否成功完成
-        
-        Returns:
-            bool: 交易是否成功
-        """
-        return self._verify_trade('Bought', 'Down')[0]
-    
-    def Verify_sold_up(self):
-        """
-        验证卖出YES交易是否成功完成
-        
-        Returns:
-            bool: 交易是否成功
-        """
-        return self._verify_trade('Sold', 'Up')[0]
-        
-    def Verify_sold_down(self):
-        """
-        验证卖出NO交易是否成功完成
-        
-        Returns:
-            bool: 交易是否成功
-        """
-        return self._verify_trade('Sold', 'Down')[0]
-
-
-
-    def _verify_trade(self, action_type, direction):
-        """
-        验证交易是否成功完成
-        智能等待3秒，如果没有出现交易记录，立即再重试一次智能等待，如果还是没有交易记录，说明交易失败
-        
-        Args:
-            action_type: 'Bought' 或 'Sold'
-            direction: 'Up' 或 'Down'
-            
-        Returns:
-            tuple: (是否成功, 价格, 金额, 份额)
-        """
-        try:
-            # 智能等待逻辑：最多重试2次，每次等待3秒
-            for attempt in range(2):
-                start_time = time.time()
-                max_wait_time = 3  # 每次智能等待3秒
-                check_interval = 0.1  # 检查间隔0.1秒
-
-                # 智能等待循环
-                while time.time() - start_time < max_wait_time:
-                    try:
-                        # 快速检查是否有交易记录出现
-                        history_element = WebDriverWait(self.driver, 0.1).until(
-                            EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0])))
-                        
-                        if history_element:
-                            history_text = history_element.text
-                            
-                            # 分别查找action_type和direction
-                            action_found = re.search(rf"\b{action_type}\b", history_text, re.IGNORECASE)
-                            direction_found = re.search(rf"\b{direction}\b", history_text, re.IGNORECASE)
-                            
-                            if action_found and direction_found:
-                                # 提取价格和金额
-                                price_match = re.search(r'at\s+(\d+\.?\d*)¢', history_text)
-                                amount_match = re.search(r'\(\$(\d+\.\d+)\)', history_text)
-                                shares_match = re.search(r'(?:Bought|Sold)\s+(\d+(?:\.\d+)?)', history_text, re.IGNORECASE)
-                                
-                                self.price = float(price_match.group(1)) if price_match else 0
-                                self.amount = float(amount_match.group(1)) if amount_match else 0
-                                self.shares = float(shares_match.group(1)) if shares_match else 0
-                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
-                                
-                                # 同步交易验证信息到StatusDataManager
-                                self.status_data.update_data('trading', 'trade_verification', {
-                                    'direction': direction,
-                                    'shares': self.shares,
-                                    'price': self.price,
-                                    'amount': self.amount
-                                })
-                                
-                                return True, self.price, self.amount, self.shares                                
-                    except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
-                        pass
-                    
-                    time.sleep(check_interval)
-            # 两次智能等待都失败
-            self.logger.warning(f"❌ \033[31m交易验证失败\033[0m")
-            return False, 0, 0, 0
-        except Exception as e:
-            self.logger.error(f"交易验证失败: {str(e)}")
-            return False, 0, 0, 0
-
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
         now = datetime.now()
@@ -4016,8 +3984,8 @@ class CryptoTrader:
         # 计算下一个指定时间的时间点（在选择时间的02分执行）
         next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
         
-        # 如果当前时间已经超过了今天的指定时间，则直接安排到明天
-        # 为了确保绝对不会在同一天重复执行，我们检查当前时间是否已经过了指定的小时
+        # 如果当前时间已经超过了今天的指定时间,则直接安排到明天
+        # 为了确保绝对不会在同一天重复执行,我们检查当前时间是否已经过了指定的小时
         if now.hour >= hour:
             next_run += timedelta(days=1)
         
@@ -4041,8 +4009,8 @@ class CryptoTrader:
         if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
             # 取消当前的定时器
             self.root.after_cancel(self.set_yes1_no1_default_target_price_timer)
-            self.logger.info("🔄 设置 YES1/NO1 价格时间已更改，重新安排定时任务")
-            # 使用新的时间设置重新安排定时任务，确保使用正确的时间计算
+            self.logger.info("🔄 设置 YES1/NO1 价格时间已更改,重新安排定时任务")
+            # 使用新的时间设置重新安排定时任务,确保使用正确的时间计算
             self.schedule_price_setting()
     
     def set_yes1_no1_default_target_price(self):
@@ -4074,9 +4042,9 @@ class CryptoTrader:
 
         self.close_windows()
         
-        # 价格设置完成后，重新安排下一次的价格设置定时任务
+        # 价格设置完成后,重新安排下一次的价格设置定时任务
         # 使用schedule_price_setting确保与GUI时间选择保持一致
-        self.logger.info("🔄 价格设置完成，重新安排下一次定时任务")
+        self.logger.info("🔄 价格设置完成,重新安排下一次定时任务")
         self.schedule_price_setting()
         
     def on_coin_changed(self, event=None):
@@ -4176,11 +4144,11 @@ class CryptoTrader:
     def click_today_card(self):
         """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
         try:
-            # 获取当前日期字符串，比如 "April 18"
+            # 获取当前日期字符串,比如 "April 18"
             if platform.system() == 'Darwin':  # macOS
                 today_str = datetime.now().strftime("%B %-d")  # macOS格式
             else:  # Linux (Ubuntu)
-                today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式，去掉前导零
+                today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式,去掉前导零
             self.logger.info(f"🔍 当前日期是 {today_str}")
 
             coin = self.coin_combobox.get()
@@ -4461,7 +4429,7 @@ class CryptoTrader:
                 api_data = {"price": price, "coin": coin_form_websocket, "original_selected_coin": selected_coin}
                 self.logger.info(f"✅ ({attempt + 1}/{max_retries}) 成功获取到币安 \033[34m{api_data['coin']}\033[0m 价格: \033[34m{api_data['price']}\033[0m")
                 
-                break # 获取成功，跳出重试循环
+                break # 获取成功,跳出重试循环
 
             except Exception as e:
                 self.logger.warning(f"❌ (尝试 {attempt + 1}/{max_retries}) 获取币安 \033[34m{coin_form_websocket}\033[0m 价格时发生错误: {e}")
@@ -4469,9 +4437,9 @@ class CryptoTrader:
                     self.logger.info(f"等待 {retry_delay} 秒后重试...")
                     time.sleep(retry_delay) # 等待后重试
                 else: # 最后一次尝试仍然失败
-                    self.logger.error(f"❌ 获取币安 \033[34m{coin_form_websocket}\033[0m 价格失败，已达到最大重试次数 ({max_retries})。")
+                    self.logger.error(f"❌ 获取币安 \033[34m{coin_form_websocket}\033[0m 价格失败,已达到最大重试次数 ({max_retries})。")
         
-        # 3. 如果成功获取数据 (即try块没有异常且api_data不为None)，则安排GUI更新到主线程
+        # 3. 如果成功获取数据 (即try块没有异常且api_data不为None),则安排GUI更新到主线程
         if api_data:
             def update_gui():
                 try:
@@ -4560,18 +4528,17 @@ class CryptoTrader:
                 self.logger.warning(f"WebSocket 消息处理异常: {e}")
 
         def on_error(ws, error):
-            self.logger.warning(f"WebSocket 错误: {error}")
+            #self.logger.warning(f"WebSocket 错误: {error}")
+            pass
 
         def on_close(ws, close_status_code, close_msg):
-            self.logger.info("WebSocket 连接已关闭")
+            #self.logger.info("WebSocket 连接已关闭")
+            pass
 
         def run_ws():
             nonlocal connection_attempts
             while self.running and not self.stop_event.is_set():
                 try:
-                    if connection_attempts > 0:
-                        self.logger.info(f"🔄 尝试重连 WebSocket - {coin_form_websocket.upper()} (第{connection_attempts}次)")
-                    
                     ws = websocket.WebSocketApp(ws_url, 
                                               on_open=on_open,
                                               on_message=on_message, 
@@ -4595,10 +4562,10 @@ class CryptoTrader:
         target_time_today = now.replace(hour=23, minute=30, second=0, microsecond=0)
 
         if now < target_time_today:
-            # 如果当前时间早于今天的23点，则在今天的23点执行
+            # 如果当前时间早于今天的23点,则在今天的23点执行
             next_run_time = target_time_today
         else:
-            # 如果当前时间晚于或等于今天的23点，则在明天的23点执行
+            # 如果当前时间晚于或等于今天的23点,则在明天的23点执行
             next_run_time = target_time_today + timedelta(days=1)
 
         seconds_until_next_run = (next_run_time - now).total_seconds()
@@ -4656,7 +4623,7 @@ class CryptoTrader:
             now = datetime.now()
             current_hour = now.hour
             
-            # 检查是否在1点到8点之间（包含1点，不包含8点）
+            # 检查是否在1点到8点之间（包含1点,不包含8点）
             if 1 <= current_hour <= 8:
                 #self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
                 
@@ -4731,9 +4698,9 @@ class CryptoTrader:
         当系统可用内存少于400MB时自动启动swap
         """
         try:
-            # 检查操作系统，只在Linux系统上执行
+            # 检查操作系统,只在Linux系统上执行
             if platform.system() != 'Linux':
-                self.logger.debug("🔍 非Linux系统，跳过Swap检查")
+                self.logger.debug("🔍 非Linux系统,跳过Swap检查")
                 return
             
             # 设置触发阈值（单位：KB）
@@ -4744,8 +4711,8 @@ class CryptoTrader:
                 result = subprocess.run(['swapon', '--noheadings', '--show'], 
                                       capture_output=True, text=True, timeout=10)
                 if '/swapfile' in result.stdout:
-                    self.logger.info("✅ Swap已启用，停止定时检查")
-                    # 取消定时器，停止继续检查
+                    self.logger.info("✅ Swap已启用,停止定时检查")
+                    # 取消定时器,停止继续检查
                     if hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer:
                         self.root.after_cancel(self.auto_use_swap_timer)
                         self.auto_use_swap_timer = None
@@ -4817,7 +4784,7 @@ class CryptoTrader:
                     except Exception as e:
                         self.logger.warning(f"调整swappiness失败: {e}")
                     
-                    self.logger.info("🎉 Swap启用完成，共2GB")
+                    self.logger.info("🎉 Swap启用完成,共2GB")
                     
             except Exception as e:
                 self.logger.error(f"获取内存信息失败: {e}")
@@ -4919,7 +4886,7 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"❌ 关闭Chrome进程失败: {str(e)}")
 
-    # 已删除重复的schedule_record_and_show_cash函数，使用schedule_record_cash_daily代替
+    # 已删除重复的schedule_record_and_show_cash函数,使用schedule_record_cash_daily代替
 
     def load_cash_history(self):
         """启动时从CSV加载全部历史记录, 兼容旧4/6列并补齐为7列(日期,Cash,利润,利润率,总利润,总利润率,交易次数)"""
@@ -4937,7 +4904,7 @@ class CryptoTrader:
                             if len(row) >= 4:
                                 date_str = row[0].strip()
                                 
-                                # 验证并转换数值，添加详细的错误信息
+                                # 验证并转换数值,添加详细的错误信息
                                 try:
                                     cash = float(row[1].strip())
                                 except ValueError as ve:
@@ -4964,7 +4931,7 @@ class CryptoTrader:
                                 if first_cash is None:
                                     first_cash = cash
                                     
-                                # 如果已有6列或7列，直接采用并更新累计上下文
+                                # 如果已有6列或7列,直接采用并更新累计上下文
                                 if len(row) >= 6:
                                     try:
                                         total_profit = float(row[4].strip())
@@ -5008,13 +4975,13 @@ class CryptoTrader:
                             continue
         except Exception as e:
             self.logger.error(f"加载历史CSV失败: {e}")
-            # 如果CSV文件损坏，尝试修复
+            # 如果CSV文件损坏,尝试修复
             if os.path.exists(self.csv_file):
                 self.logger.info("尝试修复损坏的CSV文件...")
                 try:
                     self.repair_csv_file()
                     # 修复后重新尝试加载
-                    self.logger.info("CSV文件修复完成，重新尝试加载...")
+                    self.logger.info("CSV文件修复完成,重新尝试加载...")
                     return self.load_cash_history()
                 except Exception as repair_error:
                     self.logger.error(f"CSV文件修复失败: {repair_error}")
@@ -5028,9 +4995,9 @@ class CryptoTrader:
         return history
 
     def repair_csv_file(self):
-        """修复损坏的CSV文件，移除无效行并重建文件"""
+        """修复损坏的CSV文件,移除无效行并重建文件"""
         if not os.path.exists(self.csv_file):
-            self.logger.info("CSV文件不存在，无需修复")
+            self.logger.info("CSV文件不存在,无需修复")
             return
             
         # 检查是否已经标准化过
@@ -5040,10 +5007,10 @@ class CryptoTrader:
             csv_mtime = os.path.getmtime(self.csv_file)
             flag_mtime = os.path.getmtime(standardized_flag_file)
             if csv_mtime <= flag_mtime:
-                self.logger.info("CSV文件已标准化，跳过检查")
+                self.logger.info("CSV文件已标准化,跳过检查")
                 return
             else:
-                self.logger.info("CSV文件已更新，重新检查格式")
+                self.logger.info("CSV文件已更新,重新检查格式")
             
         valid_rows = []
         invalid_rows = []
@@ -5063,7 +5030,7 @@ class CryptoTrader:
                             cash = float(row[1].strip())
                             profit = float(row[2].strip())
                             
-                            # 处理百分比格式的利润率，特别处理被错误连接的情况
+                            # 处理百分比格式的利润率,特别处理被错误连接的情况
                             profit_rate_str = row[3].strip()
                             
                             # 检查是否包含日期信息（如 '0.00292025-08-18'）
@@ -5072,7 +5039,7 @@ class CryptoTrader:
                                 match = re.match(r'([\d\.%-]+)(\d{4}-\d{2}-\d{2}.*)', profit_rate_str)
                                 if match:
                                     profit_rate_str = match.group(1)
-                                    self.logger.warning(f"第{line_number}行利润率字段包含日期信息，已分离: '{row[3]}' -> '{profit_rate_str}'")
+                                    self.logger.warning(f"第{line_number}行利润率字段包含日期信息,已分离: '{row[3]}' -> '{profit_rate_str}'")
                                     has_format_changes = True
                             
                             if profit_rate_str.endswith('%'):
@@ -5102,7 +5069,7 @@ class CryptoTrader:
                                     except ValueError:
                                         raise ValueError(f"日期格式不支持: {date_str}")
                             
-                            # 如果有更多列，也验证它们
+                            # 如果有更多列,也验证它们
                             if len(row) >= 6:
                                 total_profit = float(row[4].strip())
                                 # 处理百分比格式的总利润率
@@ -5113,7 +5080,7 @@ class CryptoTrader:
                                     match = re.match(r'([\d\.%-]+)(\d{4}-\d{2}-\d{2}.*)', total_profit_rate_str)
                                     if match:
                                         total_profit_rate_str = match.group(1)
-                                        self.logger.warning(f"第{line_number}行总利润率字段包含日期信息，已分离: '{row[5]}' -> '{total_profit_rate_str}'")
+                                        self.logger.warning(f"第{line_number}行总利润率字段包含日期信息,已分离: '{row[5]}' -> '{total_profit_rate_str}'")
                                         has_format_changes = True
                                 
                                 if total_profit_rate_str.endswith('%'):
@@ -5134,32 +5101,32 @@ class CryptoTrader:
                     except Exception as e:
                         invalid_rows.append((line_number, row, str(e)))
                         
-            # 如果有无效行或格式变更，需要重写文件
+            # 如果有无效行或格式变更,需要重写文件
             if invalid_rows or has_format_changes:
                 # 创建备份
                 backup_file = f"{self.csv_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 shutil.copy2(self.csv_file, backup_file)
                 
                 if invalid_rows:
-                    self.logger.info(f"发现{len(invalid_rows)}行无效数据，已创建备份: {backup_file}")
+                    self.logger.info(f"发现{len(invalid_rows)}行无效数据,已创建备份: {backup_file}")
                     # 记录无效行
                     for line_num, row, error in invalid_rows:
                         self.logger.warning(f"移除第{line_num}行无效数据: {row} - {error}")
                 
                 if has_format_changes:
-                    self.logger.info(f"发现格式需要标准化，已创建备份: {backup_file}")
+                    self.logger.info(f"发现格式需要标准化,已创建备份: {backup_file}")
                 
-                # 重写CSV文件，只保留有效行
+                # 重写CSV文件,只保留有效行
                 with open(self.csv_file, 'w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerows(valid_rows)
                     
                 if invalid_rows and has_format_changes:
-                    self.logger.info(f"CSV文件修复和格式标准化完成，保留{len(valid_rows)}行有效数据")
+                    self.logger.info(f"CSV文件修复和格式标准化完成,保留{len(valid_rows)}行有效数据")
                 elif invalid_rows:
-                    self.logger.info(f"CSV文件修复完成，保留{len(valid_rows)}行有效数据")
+                    self.logger.info(f"CSV文件修复完成,保留{len(valid_rows)}行有效数据")
                 elif has_format_changes:
-                    self.logger.info(f"CSV文件格式标准化完成，处理{len(valid_rows)}行数据")
+                    self.logger.info(f"CSV文件格式标准化完成,处理{len(valid_rows)}行数据")
                     
                 # 创建标准化标记文件
                 try:
@@ -5169,11 +5136,11 @@ class CryptoTrader:
                 except Exception as flag_error:
                     self.logger.warning(f"创建标准化标记文件失败: {flag_error}")
             else:
-                self.logger.info("CSV文件检查完成，未发现无效数据或格式问题")
-                # 即使没有变更，也创建标记文件避免下次重复检查
+                self.logger.info("CSV文件检查完成,未发现无效数据或格式问题")
+                # 即使没有变更,也创建标记文件避免下次重复检查
                 try:
                     with open(standardized_flag_file, 'w', encoding='utf-8') as flag_file:
-                        flag_file.write(f"CSV文件已于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 检查，无需标准化")
+                        flag_file.write(f"CSV文件已于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} 检查,无需标准化")
                 except Exception as flag_error:
                     self.logger.warning(f"创建标准化标记文件失败: {flag_error}")
                 
@@ -5212,7 +5179,7 @@ class CryptoTrader:
             total_profit = 0.0
             total_profit_rate = 0.0
             
-        # 追加写入CSV（append模式，不覆盖）7列：日期,Cash,利润,利润率,总利润,总利润率,交易次数
+        # 追加写入CSV（append模式,不覆盖）7列：日期,Cash,利润,利润率,总利润,总利润率,交易次数
         try:
             with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -5245,7 +5212,7 @@ class CryptoTrader:
             # position_value 的值是true 或 false
             # 根据position_value的值决定点击哪个按钮
             if position_value:
-                # 如果第一行是Up，点击第二的按钮
+                # 如果第一行是Up,点击第二的按钮
                 try:
                     button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_NO_BUTTON[0])
                 except NoSuchElementException:
@@ -5255,7 +5222,7 @@ class CryptoTrader:
                         silent=True
                     )
             else:
-                # 如果第一行不存在或不是Up，使用默认的第一行按钮
+                # 如果第一行不存在或不是Up,使用默认的第一行按钮
                 try:
                     button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
                 except NoSuchElementException:
@@ -5279,7 +5246,7 @@ class CryptoTrader:
             # 根据position_value的值决定点击哪个按钮
             
             if position_value:
-                # 如果第二行是No，点击第一行YES 的 SELL的按钮
+                # 如果第二行是No,点击第一行YES 的 SELL的按钮
                 try:
                     button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_YES_BUTTON[0])
                 except NoSuchElementException:
@@ -5289,7 +5256,7 @@ class CryptoTrader:
                         silent=True
                     )
             else:
-                # 如果第二行不存在或不是No，使用默认的第一行按钮
+                # 如果第二行不存在或不是No,使用默认的第一行按钮
                 try:
                     button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
                 except NoSuchElementException:
@@ -5336,7 +5303,7 @@ class CryptoTrader:
                 self.logger.warning("Buy按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy按钮失败: {str(e)}")
+            self.logger.error(f"浏览器连接异常,点击Buy按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
 
@@ -5355,7 +5322,7 @@ class CryptoTrader:
                 self.logger.warning("Buy-Yes按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy-Yes按钮失败: {str(e)}")
+            self.logger.error(f"浏览器连接异常,点击Buy-Yes按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy-Yes 按钮失败: {str(e)}")
 
@@ -5374,18 +5341,18 @@ class CryptoTrader:
                 self.logger.warning("Buy-No按钮未找到")
             
         except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常，点击Buy-No按钮失败: {str(e)}")
+            self.logger.error(f"浏览器连接异常,点击Buy-No按钮失败: {str(e)}")
         except Exception as e:
             self.logger.error(f"点击 Buy-No 按钮失败: {str(e)}")
     
     def close_windows(self):
         """关闭多余窗口"""
         try:
-            # 检查并关闭多余的窗口，只保留一个
+            # 检查并关闭多余的窗口,只保留一个
             all_handles = self.driver.window_handles
             
             if len(all_handles) > 1:
-                # self.logger.info(f"当前窗口数: {len(all_handles)}，准备关闭多余窗口")
+                # self.logger.info(f"当前窗口数: {len(all_handles)},准备关闭多余窗口")
                 
                 # 获取目标URL
                 target_url = self.url_entry.get() if hasattr(self, 'url_entry') else None
@@ -5405,7 +5372,7 @@ class CryptoTrader:
                             self.logger.warning(f"检查窗口URL失败: {e}")
                             continue
                 
-                # 如果没有找到目标窗口，使用最后一个窗口作为备选
+                # 如果没有找到目标窗口,使用最后一个窗口作为备选
                 if not target_handle:
                     target_handle = all_handles[-1]
                     self.logger.warning("未找到目标URL窗口,使用最后一个窗口")
@@ -5423,7 +5390,7 @@ class CryptoTrader:
                 # 切换到保留的目标窗口
                 try:
                     self.driver.switch_to.window(target_handle)
-                    self.logger.info(f"✅ 已保留目标窗口，关闭了 {len(all_handles)-1} 个多余窗口")
+                    self.logger.info(f"✅ 已保留目标窗口,关闭了 {len(all_handles)-1} 个多余窗口")
                 except Exception as e:
                     self.logger.warning(f"切换到目标窗口失败: {e}")
                 
@@ -5432,7 +5399,7 @@ class CryptoTrader:
                 
         except Exception as e:
             self.logger.error(f"关闭窗口操作失败: {e}")
-            # 如果窗口操作失败，可能是浏览器会话已失效，不需要重启浏览器
+            # 如果窗口操作失败,可能是浏览器会话已失效,不需要重启浏览器
             # 因为调用此方法的上层代码通常会处理浏览器重启
 
     def send_trade_email(self, trade_type, price, amount, shares, trade_count,
@@ -5447,11 +5414,11 @@ class CryptoTrader:
                 sender = 'huacaihuijin@126.com'
                 
                 # 根据HOSTNAME决定邮件接收者
-                receivers = ['2049330@qq.com']  # 默认接收者，必须接收所有邮件
+                receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
                 if 'ZZY' in hostname:
-                    receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY，添加QQ邮箱 # 272763832@qq.com
+                    receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱 # 272763832@qq.com
                 
-                app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天，请及时更新，下次到期日 2025-11-29
+                app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
                 
                 # 获取交易币对信息
                 full_pair = self.trading_pair_label.cget("text")
@@ -5469,7 +5436,7 @@ class CryptoTrader:
                 msg['From'] = sender
                 msg['To'] = ', '.join(receivers)
 
-                # 修复格式化字符串问题，确保cash_value和portfolio_value是字符串
+                # 修复格式化字符串问题,确保cash_value和portfolio_value是字符串
                 str_cash_value = str(cash_value)
                 str_portfolio_value = str(portfolio_value)
                 
@@ -5581,7 +5548,7 @@ class CryptoTrader:
             try:
                 return operation(*args, **kwargs)
             except Exception as e:
-                self.logger.warning(f"{operation.__name__} 失败，尝试 {attempt + 1}/{self.retry_count}: {str(e)}")
+                self.logger.warning(f"{operation.__name__} 失败,尝试 {attempt + 1}/{self.retry_count}: {str(e)}")
                 if attempt < self.retry_count - 1:
                     time.sleep(self.retry_interval)
                 else:
@@ -5688,10 +5655,10 @@ class CryptoTrader:
                         element.is_displayed()  # 这会触发StaleElementReferenceException如果元素无效
                         return element
                     except (StaleElementReferenceException, NoSuchElementException):
-                        # 元素已失效，从缓存中移除
+                        # 元素已失效,从缓存中移除
                         del self.element_cache[cache_key]
                 else:
-                    # 缓存过期，移除
+                    # 缓存过期,移除
                     del self.element_cache[cache_key]
             return None
     
@@ -5763,7 +5730,7 @@ class CryptoTrader:
         return None
 
     def create_flask_app(self):
-        """创建Flask应用，展示内存中的cash_history"""
+        """创建Flask应用,展示内存中的cash_history"""
         app = Flask(__name__)
 
         @app.route("/")
@@ -6046,7 +6013,7 @@ class CryptoTrader:
                     .up-price-display, .down-price-display {
                         font-size: 28px;
                         font-weight: 800;
-                        color: #2F3E46; /* 深灰蓝，比纯黑柔和 */
+                        color: #2F3E46; /* 深灰蓝,比纯黑柔和 */
                         text-align: center;
                         padding: 12px 20px;
                         border-radius: 12px;
@@ -6212,7 +6179,7 @@ class CryptoTrader:
                     }
                     .position-name {
                         font-weight: 600;
-                        color: #2F3E46; /* 深灰蓝，比纯黑柔和 */
+                        color: #2F3E46; /* 深灰蓝,比纯黑柔和 */
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -6565,14 +6532,14 @@ class CryptoTrader:
                                 if (binanceRateElement) {
                                     const rateValue = parseFloat(data.prices.binance_rate);
                                     if (!isNaN(rateValue)) {
-                                        // 格式化为百分比，保留三位小数
+                                        // 格式化为百分比,保留三位小数
                                         const formattedRate = rateValue >= 0 ? 
                                             `${rateValue.toFixed(3)}%` : 
                                             `-${Math.abs(rateValue).toFixed(3)}%`;
                                         
                                         binanceRateElement.textContent = formattedRate;
                                         
-                                        // 设置颜色：上涨绿色，下跌红色
+                                        // 设置颜色：上涨绿色,下跌红色
                                         if (rateValue > 0) {
                                             binanceRateElement.style.color = '#28a745'; // 绿色
                                         } else if (rateValue < 0) {
@@ -6604,7 +6571,7 @@ class CryptoTrader:
                                 if (coinDisplayElement) coinDisplayElement.textContent = data.coin || '--';
                                 if (timeDisplayElement) timeDisplayElement.textContent = data.auto_find_time || '--';
                                 
-                                // 持仓信息将在交易验证成功后自动更新，无需在此处调用
+                                // 持仓信息将在交易验证成功后自动更新,无需在此处调用
                                 
                                 // 更新状态信息
                                 const statusElement = document.querySelector('.status-value');
@@ -6615,7 +6582,7 @@ class CryptoTrader:
                                 if (urlElement) urlElement.textContent = data.status.url;
                                 if (browserElement) browserElement.textContent = data.status.browser_status;
                                 
-                                // URL输入框不再自动更新，避免覆盖用户输入
+                                // URL输入框不再自动更新,避免覆盖用户输入
                                 // const urlInputElement = document.querySelector('#urlInput');
                                 // if (urlInputElement && data.status.url && data.status.url !== '未设置') {
                                 //     urlInputElement.value = data.status.url;
@@ -6800,7 +6767,7 @@ class CryptoTrader:
                         const timeDiff = endOfDay - now;
                         
                         if (timeDiff <= 0) {
-                            // 如果已经过了当天23:59:59，显示00:00:00
+                            // 如果已经过了当天23:59:59,显示00:00:00
                             updateFlipClock('00', '00', '00');
                             return;
                         }
@@ -7047,7 +7014,7 @@ class CryptoTrader:
                         .then(data => {
                             const startBtn = document.getElementById('startBtn');
                             if (data.browser_connected) {
-                                // 浏览器已连接，禁用启动按钮
+                                // 浏览器已连接,禁用启动按钮
                                 startBtn.disabled = true;
                                 startBtn.textContent = '🌐 运行中...';
                                 startBtn.style.backgroundColor = '#6c757d';
@@ -7078,7 +7045,7 @@ class CryptoTrader:
                         .then(data => {
                             const startBtn = document.getElementById('startBtn');
                             if (data.monitoring_active) {
-                                // 监控已启动，禁用启动按钮
+                                // 监控已启动,禁用启动按钮
                                 startBtn.disabled = true;
                                 startBtn.textContent = '程序运行中';
                                 startBtn.style.backgroundColor = '#6c757d';
@@ -7183,7 +7150,7 @@ class CryptoTrader:
                         const positions = {};
                         positions[fieldName] = fieldValue;
                         
-                        // 静默保存，不显示成功消息
+                        // 静默保存,不显示成功消息
                         fetch('/api/positions/save', {
                             method: 'POST',
                             headers: {
@@ -7223,11 +7190,11 @@ class CryptoTrader:
                                 const isAtBottom = logContainer.scrollTop >= (logContainer.scrollHeight - logContainer.clientHeight - 5);
                                 
                                 if (isAtBottom) {
-                                    // 用户滚动到底部，重新启用自动滚动
+                                    // 用户滚动到底部,重新启用自动滚动
                                     autoScroll = true;
                                     userScrolling = false;
                                 } else {
-                                    // 用户手动滚动到其他位置，停止自动滚动
+                                    // 用户手动滚动到其他位置,停止自动滚动
                                     autoScroll = false;
                                     userScrolling = true;
                                 }
@@ -7577,7 +7544,7 @@ class CryptoTrader:
             """获取实时状态数据API"""
             return get_status()
         
-        # 保持向后兼容性，保留原/api/data接口
+        # 保持向后兼容性,保留原/api/data接口
         @app.route("/api/data")
         def get_data():
             """获取实时数据API (向后兼容)"""
@@ -7693,7 +7660,7 @@ class CryptoTrader:
                 <div class=\"container\">
                     <h2>Polymarket自动交易记录</h2>
                     <div class=\"page-info\">
-                        显示第 {{ start + 1 if total > 0 else 0 }}-{{ end if end <= total else total }} 条，共 {{ total }} 条记录（第 {{ page }} / {{ total_pages }} 页）
+                        显示第 {{ start + 1 if total > 0 else 0 }}-{{ end if end <= total else total }} 条,共 {{ total }} 条记录（第 {{ page }} / {{ total_pages }} 页）
                     </div>
                     <table>
                         <tr>
@@ -7756,8 +7723,8 @@ class CryptoTrader:
                     </div>
                     <div class=\"info\">
                         📅 数据来源：每日 0:30 自动记录<br>
-                        💾 数据持久化：追加模式，程序重启不丢失<br>
-                        🔄 页面实时：24小时在线，随时可访问<br>
+                        💾 数据持久化：追加模式,程序重启不丢失<br>
+                        🔄 页面实时：24小时在线,随时可访问<br>
                         📄 分页显示：每页最多 {{ per_page }} 条记录
                 </div>
             </body>
@@ -7877,7 +7844,7 @@ class CryptoTrader:
                                 # 解析日志格式: 时间 - 级别 - 消息
                                 parts = line.split(' - ', 2)
                                 if len(parts) >= 3:
-                                    # 提取时间部分，只保留时分秒，隐藏年月日
+                                    # 提取时间部分,只保留时分秒,隐藏年月日
                                     full_time = parts[0]
                                     try:
                                         # 解析完整时间格式: 2025-08-20 14:13:056
@@ -7900,7 +7867,7 @@ class CryptoTrader:
                                         'message': line
                                     })
                 else:
-                    # 如果找不到日志文件，返回提示信息
+                    # 如果找不到日志文件,返回提示信息
                     logs.append({
                         'time': datetime.now().strftime('%H:%M:%S'),
                         'level': 'INFO',
@@ -7937,19 +7904,19 @@ class CryptoTrader:
                 # 获取当前配置以便比较变化
                 current_positions = self.config.get('positions', {})
                 
-                # 获取现有的positions配置，如果不存在则创建空字典
+                # 获取现有的positions配置,如果不存在则创建空字典
                 if 'positions' not in self.config:
                     self.config['positions'] = {}
                 positions_config = self.config['positions'].copy()
                 
-                # 只更新实际传入的字段，保持其他字段不变
+                # 只更新实际传入的字段,保持其他字段不变
                 for field_name, field_value in data.items():
                     positions_config[field_name] = field_value
                 
                 # 更新内存中的配置
                 self.config['positions'] = positions_config
                 
-                # 同时更新web_data，确保交易逻辑能获取到最新的价格和金额
+                # 同时更新web_data,确保交易逻辑能获取到最新的价格和金额
                 # 建立字段映射关系
                 field_mapping = {
                     'up1_price': 'yes1_price_entry',
@@ -7978,7 +7945,7 @@ class CryptoTrader:
                 # 保存到文件
                 self.save_config()
                 
-                # 只记录实际发生变化的字段，使用简洁的日志格式
+                # 只记录实际发生变化的字段,使用简洁的日志格式
                 log_field_mapping = {
                     'up1_price': 'UP1 价格',
                     'up1_amount': 'UP1 金额',
@@ -8420,7 +8387,7 @@ class CryptoTrader:
         '''
 
     def check_and_kill_port_processes(self, port):
-        """检查端口是否被占用，如果被占用则强制杀死占用进程"""
+        """检查端口是否被占用,如果被占用则强制杀死占用进程"""
         try:
             killed_processes = []
             for proc in psutil.process_iter(['pid', 'name']):
@@ -8448,7 +8415,7 @@ class CryptoTrader:
                     continue
             
             if killed_processes:
-                self.logger.info(f"🧹 端口 {port} 清理完成，已杀死 {len(killed_processes)} 个进程")
+                self.logger.info(f"🧹 端口 {port} 清理完成,已杀死 {len(killed_processes)} 个进程")
                 time.sleep(1)  # 等待端口释放
             else:
                 self.logger.info(f"✅ 端口 {port} 未被占用")
@@ -8457,8 +8424,8 @@ class CryptoTrader:
             self.logger.error(f"检查端口 {port} 时出错: {e}")
 
     def start_flask_server(self):
-        """在后台线程中启动Flask，24小时常驻"""
-        # 从环境变量读取配置，默认值为localhost:5000
+        """在后台线程中启动Flask,24小时常驻"""
+        # 从环境变量读取配置,默认值为localhost:5000
         flask_host = os.environ.get('FLASK_HOST', '127.0.0.1')
         flask_port = int(os.environ.get('FLASK_PORT', '5000'))
         
@@ -8476,9 +8443,9 @@ class CryptoTrader:
                 self.flask_app.run(host=flask_host, port=flask_port, debug=False, use_reloader=False)
             except Exception as e:
                 self.logger.error(f"Flask启动失败: {e}")
-                # 如果启动失败，再次尝试清理端口
+                # 如果启动失败,再次尝试清理端口
                 if "Address already in use" in str(e) or "端口" in str(e):
-                    self.logger.warning(f"🔄 端口 {flask_port} 仍被占用，再次尝试清理...")
+                    self.logger.warning(f"🔄 端口 {flask_port} 仍被占用,再次尝试清理...")
                     self.check_and_kill_port_processes(flask_port)
                     time.sleep(2)
                     try:
@@ -8491,10 +8458,10 @@ class CryptoTrader:
         
         # 根据配置显示访问地址
         if flask_host == '127.0.0.1' or flask_host == 'localhost':
-            self.logger.info(f"✅ Flask服务已启动，监听端口: {flask_port}")
-            self.logger.info("🔒 服务仅监听本地地址，通过NGINX反向代理访问")
+            self.logger.info(f"✅ Flask服务已启动,监听端口: {flask_port}")
+            self.logger.info("🔒 服务仅监听本地地址,通过NGINX反向代理访问")
         else:
-            self.logger.info(f"✅ Flask服务已启动，监听端口: {flask_port}")
+            self.logger.info(f"✅ Flask服务已启动,监听端口: {flask_port}")
 
     def schedule_record_cash_daily(self):
         """安排每天 0:30 记录现金到CSV"""
@@ -8517,7 +8484,7 @@ class CryptoTrader:
         self.record_and_show_cash_timer.start()
 
     def record_cash_daily(self):
-        """实际记录逻辑：读取GUI Cash，计算并追加到CSV"""
+        """实际记录逻辑：读取GUI Cash,计算并追加到CSV"""
         try:
             # 从GUI读取cash值
             cash_text = self.zero_time_cash_label.cget("text")  # 例如 "Cash: 123.45"
@@ -8544,7 +8511,7 @@ class CryptoTrader:
 
 if __name__ == "__main__":
     try:
-        # 打印启动参数，用于调试
+        # 打印启动参数,用于调试
         
         # 初始化日志
         logger = Logger("main")
