@@ -1400,8 +1400,7 @@ class CryptoTrader:
         self.auto_find_time_combobox_minute.insert(0, saved_minute)
         
         # 绑定时间选择变化事件
-        self.auto_find_time_combobox_hour.bind('<FocusOut>', self.on_auto_find_time_changed)
-        self.auto_find_time_combobox_hour.bind('<Return>', self.on_auto_find_time_changed)
+        # 只在分钟修改时触发时间调整，避免重复触发
         self.auto_find_time_combobox_minute.bind('<FocusOut>', self.on_auto_find_time_changed)
         self.auto_find_time_combobox_minute.bind('<Return>', self.on_auto_find_time_changed)
 
@@ -4271,16 +4270,20 @@ class CryptoTrader:
         # 从GUI获取选择的时间
         selected_time = self.get_selected_time()
         hour = self.get_selected_hour()
+        minute = self.get_selected_minute()
         
         # 异步同步交易时间到StatusDataManager
         self._update_status_async('trading_info', 'time', selected_time)
         
-        # 计算下一个指定时间的时间点（在选择时间的02分执行）
-        next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
+        # 计算下一个指定时间的时间点（使用用户选择的精确时间）
+        next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         
-        # 如果当前时间已经超过了今天的指定时间,则直接安排到明天
-        # 为了确保绝对不会在同一天重复执行,我们检查当前时间是否已经过了指定的小时
-        if now.hour >= hour:
+        # 如果当前时间已经超过了今天的指定时间,则安排到明天
+        # 使用完整的时间比较（小时和分钟）
+        current_time_minutes = now.hour * 60 + now.minute
+        target_time_minutes = hour * 60 + minute
+        
+        if current_time_minutes >= target_time_minutes:
             next_run += timedelta(days=1)
         
         # 计算等待时间(毫秒)
