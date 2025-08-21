@@ -16,13 +16,13 @@ class XPathConfig:
     ]
 
     # 3.Buy Yes 按钮长期有效
-    BUY_YES_BUTTON = [
+    BUY_UP_BUTTON = [
         '//button[.//span[contains(text(), "Up")] and .//span[contains(text(), "¢")]]',
         '//button[.//span[contains(text(), "Yes")] and .//span[contains(text(), "¢")]]'
     ]
 
     # 4.Buy No 按钮长期有效
-    BUY_NO_BUTTON = [
+    BUY_DOWN_BUTTON = [
         '//button[.//span[contains(text(), "Down")] and .//span[contains(text(), "¢")]]',
         '//button[.//span[contains(text(), "No")] and .//span[contains(text(), "¢")]]'
     ]
