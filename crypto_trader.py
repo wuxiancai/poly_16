@@ -4236,7 +4236,7 @@ class CryptoTrader:
         """当时间选择改变时的处理函数"""
         # 添加日志确认函数被调用
         selected_time = self.get_selected_time()
-        self.logger.info(f"⏰ 时间选择已更改为: {selected_time}")
+        self.logger.info(f"⏰ \033[34m时间选择已更改为: {selected_time}\033[0m")
         
         # 保存新的时间设置到配置文件
         self.save_config()
@@ -4258,22 +4258,23 @@ class CryptoTrader:
         """设置默认目标价格54"""
         # 获取 DOWN 的实时价格
         up_price, down_price = self.check_prices()
-        self.logger.info(f"up:{up_price},down{down_price}")
+        self.logger.info(f"✅ \033[34m当前UP价格:{up_price},DOWN价格:{down_price}\033[0m")
+
         # 如果 UP 价格大于 54,这设置 DOWN 的价格为 54
-        if down_price and (56 >= down_price >= 53):
-            self.no1_price_entry.delete(0, tk.END)
-            self.no1_price_entry.insert(0, str(self.default_target_price))
-            self.no1_price_entry.configure(foreground='red')
-            self.logger.info(f"✅ \033[34m设置DOWN1价格为54成功\033[0m")
-            
         # 如果 DOWN 价格大于 54,这设置 UP 的价格为 54
-        elif up_price and (56 >= up_price >= 53):
+        if up_price and (54 <= up_price <= 56):
             self.yes1_price_entry.delete(0, tk.END)
             self.yes1_price_entry.insert(0, str(self.default_target_price))
             self.yes1_price_entry.configure(foreground='red')
             self.logger.info(f"✅ \033[34m设置UP1价格为54成功\033[0m")
-        
-        else:
+
+        elif up_price and (up_price <= 45):
+            self.yes1_price_entry.delete(0, tk.END)
+            self.yes1_price_entry.insert(0, str(self.default_target_price))
+            self.yes1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ \033[34m设置UP1价格为54成功\033[0m")
+          
+        elif 46 <= up_price <= 53:
             self.no1_price_entry.delete(0, tk.END)
             self.no1_price_entry.insert(0, str(self.default_target_price))
             self.no1_price_entry.configure(foreground='red')
@@ -4281,6 +4282,13 @@ class CryptoTrader:
             self.yes1_price_entry.insert(0, str(self.default_target_price))
             self.yes1_price_entry.configure(foreground='red')
             self.logger.info(f"✅ \033[34m设置UP1/DOWN1价格为54成功\033[0m")
+          
+        elif up_price and (up_price >= 57):
+            self.no1_price_entry.delete(0, tk.END)
+            self.no1_price_entry.insert(0, str(self.default_target_price))
+            self.no1_price_entry.configure(foreground='red')
+            self.logger.info(f"✅ \033[34m设置DOWN1价格为54成功\033[0m")
+        
 
         # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         self.async_gui_price_amount_to_web()
