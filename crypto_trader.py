@@ -1028,7 +1028,7 @@ class CryptoTrader:
             
             # 保存第一次交易价格的时间设置
             if hasattr(self, 'auto_find_time_combobox'):
-                self.config['auto_find_time'] = self.auto_find_time_combobox.get()
+                self.config['auto_find_time'] = self.get_selected_time()
             
             # 保存币种选择设置
             if hasattr(self, 'coin_combobox'):
@@ -1051,7 +1051,7 @@ class CryptoTrader:
         if hasattr(self, 'config') and self.config:
             self.web_data['url_entry'] = self.config.get('website', {}).get('url', '')
             self.web_data['coin_combobox'] = self.config.get('coin', 'BTC')
-            self.web_data['auto_find_time_combobox'] = self.auto_find_time_combobox.get() if hasattr(self, 'auto_find_time_combobox') else self.config.get('auto_find_time', '2:00')
+            self.web_data['auto_find_time_combobox'] = self.get_selected_time() if hasattr(self, 'auto_find_time_combobox_hour') else self.config.get('auto_find_time', '2:00')
     
     def get_web_value(self, key):
         """获取web数据值,替代GUI的get()方法"""
@@ -1375,15 +1375,35 @@ class CryptoTrader:
         auto_find_frame = ttk.Frame(main_controls)
         auto_find_frame.pack(fill="x", pady=2)
         
-        self.auto_find_time_combobox = ttk.Combobox(auto_find_frame, values=['1:00', '2:00', '3:00', '4:00', '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'], width=5, state='readonly')
-        self.auto_find_time_combobox.pack(side=tk.LEFT, padx=2)
+        # 小时选择 Spinbox
+        ttk.Label(auto_find_frame, text=":").pack(side=tk.LEFT)
+        self.auto_find_time_combobox_hour = tk.Spinbox(
+            auto_find_frame, from_=0, to=23, wrap=True, width=3, format="%02.0f"
+        )
+        self.auto_find_time_combobox_hour.pack(side=tk.LEFT, padx=2)
+        
+        # 分隔符
+        ttk.Label(auto_find_frame, text=":").pack(side=tk.LEFT)
+        
+        # 分钟选择 Spinbox
+        self.auto_find_time_combobox_minute = tk.Spinbox(
+            auto_find_frame, from_=0, to=59, wrap=True, width=3, format="%02.0f"
+        )
+        self.auto_find_time_combobox_minute.pack(side=tk.LEFT, padx=2)
         
         # 从配置文件加载保存的时间设置
         saved_time = self.config.get('auto_find_time', '2:00')
-        self.auto_find_time_combobox.set(saved_time)
+        saved_hour, saved_minute = saved_time.split(':')
+        self.auto_find_time_combobox_hour.delete(0, tk.END)
+        self.auto_find_time_combobox_hour.insert(0, saved_hour)
+        self.auto_find_time_combobox_minute.delete(0, tk.END)
+        self.auto_find_time_combobox_minute.insert(0, saved_minute)
         
         # 绑定时间选择变化事件
-        self.auto_find_time_combobox.bind('<<ComboboxSelected>>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_hour.bind('<FocusOut>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_hour.bind('<Return>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_minute.bind('<FocusOut>', self.on_auto_find_time_changed)
+        self.auto_find_time_combobox_minute.bind('<Return>', self.on_auto_find_time_changed)
 
         # 交易币对显示
         pair_container = ttk.Frame(scrollable_frame)
@@ -1620,7 +1640,7 @@ class CryptoTrader:
         
         # 初始化币种和时间信息到StatusDataManager（异步）
         initial_coin = self.coin_combobox.get()
-        initial_time = self.auto_find_time_combobox.get()
+        initial_time = self.get_selected_time()
         self._update_status_async('trading_info', 'coin', initial_coin)
         self._update_status_async('trading_info', 'time', initial_time)
     
@@ -4249,8 +4269,8 @@ class CryptoTrader:
         now = datetime.now()
         
         # 从GUI获取选择的时间
-        selected_time = self.auto_find_time_combobox.get()
-        hour = int(selected_time.split(':')[0])
+        selected_time = self.get_selected_time()
+        hour = self.get_selected_hour()
         
         # 异步同步交易时间到StatusDataManager
         self._update_status_async('trading_info', 'time', selected_time)
@@ -4277,7 +4297,7 @@ class CryptoTrader:
         self.save_config()
         
         # 异步同步交易时间到StatusDataManager
-        selected_time = self.auto_find_time_combobox.get()
+        selected_time = self.get_selected_time()
         self._update_status_async('trading_info', 'time', selected_time)
         
         if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
@@ -4326,6 +4346,30 @@ class CryptoTrader:
         self.logger.info("🔄 价格设置完成,重新安排下一次定时任务")
         self.schedule_price_setting()
         
+    def get_selected_time(self):
+        """获取选择的时间，返回格式化的时间字符串"""
+        try:
+            hour = int(self.auto_find_time_combobox_hour.get())
+            minute = int(self.auto_find_time_combobox_minute.get())
+            return f"{hour:02d}:{minute:02d}"
+        except (ValueError, AttributeError):
+            # 如果获取失败，返回默认值
+            return "2:00"
+    
+    def get_selected_hour(self):
+        """获取选择的小时"""
+        try:
+            return int(self.auto_find_time_combobox_hour.get())
+        except (ValueError, AttributeError):
+            return 2
+    
+    def get_selected_minute(self):
+        """获取选择的分钟"""
+        try:
+            return int(self.auto_find_time_combobox_minute.get())
+        except (ValueError, AttributeError):
+            return 0
+
     def on_coin_changed(self, event=None):
         """当币种选择改变时的处理函数"""
         # 保存新的币种选择到配置文件
@@ -5997,7 +6041,7 @@ class CryptoTrader:
             current_data = {
                 'url': self.get_web_value('url_entry'),
                 'coin': self.get_web_value('coin_combobox'),
-                'auto_find_time': self.auto_find_time_combobox.get() if hasattr(self, 'auto_find_time_combobox') else self.get_web_value('auto_find_time_combobox'),
+                'auto_find_time': self.get_selected_time() if hasattr(self, 'auto_find_time_combobox_hour') else self.get_web_value('auto_find_time_combobox'),
                 'account': {
                     'cash': self.status_data.get_value('account', 'available_cash') or self.get_gui_label_value('cash_label') or '--',
                     'portfolio': self.status_data.get_value('account', 'portfolio_value') or self.get_gui_label_value('portfolio_label') or '--',
