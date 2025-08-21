@@ -581,9 +581,7 @@ class AsyncDataUpdater:
                     self.status_data_manager.update(category, key, value)
                 elif operation_type == "update_data":
                     self.status_data_manager.update_data(category, key, value)
-                    
-                if self.logger:
-                    self.logger.debug(f"✅ 数据更新成功: {category}.{key} = {value}")
+
                 return True
                 
             except Exception as e:
@@ -613,8 +611,6 @@ class AsyncDataUpdater:
                     
                 self.status_data_manager.update_position(position_type, index, price, amount)
                 
-                if self.logger:
-                    self.logger.debug(f"✅ 持仓数据更新成功: {position_type}[{index}] price={price} amount={amount}")
                 return True
                 
             except Exception as e:
