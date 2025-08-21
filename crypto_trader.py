@@ -4260,14 +4260,14 @@ class CryptoTrader:
         up_price, down_price = self.check_prices()
         self.logger.info(f"up:{up_price},down{down_price}")
         # 如果 UP 价格大于 54,这设置 DOWN 的价格为 54
-        if up_price and (up_price >= 54):
+        if down_price and (56 >= down_price >= 53):
             self.no1_price_entry.delete(0, tk.END)
             self.no1_price_entry.insert(0, str(self.default_target_price))
             self.no1_price_entry.configure(foreground='red')
             self.logger.info(f"✅ \033[34m设置DOWN1价格为54成功\033[0m")
             
         # 如果 DOWN 价格大于 54,这设置 UP 的价格为 54
-        elif down_price and (down_price >= 54):
+        elif up_price and (56 >= up_price >= 53):
             self.yes1_price_entry.delete(0, tk.END)
             self.yes1_price_entry.insert(0, str(self.default_target_price))
             self.yes1_price_entry.configure(foreground='red')
