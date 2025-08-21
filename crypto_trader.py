@@ -541,6 +541,106 @@ class AsyncEmailSender:
         self.smtp_manager.close_all_connections()
 
 
+class AsyncDataUpdater:
+    """异步数据更新器"""
+    
+    def __init__(self, status_data_manager, max_workers=2, logger=None):
+        self.status_data_manager = status_data_manager
+        self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="DataUpdater")
+        self.is_running = True
+        self.logger = logger
+        
+    def set_logger(self, logger):
+        """设置日志记录器"""
+        self.logger = logger
+        
+    def update_async(self, category, key, value, operation_type="update"):
+        """异步更新数据 - 通用接口"""
+        future = self.executor.submit(
+            self._update_data_sync, category, key, value, operation_type
+        )
+        return future
+        
+    def update_position_async(self, position_type, index, price=None, amount=None):
+        """异步更新持仓数据"""
+        future = self.executor.submit(
+            self._update_position_sync, position_type, index, price, amount
+        )
+        return future
+        
+    def _update_data_sync(self, category, key, value, operation_type="update", max_retries=3, retry_delay=0.1):
+        """同步更新数据的内部方法，带重试机制"""
+        for attempt in range(max_retries):
+            try:
+                if not self.is_running:
+                    if self.logger:
+                        self.logger.warning(f"⚠️ 数据更新器已关闭，跳过更新: {category}.{key}")
+                    return False
+                    
+                if operation_type == "update":
+                    self.status_data_manager.update(category, key, value)
+                elif operation_type == "update_data":
+                    self.status_data_manager.update_data(category, key, value)
+                    
+                if self.logger:
+                    self.logger.debug(f"✅ 数据更新成功: {category}.{key} = {value}")
+                return True
+                
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"❌ 数据更新失败 (尝试 {attempt + 1}/{max_retries}): {category}.{key} = {value}, 错误: {str(e)}")
+                
+                if attempt < max_retries - 1:
+                    if self.logger:
+                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # 指数退避
+                else:
+                    if self.logger:
+                        self.logger.error(f"❌ 数据更新最终失败: {category}.{key} = {value}")
+                    return False
+        
+        return False
+    
+    def _update_position_sync(self, position_type, index, price=None, amount=None, max_retries=3, retry_delay=0.1):
+        """同步更新持仓数据的内部方法，带重试机制"""
+        for attempt in range(max_retries):
+            try:
+                if not self.is_running:
+                    if self.logger:
+                        self.logger.warning(f"⚠️ 数据更新器已关闭，跳过持仓更新: {position_type}[{index}]")
+                    return False
+                    
+                self.status_data_manager.update_position(position_type, index, price, amount)
+                
+                if self.logger:
+                    self.logger.debug(f"✅ 持仓数据更新成功: {position_type}[{index}] price={price} amount={amount}")
+                return True
+                
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"❌ 持仓数据更新失败 (尝试 {attempt + 1}/{max_retries}): {position_type}[{index}], 错误: {str(e)}")
+                
+                if attempt < max_retries - 1:
+                    if self.logger:
+                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # 指数退避
+                else:
+                    if self.logger:
+                        self.logger.error(f"❌ 持仓数据更新最终失败: {position_type}[{index}]")
+                    return False
+        
+        return False
+    
+    def shutdown(self):
+        """关闭数据更新器"""
+        self.is_running = False
+        self.executor.shutdown(wait=True)
+        if self.logger:
+            self.logger.info("🔄 异步数据更新器已关闭")
+
+
 class Logger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
@@ -674,6 +774,17 @@ class CryptoTrader:
             self.logger.error(f"异步邮件发送器初始化失败: {e}")
             self.async_email_sender = None
         
+        # 初始化状态数据管理器（必须在AsyncDataUpdater之前）
+        self.status_data = StatusDataManager()
+        
+        # 初始化异步数据更新器
+        try:
+            self.async_data_updater = AsyncDataUpdater(self.status_data, logger=self.logger)
+            self.logger.info("异步数据更新器初始化成功")
+        except Exception as e:
+            self.logger.error(f"异步数据更新器初始化失败: {e}")
+            self.async_data_updater = None
+        
         # 真实交易次数 (22减去已交易次数)
         self.last_trade_count = 0
 
@@ -732,16 +843,13 @@ class CryptoTrader:
         self.amount = None
         self.zero_time_cash_value = 0
 
-        # 初始化状态数据管理器
-        self.status_data = StatusDataManager()
-        
-        # 初始化状态数据
-        self.status_data.update('account', 'initial_amount', self.initial_amount)
-        self.status_data.update('account', 'first_rebound', self.first_rebound)
-        self.status_data.update('account', 'n_rebound', self.n_rebound)
-        self.status_data.update('account', 'profit_rate', f"{self.profit_rate}%")
-        self.status_data.update('account', 'doubling_weeks', self.doubling_weeks)
-        self.status_data.update('trading', 'trade_count', self.trade_count)
+        # 初始化状态数据（异步）
+        self._update_status_async('account', 'initial_amount', self.initial_amount)
+        self._update_status_async('account', 'first_rebound', self.first_rebound)
+        self._update_status_async('account', 'n_rebound', self.n_rebound)
+        self._update_status_async('account', 'profit_rate', f"{self.profit_rate}%")
+        self._update_status_async('account', 'doubling_weeks', self.doubling_weeks)
+        self._update_status_async('trading', 'trade_count', self.trade_count)
         
         # 初始化币种和时间信息到StatusDataManager
         # 注意：此时GUI还未创建,需要在setup_gui后再同步
@@ -993,52 +1101,59 @@ class CryptoTrader:
             self._sync_to_status_data(state_key, state)
     
     def _sync_to_status_data(self, key, value):
-        """将web_data的更新同步到status_data"""
+        """将web_data的更新异步同步到status_data"""
         try:
             # 价格相关数据
             if 'price' in key.lower():
                 if 'yes' in key.lower() or 'up' in key.lower():
-                    self.status_data.update('prices', 'polymarket_up', str(value))
+                    self._update_status_async('prices', 'polymarket_up', value)
                 elif 'no' in key.lower() or 'down' in key.lower():
-                    self.status_data.update('prices', 'polymarket_down', str(value))
+                    self._update_status_async('prices', 'polymarket_down', value)
                 elif 'binance' in key.lower():
                     if 'now' in key.lower():
-                        self.status_data.update('prices', 'binance_current', str(value))
+                        self._update_status_async('prices', 'binance_current', value)
                     elif 'zero' in key.lower():
-                        self.status_data.update('prices', 'binance_zero_time', str(value))
+                        self._update_status_async('prices', 'binance_zero_time', value)
             
             # 账户相关数据
             elif 'cash' in key.lower():
-                self.status_data.update('account', 'available_cash', str(value))
+                self._update_status_async('account', 'available_cash', value)
             elif 'portfolio' in key.lower():
-                self.status_data.update('account', 'portfolio_value', str(value))
+                self._update_status_async('account', 'portfolio_value', value)
             
             # 交易相关数据
             elif 'amount' in key.lower():
                 if 'yes' in key.lower():
-                    self.status_data.update('trading', 'yes_amount', str(value))
+                    self._update_status_async('trading', 'yes_amount', value)
                 elif 'no' in key.lower():
-                    self.status_data.update('trading', 'no_amount', str(value))
+                    self._update_status_async('trading', 'no_amount', value)
             
             # 系统状态
             elif 'monitoring' in key.lower():
-                self.status_data.update('system', 'monitoring_status', str(value))
+                self._update_status_async('system', 'monitoring_status', value)
             elif 'url' in key.lower():
-                self.status_data.update('trading', 'current_url', str(value))
+                self._update_status_async('trading', 'current_url', value)
             elif 'browser' in key.lower():
-                self.status_data.update('system', 'browser_status', str(value))
+                self._update_status_async('system', 'browser_status', value)
                 
         except Exception as e:
-            self.logger.debug(f"同步数据到status_data失败: {e}")
+            self.logger.debug(f"异步同步数据到status_data失败: {e}")
     
     def _update_label_and_sync(self, label, text, data_category=None, data_key=None):
         """更新GUI标签并同步到status_data"""
         try:
             label.config(text=text)
             if data_category and data_key:
-                self.status_data.update(data_category, data_key, text)
+                self.async_data_updater.update_async(data_category, data_key, text)
         except Exception as e:
             self.logger.debug(f"更新标签并同步失败: {e}")
+    
+    def _update_status_async(self, category, key, value):
+        """异步更新状态数据的辅助方法"""
+        try:
+            self.async_data_updater.update_async(category, key, str(value))
+        except Exception as e:
+            self.logger.debug(f"异步更新状态数据失败 [{category}.{key}]: {e}")
 
     def setup_gui(self):
         """优化后的GUI界面设置"""
@@ -1506,11 +1621,11 @@ class CryptoTrader:
         # 最后一次更新确保布局正确
         self.root.update_idletasks()
         
-        # 初始化币种和时间信息到StatusDataManager
+        # 初始化币种和时间信息到StatusDataManager（异步）
         initial_coin = self.coin_combobox.get()
         initial_time = self.auto_find_time_combobox.get()
-        self.status_data.update('trading_info', 'coin', initial_coin)
-        self.status_data.update('trading_info', 'time', initial_time)
+        self._update_status_async('trading_info', 'coin', initial_coin)
+        self._update_status_async('trading_info', 'time', initial_time)
     
     def start_monitoring(self):
         """开始监控"""
@@ -2301,9 +2416,9 @@ class CryptoTrader:
             self.portfolio_label.config(text=f"Portfolio: {self.portfolio_value}")
             self.cash_label.config(text=f"Cash: {self.cash_value}")
             
-            # 同步数据到StatusDataManager
-            self.status_data.update('account', 'portfolio_value', self.portfolio_value)
-            self.status_data.update('account', 'available_cash', self.cash_value)
+            # 异步同步数据到StatusDataManager
+            self._update_status_async('account', 'portfolio_value', self.portfolio_value)
+            self._update_status_async('account', 'available_cash', self.cash_value)
 
         except Exception as e:
             self.portfolio_label.config(text="Portfolio: Fail")
@@ -2385,13 +2500,13 @@ class CryptoTrader:
             self.no4_amount_entry.delete(0, tk.END)
             self.no4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
 
-            self.status_data.update('positions', 'up_positions', [
+            self._update_status_async('positions', 'up_positions', [
                 {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
                 {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
                 {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
                 {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
-            self.status_data.update('positions', 'down_positions', [
+            self._update_status_async('positions', 'down_positions', [
                 {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
                 {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
                 {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
@@ -2436,14 +2551,14 @@ class CryptoTrader:
         self.no4_amount_entry.delete(0, tk.END)
         self.no4_amount_entry.insert(0, f"{yes4_amount:.2f}")
         
-        # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-        self.status_data.update('positions', 'up_positions', [
+        # 异步同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
+        self._update_status_async('positions', 'up_positions', [
             {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
             {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
             {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
             {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
         ])
-        self.status_data.update('positions', 'down_positions', [
+        self._update_status_async('positions', 'down_positions', [
             {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
             {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
             {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
@@ -2790,7 +2905,7 @@ class CryptoTrader:
         self.trade_count_label.config(text=str(self.trade_count))
         
         # 同步剩余交易次数到StatusDataManager
-        self.status_data.update('trading', 'remaining_trades', str(self.trade_count))
+        self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
 
     def First_trade(self, up_price, down_price):
         """第一次交易价格设置为 0.54 买入,最多重试3次,失败发邮件"""
@@ -2824,13 +2939,13 @@ class CryptoTrader:
                             self.no1_price_entry.insert(0, "0")
                             
                             # 同步UP1和DOWN1价格到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": 0},  # UP1重置为0
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": float(self.yes3_price_entry.get())},
                                 {"price": float(self.yes4_price_entry.get())}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": 0},  # DOWN1重置为0
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": float(self.no3_price_entry.get())},
@@ -2849,15 +2964,13 @@ class CryptoTrader:
                             self.no2_price_entry.configure(foreground='red')
                             
                             # 同步DOWN2价格到StatusDataManager
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 self.status_data._data['positions']['down_positions'][0],
                                 {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
                                 self.status_data._data['positions']['down_positions'][2],
                                 self.status_data._data['positions']['down_positions'][3]
                             ])
-                            
-                            self.logger.info("\033[34m✅ No2价格已重置为默认值54\033[0m")
-
+                           
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
@@ -2923,13 +3036,13 @@ class CryptoTrader:
                             self.no1_price_entry.configure(foreground='black')
                             
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
                                 {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
                                 {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
                                 {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
                                 {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
                                 {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
@@ -2949,15 +3062,13 @@ class CryptoTrader:
                             self.yes2_price_entry.configure(foreground='red')
                             
                             # 同步UP2价格到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 self.status_data._data['positions']['up_positions'][0],
                                 {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
                                 self.status_data._data['positions']['up_positions'][2],
                                 self.status_data._data['positions']['up_positions'][3]
                             ])
                             
-                            self.logger.info(f"\033[34m✅ Yes2价格已重置为{self.default_target_price}\033[0m")
-
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
@@ -3033,13 +3144,13 @@ class CryptoTrader:
                             self.no2_price_entry.configure(foreground='black')
                             
                             # 同步UP2和DOWN2价格到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 self.status_data._data['positions']['up_positions'][0],
                                 {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
                                 self.status_data._data['positions']['up_positions'][2],
                                 self.status_data._data['positions']['up_positions'][3]
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 self.status_data._data['positions']['down_positions'][0],
                                 {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
                                 self.status_data._data['positions']['down_positions'][2],
@@ -3057,7 +3168,7 @@ class CryptoTrader:
                             self.no3_price_entry.configure(foreground='red')
                             
                             # 同步DOWN3价格到StatusDataManager
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 self.status_data._data['positions']['down_positions'][0],
                                 self.status_data._data['positions']['down_positions'][1],
                                 {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['down_positions'][2]['amount']},
@@ -3129,13 +3240,13 @@ class CryptoTrader:
                             self.no2_price_entry.configure(foreground='black')
                             
                             # 同步UP2和DOWN2价格到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 self.status_data._data['positions']['up_positions'][0],
                                 {'price': '0', 'amount': self.status_data._data['positions']['up_positions'][1]['amount']},
                                 self.status_data._data['positions']['up_positions'][2],
                                 self.status_data._data['positions']['up_positions'][3]
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 self.status_data._data['positions']['down_positions'][0],
                                 {'price': '0', 'amount': self.status_data._data['positions']['down_positions'][1]['amount']},
                                 self.status_data._data['positions']['down_positions'][2],
@@ -3153,7 +3264,7 @@ class CryptoTrader:
                             self.yes3_price_entry.configure(foreground='red')
                             
                             # 同步UP3价格到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 self.status_data._data['positions']['up_positions'][0],
                                 self.status_data._data['positions']['up_positions'][1],
                                 {'price': str(self.default_target_price), 'amount': self.status_data._data['positions']['up_positions'][2]['amount']},
@@ -3239,13 +3350,13 @@ class CryptoTrader:
                             #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
                             # 同步UP3/DOWN3价格重置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": 0},  # UP3重置为0
                                 {"price": float(self.yes4_price_entry.get())}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": 0},  # DOWN3重置为0
@@ -3263,13 +3374,13 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
                             # 同步DOWN4价格设置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": 0},
                                 {"price": float(self.yes4_price_entry.get())}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": 0},
@@ -3343,13 +3454,13 @@ class CryptoTrader:
                             #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
 
                             # 同步UP3/DOWN3价格重置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": 0},  # UP3重置为0
                                 {"price": float(self.yes4_price_entry.get())}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": 0},  # DOWN3重置为0
@@ -3367,13 +3478,13 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
                             # 同步UP4价格设置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": 0},
                                 {"price": self.default_target_price}  # UP4设置为默认值
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": 0},
@@ -3459,13 +3570,13 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             # 同步UP4/DOWN4价格重置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": float(self.yes3_price_entry.get())},
                                 {"price": 0}  # UP4重置为0
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": float(self.no3_price_entry.get())},
@@ -3481,13 +3592,13 @@ class CryptoTrader:
                             self.no1_price_entry.configure(foreground='red')
 
                             # 同步DOWN1价格设置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": float(self.yes3_price_entry.get())},
                                 {"price": 0}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": self.default_target_price},  # DOWN1设置为默认值
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": float(self.no3_price_entry.get())},
@@ -3498,13 +3609,13 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
                             
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
                                 {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
                                 {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
                                 {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
                                 {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
                                 {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
@@ -3576,13 +3687,13 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
 
                             # 同步UP4/DOWN4价格重置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": float(self.yes1_price_entry.get())},
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": float(self.yes3_price_entry.get())},
                                 {"price": 0}  # UP4重置为0
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": float(self.no3_price_entry.get())},
@@ -3598,13 +3709,13 @@ class CryptoTrader:
                             self.yes1_price_entry.insert(0, str(self.default_target_price))
 
                             # 同步UP1价格设置到StatusDataManager
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {"price": self.default_target_price},  # UP1设置为默认值
                                 {"price": float(self.yes2_price_entry.get())},
                                 {"price": float(self.yes3_price_entry.get())},
                                 {"price": 0}
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {"price": float(self.no1_price_entry.get())},
                                 {"price": float(self.no2_price_entry.get())},
                                 {"price": float(self.no3_price_entry.get())},
@@ -3615,13 +3726,13 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
                             
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
-                            self.status_data.update('positions', 'up_positions', [
+                            self._update_status_async('positions', 'up_positions', [
                                 {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
                                 {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
                                 {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
                                 {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
                             ])
-                            self.status_data.update('positions', 'down_positions', [
+                            self._update_status_async('positions', 'down_positions', [
                                 {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
                                 {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
                                 {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
@@ -4166,8 +4277,8 @@ class CryptoTrader:
         selected_time = self.auto_find_time_combobox.get()
         hour = int(selected_time.split(':')[0])
         
-        # 同步交易时间到StatusDataManager
-        self.status_data.update('trading_info', 'time', selected_time)
+        # 异步同步交易时间到StatusDataManager
+        self._update_status_async('trading_info', 'time', selected_time)
         
         # 计算下一个指定时间的时间点（在选择时间的02分执行）
         next_run = now.replace(hour=hour, minute=2, second=0, microsecond=0)
@@ -4190,9 +4301,9 @@ class CryptoTrader:
         # 保存新的时间设置到配置文件
         self.save_config()
         
-        # 同步交易时间到StatusDataManager
+        # 异步同步交易时间到StatusDataManager
         selected_time = self.auto_find_time_combobox.get()
-        self.status_data.update('trading_info', 'time', selected_time)
+        self._update_status_async('trading_info', 'time', selected_time)
         
         if hasattr(self, 'set_yes1_no1_default_target_price_timer') and self.set_yes1_no1_default_target_price_timer:
             # 取消当前的定时器
@@ -4215,13 +4326,13 @@ class CryptoTrader:
         self.logger.info(f"✅ 设置UP1价格为54成功")
 
         # 同步UP1/DOWN1价格设置到StatusDataManager
-        self.status_data.update('positions', 'up_positions', [
+        self._update_status_async('positions', 'up_positions', [
             {"price": 54},  # UP1设置为54
             {"price": float(self.yes2_price_entry.get())},
             {"price": float(self.yes3_price_entry.get())},
             {"price": float(self.yes4_price_entry.get())}
         ])
-        self.status_data.update('positions', 'down_positions', [
+        self._update_status_async('positions', 'down_positions', [
             {"price": 54},  # DOWN1设置为54
             {"price": float(self.no2_price_entry.get())},
             {"price": float(self.no3_price_entry.get())},
@@ -4242,8 +4353,8 @@ class CryptoTrader:
         selected_coin = self.coin_combobox.get()
         self.logger.info(f"💰 币种选择已更改为: {selected_coin}")
         
-        # 同步币种选择到StatusDataManager
-        self.status_data.update('trading_info', 'coin', selected_coin)
+        # 异步同步币种选择到StatusDataManager
+        self._update_status_async('trading_info', 'coin', selected_coin)
 
     def schedule_auto_find_coin(self):
         """安排每天指定时间执行自动找币"""
@@ -4424,7 +4535,7 @@ class CryptoTrader:
                 self.logger.info(f"✅ 获取到原始CASH值:\033[34m${self.zero_time_cash_value}\033[0m")
                 
                 # 同步当天本金数据到StatusDataManager
-                self.status_data.update('account', 'zero_time_cash', str(self.zero_time_cash_value))
+                self._update_status_async('account', 'zero_time_cash', str(self.zero_time_cash_value))
 
                 # 设置 YES/NO 金额,延迟5秒确保数据稳定
                 self.root.after(5000, self.schedule_update_amount)
@@ -4490,7 +4601,7 @@ class CryptoTrader:
             self.logger.info(f"✅ 获取到原始CASH值:\033[34m${self.zero_time_cash_value}\033[0m")
             
             # 同步零点现金数据到StatusDataManager
-            self.status_data.update('account', 'zero_time_cash', str(self.zero_time_cash_value))
+            self._update_status_async('account', 'zero_time_cash', str(self.zero_time_cash_value))
 
             # 设置 YES/NO 金额,延迟5秒确保数据稳定
             self.root.after(5000, self.schedule_update_amount)
@@ -4504,13 +4615,13 @@ class CryptoTrader:
             self.logger.info("✅ \033[34m零点 5 分设置 YES/NO 价格为 0 成功!\033[0m")
 
             # 同步UP1/DOWN1价格重置到StatusDataManager
-            self.status_data.update('positions', 'up_positions', [
+            self._update_status_async('positions', 'up_positions', [
                 {"price": 0},  # UP1重置为0
                 {"price": float(self.yes2_price_entry.get())},
                 {"price": float(self.yes3_price_entry.get())},
                 {"price": float(self.yes4_price_entry.get())}
             ])
-            self.status_data.update('positions', 'down_positions', [
+            self._update_status_async('positions', 'down_positions', [
                 {"price": 0},  # DOWN1重置为0
                 {"price": float(self.no2_price_entry.get())},
                 {"price": float(self.no3_price_entry.get())},
@@ -4562,13 +4673,13 @@ class CryptoTrader:
                 yes_entry.insert(0, "0")
                 yes_entry.configure(foreground='black')
                 # 同步YES价格到StatusDataManager
-                self.status_data.update('positions', f'yes{i}_price', "0")
+                self._update_status_async('positions', f'yes{i}_price', "0")
             if no_entry:
                 no_entry.delete(0, tk.END)
                 no_entry.insert(0, "0")
                 no_entry.configure(foreground='black')
                 # 同步NO价格到StatusDataManager
-                self.status_data.update('positions', f'no{i}_price', "0")
+                self._update_status_async('positions', f'no{i}_price', "0")
 
         api_data = None
         coin_form_websocket = ""
@@ -4636,7 +4747,7 @@ class CryptoTrader:
                     self.binance_zero_price_label.config(text=f"{self.zero_time_price}")
                     
                     # 同步零点价格数据到StatusDataManager
-                    self.status_data.update('prices', 'binance_zero_time', str(self.zero_time_price))
+                    self._update_status_async('prices', 'binance_zero_time', str(self.zero_time_price))
                 except Exception as e_gui:
                     self.logger.debug(f"❌ 更新零点价格GUI时出错: {e_gui}")
             
@@ -4699,7 +4810,7 @@ class CryptoTrader:
                     try:
                         # 更新实时价格标签并同步到StatusDataManager
                         self.binance_now_price_label.config(text=f"{now_price}")
-                        self.status_data.update('prices', 'binance_current', now_price)
+                        self._update_status_async('prices', 'binance_current', now_price)
                         
                         # 更新涨跌幅标签并同步到StatusDataManager
                         self.binance_rate_label.config(
@@ -4707,7 +4818,7 @@ class CryptoTrader:
                             foreground=rate_color,
                             font=("Arial", 18, "bold")
                         )
-                        self.status_data.update('prices', 'price_change_rate', binance_rate_text)
+                        self._update_status_async('prices', 'price_change_rate', binance_rate_text)
                     except Exception as e:
                         self.logger.debug("❌ 更新GUI时发生错误:", e)
 
@@ -5639,8 +5750,6 @@ class CryptoTrader:
                 content=content,
                 receivers=receivers
             )
-            
-            self.logger.info(f"✅ 邮件已提交异步发送队列: {trade_type} -> {', '.join(receivers)}")
             
         except Exception as e:
              self.logger.error(f"❌ 提交邮件到异步发送队列失败: {str(e)}")
@@ -7925,7 +8034,7 @@ class CryptoTrader:
                 self.set_web_value('coin_combobox', coin)
                 
                 # 直接更新StatusDataManager中的币种信息
-                self.status_data.update('trading', 'selected_coin', coin)
+                self._update_status_async('trading', 'selected_coin', coin)
                 
                 # 保存到配置文件
                 if 'trading' not in self.config:
@@ -7957,7 +8066,7 @@ class CryptoTrader:
                 self.set_web_value('auto_find_time_combobox', time)
                 
                 # 直接更新StatusDataManager中的时间信息
-                self.status_data.update('trading', 'auto_find_time', time)
+                self._update_status_async('trading', 'auto_find_time', time)
                 
                 # 保存到配置文件
                 if 'trading' not in self.config:
@@ -8702,6 +8811,14 @@ if __name__ == "__main__":
                 print("✅ 邮件发送器已关闭")
             except Exception as e:
                 print(f"❌ 邮件发送器关闭时出错: {str(e)}")
+        
+        # 关闭异步数据更新器
+        if app and hasattr(app, 'async_data_updater'):
+            try:
+                app.async_data_updater.shutdown()
+                print("✅ 异步数据更新器已关闭")
+            except Exception as e:
+                print(f"❌ 异步数据更新器关闭时出错: {str(e)}")
         
         # 关闭HTTP session
         if app and hasattr(app, 'http_session'):
