@@ -8254,15 +8254,15 @@ class CryptoTrader:
                     <div class="stats-value" id="avgPerHour">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>上午交易</h3>
+                    <h3>上午(0-12点)</h3>
                     <div class="stats-value" id="morningTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>下午交易</h3>
+                    <h3>下午(12-20点)</h3>
                     <div class="stats-value" id="afternoonTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>晚上交易</h3>
+                    <h3>晚上(20-24点)</h3>
                     <div class="stats-value" id="eveningTrades">0</div>
                 </div>
             </div>
