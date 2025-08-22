@@ -6003,15 +6003,17 @@ class CryptoTrader:
                         justify-content: center;
                         align-items: center;
                         gap: 25px;
-                        
                         flex: 2;
                         min-height: 80px;
                     }
                     
                     .up-price-display, .down-price-display {
                         font-size: 28px;
-                        font-weight: 800;
-                        color: #2F3E46; /* 深灰蓝,比纯黑柔和 */
+                        font-weight: 400;
+                        
+                        background: linear-gradient(135deg, #007bff, #00ffcc); /* 渐变色 */
+                        -webkit-background-clip: text;  /* 让背景裁剪到文字 */
+                        /* -webkit-text-fill-color: transparent; 文字填充透明，让背景显示出来 */
                         text-align: center;
                         padding: 12px 20px;
                         border-radius: 6px;
