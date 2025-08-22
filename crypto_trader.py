@@ -3076,9 +3076,10 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
                         # 买入 UP1
@@ -3151,9 +3152,10 @@ class CryptoTrader:
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
                         # 点击buy_down按钮  
@@ -3243,9 +3245,10 @@ class CryptoTrader:
                 # 检查Yes2价格匹配
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅  \033[32mUp 2: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅  \033[32mUp 2: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes2_amount_entry
@@ -3314,9 +3317,10 @@ class CryptoTrader:
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 2: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[31mDown 2: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
                         # 执行交易操作
@@ -3406,9 +3410,10 @@ class CryptoTrader:
                 # 检查Yes3价格匹配
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 3: {up_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[32mUp 3: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes3_amount_entry
@@ -3482,9 +3487,10 @@ class CryptoTrader:
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 3: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[31mDown 3: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
                         # 执行交易操作
@@ -3577,9 +3583,10 @@ class CryptoTrader:
                 # 检查Yes4价格匹配
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行自动买入,第{retry+1}次尝试")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.yes4_amount_entry
@@ -3652,9 +3659,10 @@ class CryptoTrader:
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[31mDown 4: {down_price}¢ 价格匹配,执行自动买入,第{retry+1}次尝试\033[0m")
-                        # 如果买入次数大于 18 次,那么先卖出,后买入
+                        self.logger.info(f"✅ \033[31mDown 4: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
+                            # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
                         # 执行交易操作
