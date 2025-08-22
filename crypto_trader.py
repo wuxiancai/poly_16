@@ -45,6 +45,8 @@ from collections import defaultdict
 import queue
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # 禁用urllib3的连接池警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -256,6 +258,50 @@ class TradeStatsManager:
         logging.info(f"记录交易: {trade_type} 价格: {price} 时间: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
         return True
 
+
+class LogMonitor(FileSystemEventHandler):
+    """
+    日志文件监听器
+    监听日志文件变化，解析交易成功事件
+    """
+    
+    def __init__(self, stats_manager, log_file_pattern=r'.*\.log$'):
+        self.stats_manager = stats_manager
+        self.log_file_pattern = re.compile(log_file_pattern)
+        self.trade_pattern = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*交易验证成功.*Bought')
+        
+    def on_modified(self, event):
+        """文件修改事件处理"""
+        if event.is_directory:
+            return
+            
+        if self.log_file_pattern.search(event.src_path):
+            self._parse_log_file(event.src_path)
+    
+    def _parse_log_file(self, file_path):
+        """解析日志文件"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # 只读取文件末尾的新内容
+                f.seek(0, 2)  # 移动到文件末尾
+                file_size = f.tell()
+                
+                # 读取最后1KB的内容（避免读取整个文件）
+                read_size = min(1024, file_size)
+                f.seek(max(0, file_size - read_size))
+                content = f.read()
+                
+                # 查找交易成功记录
+                matches = self.trade_pattern.findall(content)
+                for timestamp_str in matches:
+                    try:
+                        timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                        self.stats_manager.add_trade_record(timestamp)
+                    except ValueError:
+                        continue
+                        
+        except (IOError, UnicodeDecodeError) as e:
+            logging.error(f"读取日志文件失败 {file_path}: {e}")
 
 
 class StatusDataManager:
@@ -779,6 +825,15 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"❌ \033[31m交易统计系统初始化失败:\033[0m {e}")
             self.trade_stats = None
+        
+        # 初始化日志监听器
+        self.log_observer = None
+        if self.trade_stats:
+            try:
+                self.start_log_monitoring()
+                self.logger.info("✅ \033[34m日志监听系统启动成功\033[0m")
+            except Exception as e:
+                self.logger.error(f"❌ \033[31m日志监听系统启动失败:\033[0m {e}")
         
         # 初始化异步邮件发送器
         try:
@@ -8046,8 +8101,8 @@ class CryptoTrader:
                     return jsonify({'error': '无效的统计类型'}), 400
                 
                 # 计算额外统计信息
-                counts = stats.get('counts', [])
-                total = stats.get('total', 0)
+                counts = stats.get('hourly_data', [])
+                total = stats.get('total_trades', 0)
                 
                 # 找到最活跃时段
                 peak_hour = '--:--'
@@ -8059,9 +8114,10 @@ class CryptoTrader:
                 avg_per_hour = total / 24 if total > 0 else 0
                 
                 # 计算时段统计
-                morning_count = sum(counts[1:12]) if len(counts) >= 12 else 0  # 1-12点
-                afternoon_count = sum(counts[12:20]) if len(counts) >= 20 else 0  # 12-20点
-                evening_count = sum(counts[20:24]) if len(counts) >= 24 else 0  # 20-24点
+                early_morning_count = sum(counts[0:8]) if len(counts) >= 8 else 0  # 0-8点
+                morning_count = sum(counts[8:16]) if len(counts) >= 16 else 0  # 8-16点
+                afternoon_count = sum(counts[16:22]) if len(counts) >= 22 else 0  # 16-22点
+                evening_count = sum(counts[22:24]) if len(counts) >= 24 else 0  # 22-24点
                 
                 return jsonify({
                     'hourly_data': counts,
@@ -8069,6 +8125,7 @@ class CryptoTrader:
                     'peak_hour': peak_hour,
                     'avg_per_hour': avg_per_hour,
                     'period_stats': {
+                        'early_morning': {'count': early_morning_count},
                         'morning': {'count': morning_count},
                         'afternoon': {'count': afternoon_count},
                         'evening': {'count': evening_count}
@@ -8209,32 +8266,57 @@ class CryptoTrader:
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            min-width: 0;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 800px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         
         .stats-card {
             background: #f8f9fa;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 10px 5px;
+            padding: 8px 4px;
             text-align: center;
             min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .stats-card h3 {
             color: #495057;
-            margin-bottom: 8px;
-            font-size: 0.9em;
+            margin-bottom: 6px;
+            font-size: 0.75em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-top: 0;
         }
         
         .stats-value {
-            color: #6c757d;
-            font-size: 14px;
-            font-weight: 600;
+            color: #007bff;
+            font-size: 1.1em;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .loading {
@@ -8268,7 +8350,7 @@ class CryptoTrader:
             
             <div class="stats-grid">
                 <div class="stats-card">
-                    <h3>总交易次数</h3>
+                    <h3>总次数</h3>
                     <div class="stats-value" id="totalTrades">0</div>
                 </div>
                 <div class="stats-card">
@@ -8280,15 +8362,19 @@ class CryptoTrader:
                     <div class="stats-value" id="avgPerHour">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>上午(0-12点)</h3>
+                    <h3>凌晨(0-8点)</h3>
+                    <div class="stats-value" id="earlyMorningTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午(8-16点)</h3>
                     <div class="stats-value" id="morningTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>下午(12-20点)</h3>
+                    <h3>下午(16-22点)</h3>
                     <div class="stats-value" id="afternoonTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>晚上(20-24点)</h3>
+                    <h3>晚上(22-24点)</h3>
                     <div class="stats-value" id="eveningTrades">0</div>
                 </div>
             </div>
@@ -8372,6 +8458,7 @@ class CryptoTrader:
                 document.getElementById('avgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
                 
                 const periods = data.period_stats || {};
+                document.getElementById('earlyMorningTrades').textContent = periods.early_morning?.count || 0;
                 document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
                 document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
                 document.getElementById('eveningTrades').textContent = periods.evening?.count || 0;
@@ -8511,6 +8598,41 @@ class CryptoTrader:
     def record_and_show_cash(self):
         """兼容旧接口：直接调用记录逻辑"""
         self.record_cash_daily()
+    
+    def start_log_monitoring(self, log_directory='logs'):
+        """启动日志监听"""
+        if not self.trade_stats:
+            self.logger.warning("交易统计系统未初始化，无法启动日志监听")
+            return
+        
+        try:
+            # 确保日志目录存在
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
+                self.logger.info(f"创建日志目录: {log_directory}")
+            
+            # 创建日志监听器
+            event_handler = LogMonitor(self.trade_stats)
+            self.log_observer = Observer()
+            self.log_observer.schedule(event_handler, log_directory, recursive=False)
+            self.log_observer.start()
+            
+            self.logger.info(f"开始监听日志目录: {log_directory}")
+            
+        except Exception as e:
+            self.logger.error(f"启动日志监听失败: {e}")
+            self.log_observer = None
+    
+    def stop_log_monitoring(self):
+        """停止日志监听"""
+        if self.log_observer:
+            try:
+                self.log_observer.stop()
+                self.log_observer.join()
+                self.log_observer = None
+                self.logger.info("日志监听已停止")
+            except Exception as e:
+                self.logger.error(f"停止日志监听失败: {e}")
 
 if __name__ == "__main__":
     app = None
@@ -8545,6 +8667,14 @@ if __name__ == "__main__":
                 print("✅ 异步数据更新器已关闭")
             except Exception as e:
                 print(f"❌ 异步数据更新器关闭时出错: {str(e)}")
+        
+        # 关闭日志监听器
+        if app and hasattr(app, 'log_observer'):
+            try:
+                app.stop_log_monitoring()
+                print("✅ 日志监听器已关闭")
+            except Exception as e:
+                print(f"❌ 日志监听器关闭时出错: {str(e)}")
         
         # 关闭HTTP session
         if app and hasattr(app, 'http_session'):

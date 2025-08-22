@@ -82,7 +82,7 @@
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             gap: 8px;
             min-width: 0;
         }
@@ -172,15 +172,19 @@
                     <div class="stats-value" id="avgPerHour">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>上午交易</h3>
+                    <h3>凌晨(0-8点)</h3>
+                    <div class="stats-value" id="earlyMorningTrades">0</div>
+                </div>
+                <div class="stats-card">
+                    <h3>上午(8-16点)</h3>
                     <div class="stats-value" id="morningTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>下午交易</h3>
+                    <h3>下午(16-22点)</h3>
                     <div class="stats-value" id="afternoonTrades">0</div>
                 </div>
                 <div class="stats-card">
-                    <h3>晚上交易</h3>
+                    <h3>晚上(22-24点)</h3>
                     <div class="stats-value" id="eveningTrades">0</div>
                 </div>
             </div>
@@ -299,6 +303,7 @@
                 document.getElementById('avgPerHour').textContent = (data.avg_per_hour || 0).toFixed(1);
                 
                 const periods = data.period_stats || {};
+                document.getElementById('earlyMorningTrades').textContent = periods.early_morning?.count || 0;
                 document.getElementById('morningTrades').textContent = periods.morning?.count || 0;
                 document.getElementById('afternoonTrades').textContent = periods.afternoon?.count || 0;
                 document.getElementById('eveningTrades').textContent = periods.evening?.count || 0;
