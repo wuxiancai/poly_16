@@ -281,27 +281,42 @@ class LogMonitor(FileSystemEventHandler):
     def _parse_log_file(self, file_path):
         """解析日志文件"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                # 只读取文件末尾的新内容
-                f.seek(0, 2)  # 移动到文件末尾
-                file_size = f.tell()
-                
-                # 读取最后1KB的内容（避免读取整个文件）
-                read_size = min(1024, file_size)
-                f.seek(max(0, file_size - read_size))
-                content = f.read()
-                
-                # 查找交易成功记录
-                matches = self.trade_pattern.findall(content)
-                for timestamp_str in matches:
-                    try:
-                        timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                        self.stats_manager.add_trade_record(timestamp)
-                    except ValueError:
-                        continue
+            # 尝试多种编码方式读取文件
+            encodings = ['utf-8', 'gbk', 'gb2312', 'latin-1']
+            content = None
+            
+            for encoding in encodings:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        # 只读取文件末尾的新内容
+                        f.seek(0, 2)  # 移动到文件末尾
+                        file_size = f.tell()
                         
-        except (IOError, UnicodeDecodeError) as e:
+                        # 读取最后1KB的内容（避免读取整个文件）
+                        read_size = min(1024, file_size)
+                        f.seek(max(0, file_size - read_size))
+                        content = f.read()
+                        break  # 成功读取，跳出循环
+                except UnicodeDecodeError:
+                    continue  # 尝试下一种编码
+            
+            if content is None:
+                logging.error(f"无法使用任何编码读取日志文件: {file_path}")
+                return
+                
+            # 查找交易成功记录
+            matches = self.trade_pattern.findall(content)
+            for timestamp_str in matches:
+                try:
+                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                    self.stats_manager.add_trade_record(timestamp)
+                except ValueError:
+                    continue
+                        
+        except IOError as e:
             logging.error(f"读取日志文件失败 {file_path}: {e}")
+        except Exception as e:
+            logging.error(f"解析日志文件时发生未知错误 {file_path}: {e}")
 
 
 class StatusDataManager:
@@ -8654,9 +8669,6 @@ if __name__ == "__main__":
     try:
         # 打印启动参数,用于调试
         
-        # 初始化日志
-        logger = Logger("main")
-            
         # 创建并运行主程序
         app = CryptoTrader()
         app.root.mainloop()
