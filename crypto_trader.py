@@ -2515,19 +2515,6 @@ class CryptoTrader:
     def check_balance(self):
         """获取Portfolio和Cash值"""  
         try:
-            # 验证浏览器连接是否正常
-            self.driver.execute_script("return navigator.userAgent")
-            # 等待页面完全加载
-            WebDriverWait(self.driver, 3).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-        except Exception as e:
-            self.logger.error(f"浏览器连接异常: {str(e)}")
-            if not self.is_restarting:
-                self.restart_browser()
-            return
-        
-        try:
             # 取Portfolio值和Cash值
             self.cash_value = None
             self.portfolio_value = None
@@ -3772,7 +3759,7 @@ class CryptoTrader:
                     portfolio_value=self.portfolio_value
                 )
                 self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
-                self.driver.refresh()
+
                 break
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
@@ -3812,7 +3799,7 @@ class CryptoTrader:
                     portfolio_value=self.portfolio_value
                 )
                 self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
-                self.driver.refresh()
+
                 break
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
@@ -3894,9 +3881,10 @@ class CryptoTrader:
             start_time = time.perf_counter()
 
             # 查找并设置金额输入框
-            amount_input = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
-            )
+            try:
+                amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
+            except NoSuchElementException:
+                self.logger.info("❌ 找不到 amount_input按钮")
             
             # 清空并设置新值
             amount_input.clear()
@@ -3907,10 +3895,13 @@ class CryptoTrader:
 
             start_time = time.perf_counter()
             # 点击确认按钮
-            buy_confirm_button = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-            )
-            buy_confirm_button.click()
+            try:
+                buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
+            except NoSuchElementException:
+                self.logger.info("❌ 找不到buy_confirm_button按钮")
+
+            if buy_confirm_button:
+                buy_confirm_button.click()
 
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
@@ -3939,16 +3930,12 @@ class CryptoTrader:
             start_time = time.perf_counter()
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-            except TimeoutException:
-                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
-                )
+            except NoSuchElementException:
+                self.logger.info("❌ 找不到positions_sell_button按钮")
                 
             if positions_sell_button:
                 positions_sell_button.click()
-            else:
-                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
-
+            
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
 
@@ -3956,15 +3943,11 @@ class CryptoTrader:
             start_time = time.perf_counter()
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-            except TimeoutException:
-                sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
-                )
+            except NoSuchElementException:
+                self.logger.info("❌ 找不到sell_confirm_button按钮")
 
             if sell_confirm_button:
                 sell_confirm_button.click()
-            else:
-                self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
 
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
@@ -5274,10 +5257,8 @@ class CryptoTrader:
             start_time = time.perf_counter()
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0])
-            except TimeoutException:
-                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
-                )
+            except NoSuchElementException:
+                self.logger.info("❌ 找不到positions_sell_down_button按钮")
                 
             if positions_sell_button:
                 positions_sell_button.click()
@@ -5294,42 +5275,23 @@ class CryptoTrader:
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
-            try:
-                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
-            except TimeoutException:
-                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0]))
-                )
-                
-            if positions_sell_button:
-                positions_sell_button.click()
-            else:
-                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
-
+            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
+            positions_sell_button.click()
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
-
         except Exception as e:
             self.logger.error(f"卖出操作失败: {str(e)}")
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
-        # 点击买入确认按钮
         start_time = time.perf_counter()
         try:
             sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-        except TimeoutException:
-            sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
-            )
-
-        if sell_confirm_button:
             sell_confirm_button.click()
-        else:
-            self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
-
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+        except Exception as e:
+            self.logger.error(f"❌ 没有出现SELL_CONFIRM按钮: {str(e)}")
     
     def click_i_accept_button(self):
         """点击I Accept按钮"""
@@ -5594,10 +5556,6 @@ class CryptoTrader:
         
         for attempt in range(max_retries):
             try:
-                # 等待页面加载完成
-                WebDriverWait(self.driver, 3).until(
-                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
-                )
                 
                 # 尝试获取Up标签
                 try:
@@ -5638,10 +5596,6 @@ class CryptoTrader:
         
         for attempt in range(max_retries):
             try:
-                # 等待页面加载完成
-                WebDriverWait(self.driver, 3).until(
-                    lambda driver: driver.execute_script('return document.readyState') == 'complete'
-                )
                 
                 # 尝试获取Down标签
                 try:
