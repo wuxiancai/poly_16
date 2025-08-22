@@ -3064,7 +3064,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        
+                        self.driver.refresh()
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3919,14 +3919,15 @@ class CryptoTrader:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 
             self.logger.info("✅ \033[34m买入操作完成\033[0m")
+            self.click_buy_up_button()
 
         except Exception as e:
             self.logger.error(f"回退买入操作失败: {str(e)}")
             raise
     
 
-    def sell_operation(self):
-        """卖出操作的回退方法"""
+    def sell_up_down_operation(self):
+        """卖出操作的回退方法,仅仅night_auto_sell_check调用"""
         try:
             # 点击position_sell按钮
             start_time = time.perf_counter()
@@ -4680,7 +4681,7 @@ class CryptoTrader:
                     self.logger.info(f"✅ 交易次数 {self.trade_count} <= 14,执行夜间自动卖出仓位")
                     
                     # 执行卖出仓位操作
-                    self.sell_operation()
+                    self.sell_up_down_operation()
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
 
                     # 设置 YES1-4/NO1-4 价格为 0
