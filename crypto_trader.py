@@ -135,7 +135,7 @@ class TradeStatsManager:
             
             self._save_data()
             
-            logging.info(f"记录交易: {date_str} {time_str} (当日总计: {sum(self.data[date_str][h] for h in self.data[date_str] if h.isdigit())})")
+            # 日志记录已由Logger类统一处理，避免重复输出
     
     def get_daily_stats(self, date_str):
         """获取日统计数据"""
@@ -255,7 +255,7 @@ class TradeStatsManager:
         # 获取当前时间并调用add_trade_record
         current_time = datetime.now()
         self.add_trade_record(current_time)
-        logging.info(f"记录交易: {trade_type} 价格: {price} 时间: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        # 日志记录已由Logger类统一处理，避免重复输出
         return True
 
 
