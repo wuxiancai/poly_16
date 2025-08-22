@@ -39,6 +39,70 @@ sudo apt install -y libgtk-3-dev libx11-dev libxss1 libgconf-2-4 libnss3-dev lib
 echo "安装 python3-venv 和 python3-pip..."
 sudo apt install -y python3-venv python3-pip python3-tk python3-dev
 
+# ========================
+# 配置区域：修改成你的域名
+# ========================
+DOMAIN="wuxiancai.win"   # 替换成你的域名
+EMAIL="wuxiancai1978@gmail.com"  # 替换成你的邮箱，用于 Let's Encrypt
+APP_PORT=8080             # 本地应用端口
+
+# ========================
+# 1️⃣ 安装 NGINX 和 Certbot
+# ========================
+echo "=== 更新系统并安装 NGINX + Certbot ==="
+sudo apt install -y nginx certbot python3-certbot-nginx
+
+# ========================
+# 2️⃣ 创建反向代理配置
+# ========================
+echo "=== 创建 NGINX 反向代理配置 ==="
+cat <<EOF | sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    location / {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+EOF
+
+# 启用站点
+sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# 检查 NGINX 配置
+sudo nginx -t
+
+# ========================
+# 3️⃣ 重启 NGINX
+# ========================
+echo "=== 启动并启用 NGINX 服务 ==="
+sudo systemctl reload nginx
+sudo systemctl enable nginx
+
+# ========================
+# 4️⃣ 自动申请 HTTPS 证书
+# ========================
+echo "=== 使用 Certbot 自动申请 HTTPS 证书 ==="
+sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
+
+# ========================
+# 5️⃣ 自动设置 HTTP → HTTPS 重定向
+# ========================
+echo "=== 配置完成！HTTP 会自动跳转到 HTTPS ==="
+echo "访问 https://$DOMAIN 就可以访问本地 $APP_PORT 服务了"
+
+echo "=== 重启 NGINX 服务 ==="
+sudo systemctl reload nginx
+sudo systemctl enable nginx
+
+echo "=== 部署完成！"
+echo "访问 http://<你的服务器IP> 会自动反向代理到 127.0.0.1:8080"
+
 # 创建虚拟环境
 echo "创建虚拟环境..."
 python3 -m venv venv --clear
