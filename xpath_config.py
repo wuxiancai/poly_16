@@ -73,12 +73,12 @@ class XPathConfig:
     ]
 
     # 15.Position-Sell Yes按钮 长期有效
-    POSITION_SELL_YES_BUTTON = [
+    POSITION_SELL_UP_BUTTON = [
         '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//div[(contains(., "Up") or contains(., "Down"))]//button[normalize-space(.)="Sell"])[1]'
         ]
 
     # 16.Position-Sell No按钮长期有效
-    POSITION_SELL_NO_BUTTON = [
+    POSITION_SELL_DOWN_BUTTON = [
         '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//div[(contains(., "Up") or contains(., "Down"))]//button[normalize-space(.)="Sell"])[2]'
         ]
 

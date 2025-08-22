@@ -3747,7 +3747,7 @@ class CryptoTrader:
         for retry in range(3):
             self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
             # 点击position_sell按钮
-            self.click_position_sell_button()
+            self.click_position_sell_up_button()    
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3782,7 +3782,7 @@ class CryptoTrader:
             self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
             
             # 点击position_sell按钮
-            self.click_position_sell_button()
+            self.click_position_sell_down_button()
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -5261,15 +5261,37 @@ class CryptoTrader:
             )
             buy_confirm_button.click()
     
-    def click_position_sell_button(self):
+    def click_position_sell_down_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
             try:
-                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0])
             except TimeoutException:
                 positions_sell_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
+                )
+                
+            if positions_sell_button:
+                positions_sell_button.click()
+            else:
+                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
+        except Exception as e:
+            self.logger.error(f"卖出操作失败: {str(e)}")
+
+    def click_position_sell_up_button(self):
+        # 点击position_sell按钮
+        try:
+            start_time = time.perf_counter()
+            try:
+                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
+            except TimeoutException:
+                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0]))
                 )
                 
             if positions_sell_button:
