@@ -5796,7 +5796,7 @@ class CryptoTrader:
                     }
                     .container { 
                         max-width: 1160px; margin: 2px auto; background: rgba(255, 255, 255, 0.95); 
-                        padding: 2px; border-radius: 15px; backdrop-filter: blur(10px);
+                        padding: 2px; border-radius: 6px; backdrop-filter: blur(10px);
                     }
                     .header { text-align: center; margin-bottom: 5px; }
                     .header h1 { 
@@ -5809,11 +5809,11 @@ class CryptoTrader:
                     .nav { 
                         display: flex; justify-content: center; gap: 20px; 
                         margin-bottom: 5px; padding: 8px; background: rgba(248, 249, 250, 0.8); 
-                        border-radius: 12px; backdrop-filter: blur(5px);
+                        border-radius: 6px; backdrop-filter: blur(5px);
                     }
                     .nav a { 
                         padding: 12px 24px; background: linear-gradient(45deg, #007bff, #0056b3); 
-                        color: white; text-decoration: none; border-radius: 8px; font-weight: 600;
+                        color: white; text-decoration: none; border-radius: 6px; font-weight: 600;
                         font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
                     }
                     .nav a:hover { 
@@ -5826,7 +5826,7 @@ class CryptoTrader:
                     }
                     .nav button {
                         padding: 12px 24px; background: linear-gradient(45deg, #17a2b8, #138496);
-                        border: none; color: white; border-radius: 8px; cursor: pointer;
+                        border: none; color: white; border-radius: 6px; cursor: pointer;
                         font-size: 16px; font-weight: 600; transition: all 0.3s ease;
                         box-shadow: 0 4px 15px rgba(23,162,184,0.3);
                     }
@@ -5886,7 +5886,7 @@ class CryptoTrader:
                         overflow: visible;
                     }
                     .info-item { 
-                        padding: 3px; border-radius: 8px;
+                        padding: 3px; border-radius: 6px;
                         transition: all 0.3s ease; border: 2px solid transparent;
                         flex: 1 1 auto;
                         min-width: 70px;
@@ -5932,7 +5932,7 @@ class CryptoTrader:
                         flex: 1;
                     }
                     .info-item select {
-                        padding: 4px 8px; border: 1px solid #dee2e6; border-radius: 4px;
+                        padding: 4px 8px; border: 1px solid #dee2e6; border-radius: 6px;
                         font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         font-family: 'Monaco', 'Menlo', monospace;
                         color: #2c3e50;
@@ -6009,7 +6009,7 @@ class CryptoTrader:
                         color: #2F3E46; /* 深灰蓝,比纯黑柔和 */
                         text-align: center;
                         padding: 12px 20px;
-                        border-radius: 12px;
+                        border-radius: 6px;
                         box-shadow: 0 6px 25px rgba(0,0,0,0.15);
                         min-width: 180px;
                         max-width: 250px;
@@ -6045,7 +6045,7 @@ class CryptoTrader:
                         margin-top: 10px;
                     }
                     .price-box { 
-                        padding: 18px; border-radius: 12px; min-width: 150px;
+                        padding: 18px; border-radius: 6px; min-width: 150px;
                         font-size: 20px; font-weight: 800; transition: all 0.3s ease;
                         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
                     }
@@ -6071,7 +6071,7 @@ class CryptoTrader:
                     }
                     .position-section {
                         background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,249,250,0.9));
-                        border-radius: 8px;
+                        border-radius: 6px;
                         padding: 8px;
                         box-shadow: 0 3px 10px rgba(0,0,0,0.1);
                         backdrop-filter: blur(10px);
@@ -6089,7 +6089,7 @@ class CryptoTrader:
                         right: 0;
                         height: 4px;
                         background: linear-gradient(90deg, #667eea, #764ba2);
-                        border-radius: 16px 16px 0 0;
+                        border-radius: 6px 6px 0 0;
                     }
                     .position-section:hover {
                         transform: translateY(-5px);
@@ -6104,7 +6104,7 @@ class CryptoTrader:
                     .position-section h4 { 
                         margin: 0 0 8px 0; 
                         padding: 8px 12px; 
-                        border-radius: 8px; 
+                        border-radius: 6px; 
                         text-align: center; 
                         color: white; 
                         font-size: 14px; 
@@ -6149,7 +6149,7 @@ class CryptoTrader:
                     .position-row:last-child { border-bottom: none; }
                     .position-row:hover {
                         background: rgba(102,126,234,0.05);
-                        border-radius: 8px;
+                        border-radius: 6px;
                         padding-left: 8px;
                         padding-right: 8px;
                     }
@@ -6177,7 +6177,7 @@ class CryptoTrader:
                         align-items: center;
                         justify-content: center;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                        border-radius: 8px;
+                        border-radius: 6px;
                         padding: 8px;
                         font-size: 13px;
                         text-transform: uppercase;
@@ -6218,7 +6218,7 @@ class CryptoTrader:
                     .save-btn, .reset-btn {
                         padding: 12px 24px;
                         border: none;
-                        border-radius: 12px;
+                        border-radius: 6px;
                         font-size: 14px;
                         font-weight: 700;
                         cursor: pointer;
@@ -6277,7 +6277,7 @@ class CryptoTrader:
                         margin-top: 20px;
                         padding: 16px 20px;
                         background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
-                        border-radius: 12px;
+                        border-radius: 6px;
                         border: 1px solid rgba(102,126,234,0.2);
                         font-size: 14px;
                         color: #2c3e50;
@@ -6296,11 +6296,11 @@ class CryptoTrader:
                         right: 0;
                         height: 3px;
                         background: linear-gradient(90deg, #667eea, #764ba2);
-                        border-radius: 12px 12px 0 0;
+                        border-radius: 6px 6px 0 0;
                     }
                     .control-section {
                         max-width: 1160px;
-                        min-width: 1140px;
+                        min-width: 1160px;
                         padding: 10px 10px 0 10px;
                         
                     }
@@ -6308,15 +6308,15 @@ class CryptoTrader:
                         display: flex; gap: 15px; 
                     }
                     .url-input-group input {
-                        flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
-                        border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
+                        flex: 1; padding: 0 18px; border: 2px solid #ced4da;
+                        border-radius: 6px; font-size: 14px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         color: #2F3E46;
                         text-align: center;
                     }
                     .system-info {
                         flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
-                        border-radius: 8px; font-size: 14px; transition: all 0.3s ease;
+                        border-radius: 6px; font-size: 13px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         color: #2F3E46;
                         text-align: center;
@@ -6327,7 +6327,7 @@ class CryptoTrader:
                     }
                     .url-input-group button {
                         padding: 6px 8px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                        color: #2F3E46; border: none; border-radius: 8px; cursor: pointer;
+                        color: #2F3E46; border: none; border-radius: 6px; cursor: pointer;
                         font-size: 16px; font-weight: 600; white-space: nowrap;
                         transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(168,192,255,0.3);
                     }
@@ -6353,7 +6353,7 @@ class CryptoTrader:
                     }
                     .log-section {
                         background: rgba(255, 255, 255, 0.9);
-                        border-radius: 2px; padding: 2px; color: #2c3e50;
+                        border-radius: 6px; padding: 2px; color: #2c3e50;
                         font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
                         backdrop-filter: blur(5px);
                         border: 1px solid rgba(233, 236, 239, 0.5);
@@ -6361,7 +6361,7 @@ class CryptoTrader:
                     
                     .log-container {
                         height: 500px; overflow-y: auto; background: rgba(248, 249, 250, 0.8);
-                        border-radius: 8px; padding: 18px; border: 2px solid rgba(233, 236, 239, 0.5);
+                        border-radius: 6px; padding: 18px; border: 2px solid rgba(233, 236, 239, 0.5);
                         margin-top: 0;
                         /* 自定义滚动条样式 */
                         scrollbar-width: thin;
@@ -6376,7 +6376,7 @@ class CryptoTrader:
                     }
                     .log-container::-webkit-scrollbar-thumb {
                         background: transparent;
-                        border-radius: 4px;
+                        border-radius: 6px;
                         transition: background 0.3s ease;
                     }
                     /* 悬停时显示滚动条 */
@@ -6843,7 +6843,7 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 持仓显示区域 -->
-                                <div class="position-container" id="positionContainer" style="display: flex; gap: 1px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); padding: 8px 16px; border-radius: 8px; margin: 8px 0;">
+                                <div class="position-container" id="positionContainer" style="display: flex; gap: 1px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); padding: 8px 16px; border-radius: 6px; margin: 8px 0;">
                                     <div class="binance-price-item" style="display: inline-block;">
                                         <span class="binance-label" id="positionInfo">方向: -- 数量: -- 价格: -- 金额: --</span>
                                     </div>
@@ -6853,7 +6853,7 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 币安价格和资产显示区域 -->
-                                <div style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+                                <div style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 6px;">
                                     <div class="binance-price-container">
                                         <div class="binance-price-item">
                                             <span class="binance-label">零点价格:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
@@ -6968,7 +6968,7 @@ class CryptoTrader:
                         <div class="monitor-controls-section">
                             <!-- URL输入区域 -->
                             <div class="control-section">
-                                <div class="url-input-group">
+                                <div class="url-input-group"  style="padding: 0 12px;">
                                     <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
                                     <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
@@ -7277,20 +7277,20 @@ class CryptoTrader:
                             <p style="font-size: 14px; margin: 10px 0 0 0;">数据将在每日 0:30 自动记录</p>
                         </div>
                         {% endif %}
-                        <div style="text-align: center;  padding: 20px; border-radius: 12px; ">
+                        <div style="text-align: center;  padding: 20px; border-radius: 6px; ">
                             <style>
                                 .results-table {
                                     width: 100%;
                                     border-collapse: collapse;
                                     background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                                    border-radius: 12px;
+                                    border-radius: 6px;
                                     overflow: hidden;
                                     box-shadow: 0 8px 8px rgba(0,0,0,0.15);
                                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                                 }
                                 .results-table th {
                                     
-                                    color: white;
+                                    color: black;
                                     padding: 15px 4px;
                                     text-align: center;
                                     font-weight: 600;
@@ -7617,7 +7617,7 @@ class CryptoTrader:
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
                         padding: 5px; margin: 0; background: #f8f9fa; 
                     }
-                    .container { max-width: 900px; margin: 0 auto; background: white; padding: 5px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .container { max-width: 900px; margin: 0 auto; background: white; padding: 5px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
                     h2 { color: #333; text-align: center; margin-bottom: 20px; }
                     table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
                     th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
@@ -7626,14 +7626,14 @@ class CryptoTrader:
                     .positive { color: #28a745; font-weight: 500; }
                     .negative { color: #dc3545; font-weight: 500; }
                     .zero { color: #6c757d; }
-                    .info { margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 14px; color: #666; }
+                    .info { margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 6px; font-size: 14px; color: #666; }
                     .total { margin-top: 10px; text-align: center; font-weight: bold; font-size: 16px; }
                     .pagination { 
                         margin: 20px 0; text-align: center; 
                     }
                     .pagination a, .pagination span { 
                         display: inline-block; padding: 8px 12px; margin: 0 4px; 
-                        border: 1px solid #ddd; text-decoration: none; border-radius: 4px;
+                        border: 1px solid #ddd; text-decoration: none; border-radius: 6px;
                     }
                     .pagination a:hover { background: #f5f5f5; }
                     .pagination .current { background: #007bff; color: white; border-color: #007bff; }
@@ -8134,7 +8134,7 @@ class CryptoTrader:
             max-width: 1000px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
+            border-radius: 6px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
@@ -8165,7 +8165,7 @@ class CryptoTrader:
         .controls input, .controls select {
             padding: 8px 12px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 14px;
         }
         
@@ -8174,7 +8174,7 @@ class CryptoTrader:
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
         }
@@ -8186,7 +8186,7 @@ class CryptoTrader:
         .chart-container {
             background: white;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 6px;
             padding: 20px;
             margin-bottom: 20px;
         }
@@ -8219,7 +8219,7 @@ class CryptoTrader:
         .stats-card {
             background: #f8f9fa;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 6px;
             padding: 8px 4px;
             text-align: center;
             min-width: 0;
