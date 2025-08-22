@@ -49,6 +49,8 @@ from contextlib import contextmanager
 # 禁用urllib3的连接池警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings('ignore', message='Connection pool is full, discarding connection')
+# 通过降低日志级别来抑制urllib3.connectionpool的警告输出
+logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
 # 设置urllib3的默认连接池大小
 from urllib3.util.connection import create_connection
@@ -56,6 +58,22 @@ from urllib3.poolmanager import PoolManager
 
 # 配置urllib3的默认连接池参数
 urllib3.util.connection.HAS_IPV6 = False  # 禁用IPv6以减少连接复杂性
+
+# 全局串行化Selenium与ChromeDriver的HTTP通信，避免多线程下连接池被占满
+try:
+    from selenium.webdriver.remote.webdriver import WebDriver as _RemoteWebDriver
+    import threading as _threading
+    if not hasattr(_RemoteWebDriver, '_execute_patched'):
+        _GLOBAL_WEBDRIVER_LOCK = _threading.RLock()
+        _orig_execute = _RemoteWebDriver.execute
+        def _locked_execute(self, command, params=None):
+            with _GLOBAL_WEBDRIVER_LOCK:
+                return _orig_execute(self, command, params)
+        _RemoteWebDriver.execute = _locked_execute
+        _RemoteWebDriver._execute_patched = True
+        logging.getLogger(__name__).info('✅ 已启用Selenium全局执行锁，序列化WebDriver命令')
+except Exception as _e:
+    logging.getLogger(__name__).warning(f'未能启用Selenium全局执行锁: {_e}')
 
 
 
@@ -1199,7 +1217,8 @@ class CryptoTrader:
     def _update_status_async(self, category, key, value):
         """异步更新状态数据的辅助方法"""
         try:
-            self.async_data_updater.update_async(category, key, str(value))
+            # 不再强制转换为字符串，避免破坏列表/字典等结构化数据（例如positions）
+            self.async_data_updater.update_async(category, key, value)
         except Exception as e:
             self.logger.debug(f"异步更新状态数据失败 [{category}.{key}]: {e}")
     
@@ -1931,8 +1950,11 @@ class CryptoTrader:
                 # 浏览器级别重试
                 sleep_time = min(5, base_interval * (2 ** error_count))
                 if error_count > 3:
-                    self.logger.error("连续浏览器异常,尝试重启")
-                    self.restart_browser()
+                    if not getattr(self, 'is_restarting', False):
+                        self.logger.error("连续浏览器异常,尝试重启")
+                        self.restart_browser()
+                    else:
+                        self.logger.info("检测到正在重启，跳过重复重启请求")
                     error_count = 0
                 time.sleep(sleep_time)
             except Exception as e:
@@ -1947,6 +1969,13 @@ class CryptoTrader:
         Args:
             force_restart: True=强制重启Chrome进程,False=尝试重连现有进程
         """
+        # 先标记并发状态，防止多个线程同时执行清理/重启
+        with self.restart_lock:
+            if self.is_restarting:
+                self.logger.info("浏览器正在重启中,跳过重复重启")
+                return True
+            self.is_restarting = True
+
         # 清空元素缓存,因为浏览器即将重启
         self._clear_element_cache()
         
@@ -1976,13 +2005,6 @@ class CryptoTrader:
                 self.logger.error(f"强制关闭Chrome进程失败: {str(e)}")
                 
         self.driver = None
-
-        # 检查是否已在重启中
-        with self.restart_lock:
-            if self.is_restarting:
-                self.logger.info("浏览器正在重启中,跳过重复重启")
-                return True
-            self.is_restarting = True
 
         try:
             self.logger.info(f"正在{'重启' if force_restart else '重连'}浏览器...")
@@ -5654,6 +5676,10 @@ class CryptoTrader:
     
     def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
         """优化版元素查找 - 支持缓存和并行查找多个XPath"""
+        # 若正在重启，短暂等待并返回None，避免对驱动发起请求
+        if getattr(self, 'is_restarting', False):
+            time.sleep(0.1)
+            return None
         # 生成缓存键
         cache_key = str(sorted(xpaths)) if use_cache else None
         
@@ -5675,7 +5701,7 @@ class CryptoTrader:
                     return None
             
             # 并行查找所有XPath
-            with ThreadPoolExecutor(max_workers=len(xpaths)) as executor:
+            with ThreadPoolExecutor(max_workers=min(len(xpaths), 2)) as executor:
                 futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
                 
                 for future in futures:
@@ -6853,7 +6879,7 @@ class CryptoTrader:
                                         <span class="binance-label">预计收益:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
                                     </div>
                                     <div class="binance-price-item">
-                                        <span class="binance-label">剩余本金:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
+                                        <span class="binance-label">可用金额:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
                                     </div>
                                     <div class="binance-price-item">
                                         <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
