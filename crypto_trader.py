@@ -1130,7 +1130,7 @@ class CryptoTrader:
     def setup_web_mode(self):
         """初始化Web模式,替代GUI界面"""
         self.logger.info("Web模式初始化完成")
-        print("Web模式已启动,请在浏览器中访问 http://localhost:5000")
+        print("Web模式已启动,请在浏览器中访问 http://localhost:8080")
         
         # 加载配置到web_data
         if hasattr(self, 'config') and self.config:
@@ -3770,7 +3770,7 @@ class CryptoTrader:
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3): 
-            self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
+            self.logger.info("\033[31m✅ 执行only_sell_down\033[0m")
             
             # 点击position_sell按钮
             self.click_position_sell_down_button()
@@ -8442,9 +8442,9 @@ class CryptoTrader:
 
     def start_flask_server(self):
         """在后台线程中启动Flask,24小时常驻"""
-        # 从环境变量读取配置,默认值为localhost:5000
+        # 从环境变量读取配置,默认值为localhost:8080
         flask_host = os.environ.get('FLASK_HOST', '127.0.0.1')
-        flask_port = int(os.environ.get('FLASK_PORT', '5000'))
+        flask_port = int(os.environ.get('FLASK_PORT', '8080'))
         
         # 检查并清理端口占用
         self.logger.info(f"🔍 检查端口 {flask_port} 是否被占用...")
