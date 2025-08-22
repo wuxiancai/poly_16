@@ -3064,6 +3064,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3822,7 +3823,7 @@ class CryptoTrader:
                 start_time = time.perf_counter()
 
                 start_time = time.time()
-                max_wait_time = 3  # 每次智能等待3秒
+                max_wait_time = 4  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
 
                 # 智能等待循环
@@ -3848,7 +3849,7 @@ class CryptoTrader:
                                 self.price = float(price_match.group(1)) if price_match else 0
                                 self.amount = float(amount_match.group(1)) if amount_match else 0
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
-                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
+                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}")
                                 
                                 elapsed = time.perf_counter() - start_time
                                 self.logger.info(f"\033[34m交易验证耗时 {elapsed:.3f} 秒\033[0m")
@@ -3867,6 +3868,7 @@ class CryptoTrader:
                         pass
                     
                     time.sleep(check_interval)
+                self.logger.info("\033[34m❌ 智能等待3秒后,没有交易记录,第 2 次重试\033[0m")  
             # 两次智能等待都失败
             self.logger.warning(f"❌ \033[31m交易验证失败\033[0m")
             return False, 0, 0, 0
@@ -5784,7 +5786,7 @@ class CryptoTrader:
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>BTC量化交易系统</title>
+                <title>量化交易系统</title>
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -5942,7 +5944,6 @@ class CryptoTrader:
                     }
                     .position-container {
                         padding: 5px 5px;
-                        
                         border-radius: 6px;
                         display: flex;
                         align-items: center;
@@ -6472,7 +6473,7 @@ class CryptoTrader:
                         align-items: center;
                         font-size: 16px;
                         font-weight: bold;
-                        color: #dc3545;
+                        color: #2c3e50;
                     }
                     
                     .simple-clock span {
@@ -6634,10 +6635,10 @@ class CryptoTrader:
                             .then(response => response.json())
                             .then(data => {
                                 const positionContainer = document.getElementById('positionContainer');
-                                const positionContent = document.getElementById('positionContent');
+                                const positionInfo = document.getElementById('positionInfo');
                                 const sellBtn = document.getElementById('sellPositionBtn');
                                 
-                                if (!positionContainer || !positionContent) return;
+                                if (!positionContainer || !positionInfo) return;
                                 
                                 if (data.success && data.position) {
                                     const position = data.position;
@@ -6645,15 +6646,15 @@ class CryptoTrader:
                                     const positionText = `方向:${position.direction} 数量:${position.shares} 价格:${position.price} 金额:${position.amount}`;
                                     
                                     // 设置文本内容
-                                    positionContent.innerHTML = positionText;
+                                    positionInfo.innerHTML = positionText;
                                     
                                     // 根据方向设置颜色
                                     if (position.direction === 'Up') {
-                                        positionContent.style.color = '#28a745'; // 绿色
+                                        positionInfo.style.color = '#28a745'; // 绿色
                                     } else if (position.direction === 'Down') {
-                                        positionContent.style.color = '#dc3545'; // 红色
+                                        positionInfo.style.color = '#dc3545'; // 红色
                                     } else {
-                                        positionContent.style.color = '#2c3e50'; // 默认颜色
+                                        positionInfo.style.color = '#2c3e50'; // 默认颜色
                                     }
                                     
                                     // 有持仓时保持卖出按钮样式
@@ -6662,10 +6663,10 @@ class CryptoTrader:
                                         sellBtn.style.cursor = 'pointer';
                                     }
                                     
-                                    positionContainer.style.display = 'block';
+                                    positionContainer.style.display = 'flex';
                                 } else {
-                                    positionContent.textContent = '方向: -- 数量: -- 价格: -- 金额: --';
-                                    positionContent.style.color = '#2c3e50'; // 默认颜色
+                                    document.getElementById('positionInfo').textContent = '方向: -- 数量: -- 价格: -- 金额: --';
+                                    positionInfo.style.color = '#2c3e50'; // 默认颜色
                                     
                                     // 无持仓时保持卖出按钮可点击
                                     if (sellBtn) {
@@ -6673,17 +6674,17 @@ class CryptoTrader:
                                         sellBtn.style.cursor = 'pointer';
                                     }
                                     
-                                    positionContainer.style.display = 'block';
+                                    positionContainer.style.display = 'flex';
                                 }
                             })
                             .catch(error => {
                                 console.error('获取持仓信息失败:', error);
                                 const positionContainer = document.getElementById('positionContainer');
-                                const positionContent = document.getElementById('positionContent');
+                                const positionInfo = document.getElementById('positionInfo');
                                 const sellBtn = document.getElementById('sellPositionBtn');
-                                if (positionContainer && positionContent) {
-                                    positionContent.textContent = '方向: -- 数量: -- 价格: -- 金额: --';
-                                    positionContent.style.color = '#dc3545'; // 红色表示错误
+                                if (positionContainer && positionInfo) {
+                                    document.getElementById('positionInfo').textContent = '方向: -- 数量: -- 价格: -- 金额: --';
+                                    positionInfo.style.color = '#dc3545'; // 红色表示错误
                                     
                                     // 获取失败时保持卖出按钮可点击
                                     if (sellBtn) {
@@ -6691,7 +6692,7 @@ class CryptoTrader:
                                         sellBtn.style.cursor = 'pointer';
                                     }
                                     
-                                    positionContainer.style.display = 'block';
+                                    positionContainer.style.display = 'flex';
                                 }
                             });
                     }
@@ -6818,18 +6819,15 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>BTC量化交易系统</h1>
+                            <h1>量化交易系统</h1>
                         </div>
-                        
+
                         <!-- 主要内容区域：左右分栏 -->
                         <div class="main-layout">
                             <!-- 左侧：日志显示区域 -->
-                            <div class="left-panel log-section log-container" id="logContainer">
-                                
-                                    
+                            <div class="left-panel log-section log-container" id="logContainer" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                 <div class="log-loading">正在加载日志...</div>
-                                    
-                                
+
                             </div>
                             <!-- 右侧：价格和交易区域 -->
                             <div class="right-panel">
@@ -6844,54 +6842,49 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 持仓显示区域 -->
-                                <div class="position-container" id="positionContainer" style="display: block;">
-                                    <div class="position-content" id="positionContent">
-                                        方向: -- 数量: -- 价格: -- 金额: --
+                                <div class="position-container" id="positionContainer" style="display: flex; gap: 1px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); padding: 8px 16px; border-radius: 8px; margin: 8px 0;">
+                                    <div class="binance-price-item" style="display: inline-block;">
+                                        <span class="binance-label" id="positionInfo">方向: -- 数量: -- 价格: -- 金额: --</span>
+                                    </div>
+                                    <div class="binance-price-item" style="display: inline-block; padding: 5px 8px;">
+                                        <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
                                     </div>
                                 </div>
                                 
                                 <!-- 币安价格和资产显示区域 -->
-                                <div class="binance-price-container">
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">零点价格:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
+                                <div style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+                                    <div class="binance-price-container">
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">零点价格:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
+                                        </div>
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">实时价格:</span> <span class="value" id="binancePrice">{{ data.prices.binance_price or '--' }}</span>
+                                        </div>
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">涨跌幅:</span> <span class="value" id="binanceRate">{{ data.prices.binance_rate or '--' }}</span>
+                                        </div>
                                     </div>
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">实时价格:</span> <span class="value" id="binancePrice">{{ data.prices.binance_price or '--' }}</span>
-                                    </div>
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">涨跌幅:</span> <span class="value" id="binanceRate">{{ data.prices.binance_rate or '--' }}</span>
-                                    </div>
-                                </div>
-                                <div class="binance-price-container">
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">预计收益:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
-                                    </div>
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">可用金额:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
-                                    </div>
-                                    <div class="binance-price-item">
-                                        <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
+                                    <div class="binance-price-container">
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">预计收益:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
+                                        </div>
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">可用金额:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
+                                        </div>
+                                        <div class="binance-price-item">
+                                            <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <!-- 币种和交易时间显示区域 -->
-                                <div class="binance-price-container" style="align-items: center; width: 50%; margin: 0 auto; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 8px;">
-                                    
-                                    <div class="binance-price-item binance-label" style="display: inline-block; padding: 4px 4px;">
-                                            <label>开始交易时间:</label>
-                                            <span id="timeDisplay">{{ data.auto_find_time }}</span>
-                                    </div>
-                                    <div class="binance-price-item" style="display: inline-block;">
-                                        <span class="binance-label">剩余交易次数:&nbsp;</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
-                                    </div>
-                                </div>
+                                
                                 <!-- 交易仓位显示区域 -->
                                 <div class="card">
                                 <form id="positionsForm">
                                     <div class="positions-grid">
                                         <div class="position-section up-section">
-                                            <div class="position-row header">
-                                                <div class="position-label">方向</div>
+                                            <div class="position-row header" style="padding: 14px 8px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); ">
+                                                <div class="position-label" style="padding: 8px 8px; border-radius: 6px;">方向</div>
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
                                             </div>
@@ -6919,10 +6912,10 @@ class CryptoTrader:
                                         </div>
                                         
                                         <div class="position-section down-section">
-                                            <div class="position-row header">
+                                            <div class="position-row header" style="padding: 14px 8px;background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
-                                                <div class="position-label">方向</div>
+                                                <div class="position-label" style="padding: 8px 8px; border-radius: 6px;">方向</div>
                                             </div>
                                             <div class="position-row">
                                                 <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
@@ -6949,7 +6942,7 @@ class CryptoTrader:
                                     </div>
 
                                     <!-- 时间显示和倒计时 -->
-                                    <div class="time-display-section">
+                                    <div class="time-display-section" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                         <div class="current-time">
                                             <span id="currentTime">2025-08-17 18:08:30</span>
                                         </div>
@@ -7288,16 +7281,16 @@ class CryptoTrader:
                                 .results-table {
                                     width: 100%;
                                     border-collapse: collapse;
-                                    background: white;
+                                    background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                                     border-radius: 12px;
                                     overflow: hidden;
-                                    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                                    box-shadow: 0 8px 8px rgba(0,0,0,0.15);
                                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                                 }
                                 .results-table th {
-                                    background: linear-gradient(45deg, #667eea, #764ba2);
+                                    
                                     color: white;
-                                    padding: 15px 8px;
+                                    padding: 15px 4px;
                                     text-align: center;
                                     font-weight: 600;
                                     font-size: 13px;
@@ -7309,7 +7302,7 @@ class CryptoTrader:
                                     text-align: center;
                                     border-bottom: 1px solid #f0f2f5;
                                     font-size: 13px;
-                                    background: white;
+                                    
                                     transition: all 0.3s ease;
                                 }
                                 .results-table tr:hover td {
@@ -7320,10 +7313,10 @@ class CryptoTrader:
                                     width: 100%;
                                     border: none;
                                     text-align: center;
-                                    background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                                    
                                     font-size: 13px;
                                     font-weight: 500;
-                                    color: #2c3e50;
+                                    
                                     padding: 8px 4px;
                                     border-radius: 6px;
                                     transition: all 0.3s ease;
@@ -7334,12 +7327,12 @@ class CryptoTrader:
                                     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
                                 }
                                 .results-table input:hover {
-                                    background: #f8f9ff;
+                                    
                                 }
                                 .month-result {
                                     font-weight: 600;
                                     color: #2c3e50;
-                                    background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                                    
                                     border-radius: 6px;
                                     padding: 8px 4px;
                                     margin: 2px;
