@@ -1012,13 +1012,12 @@ class CryptoTrader:
                     'Up2': {'target_price': 0, 'amount': 0},
                     'Up3': {'target_price': 0, 'amount': 0},
                     'Up4': {'target_price': 0, 'amount': 0},
-                    'Up5': {'target_price': 0, 'amount': 0},
+
 
                     'Down1': {'target_price': 0, 'amount': 0},
                     'Down2': {'target_price': 0, 'amount': 0},
                     'Down3': {'target_price': 0, 'amount': 0},
-                    'Down4': {'target_price': 0, 'amount': 0},
-                    'Down5': {'target_price': 0, 'amount': 0}
+                    'Down4': {'target_price': 0, 'amount': 0}
                 },
                 'url_history': [],
                 'selected_coin': 'BTC'  # 默认选择的币种
@@ -1475,7 +1474,7 @@ class CryptoTrader:
         self.start_button = ttk.Button(main_controls, text="Start", 
                                       command=self.start_monitoring, width=4,
                                       style='Blue.TButton')
-        self.start_button.pack(side=tk.LEFT, padx=1)
+        self.start_button.pack(side=tk.LEFT, padx=2)
         
         # 设置金额按钮
         self.set_amount_button = ttk.Button(main_controls, text="Set Amount", width=10,
@@ -1498,10 +1497,10 @@ class CryptoTrader:
         # 手动找币按钮
         self.find_coin_button = ttk.Button(main_controls, text="F.Coin", width=5,
                                            command=lambda: self.find_54_coin(), style='LeftAligned.TButton')
-        self.find_coin_button.pack(side=tk.LEFT, padx=1)
+        self.find_coin_button.pack(side=tk.LEFT, padx=2)
 
         # 零点时间CASH 显示
-        ttk.Label(main_controls, text="Cash:", style='Black.TLabel').pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Label(main_controls, text="Cash:", style='Black.TLabel').pack(side=tk.LEFT, padx=(2, 2))
         self.zero_time_cash_label = ttk.Label(main_controls, text="0", style='Red.TLabel')
         self.zero_time_cash_label.pack(side=tk.LEFT)
         
@@ -1516,7 +1515,7 @@ class CryptoTrader:
         auto_find_frame.pack(fill="x", pady=2)
         
         # 小时选择 Spinbox
-        ttk.Label(auto_find_frame, text=":").pack(side=tk.LEFT)
+        ttk.Label(auto_find_frame, text="").pack(side=tk.LEFT, padx=(2, 2))
         self.auto_find_time_combobox_hour = tk.Spinbox(
             auto_find_frame, from_=0, to=23, wrap=True, width=3, format="%02.0f"
         )
@@ -1658,8 +1657,7 @@ class CryptoTrader:
             ("Up1", "yes1_price_entry", "yes1_amount_entry", "0", "0"),
             ("Up2", "yes2_price_entry", "yes2_amount_entry", "0", "0"),
             ("Up3", "yes3_price_entry", "yes3_amount_entry", "0", "0"),
-            ("Up4", "yes4_price_entry", "yes4_amount_entry", "0", "0"),
-            ("Up5", "yes5_price_entry", None, "0", "0")
+            ("Up4", "yes4_price_entry", "yes4_amount_entry", "0", "0")
         ]
         
         for i, (label, price_attr, amount_attr, price_val, amount_val) in enumerate(up_configs):
@@ -1698,8 +1696,7 @@ class CryptoTrader:
             ("Down1", "no1_price_entry", "no1_amount_entry", "0", "0"),
             ("Down2", "no2_price_entry", "no2_amount_entry", "0", "0"),
             ("Down3", "no3_price_entry", "no3_amount_entry", "0", "0"),
-            ("Down4", "no4_price_entry", "no4_amount_entry", "0", "0"),
-            ("Down5", "no5_price_entry", None, "0", "0")
+            ("Down4", "no4_price_entry", "no4_amount_entry", "0", "0")
         ]
         
         for i, (label, price_attr, amount_attr, price_val, amount_val) in enumerate(down_configs):
@@ -1733,53 +1730,6 @@ class CryptoTrader:
         # 配置列权重
         self.no_frame.grid_columnconfigure(1, weight=1)
 
-        # 创建按钮区域
-        trade_frame = ttk.LabelFrame(scrollable_frame, text="Buttons", style='Black.TLabelframe')
-        trade_frame.pack(fill="x", padx=2, pady=2)
-        
-        # 按钮配置
-        button_configs = [
-            # 第一行：主要交易按钮
-            [("buy_button", "Buy", self.click_buy_button),
-             ("buy_yes_button", "Buy-Up", self.click_buy_up_button),
-             ("buy_no_button", "Buy-Down", self.click_buy_down_button)],
-            # 第二行：确认和金额按钮
-            [("buy_confirm_button", "Buy-confirm", self.click_buy_confirm_button),
-             ("amount_yes1_button", "Amount-Up1", None),
-             ("amount_yes2_button", "Amount-Up2", None)],
-            # 第三行：Yes金额按钮
-            [("amount_yes3_button", "Amount-Up3", None),
-             ("amount_yes4_button", "Amount-Up4", None),
-             ("amount_no1_button", "Amount-Down1", None)],
-            # 第四行：No金额按钮
-            [("amount_no2_button", "Amount-Down2", None),
-             ("amount_no3_button", "Amount-Down3", None),
-             ("amount_no4_button", "Amount-Down4", None)],
-            # 第五行：卖出按钮
-            [("position_sell_yes_button", "Positions-Sell-Up", self.click_position_sell_yes),
-             ("position_sell_no_button", "Positions-Sell-Down", self.click_position_sell_no),
-             ("sell_confirm_button", "Sell-confirm", self.click_sell_confirm_button)]
-        ]
-        
-        for row, button_row in enumerate(button_configs):
-            for col, (attr_name, text, command) in enumerate(button_row):
-                if attr_name:  # 跳过占位符
-                    button = ttk.Button(trade_frame, text=text, width=self.button_width)
-                    
-                    if command:
-                        button.configure(command=command)
-                    else:
-                        # 金额按钮：改为使用 command 以便支持 invoke()
-                        # 通过 lambda 传递具体按钮引用
-                        button.configure(command=lambda: None) # 这里原来是绑定click_amount函数
-                    
-                    button.grid(row=row, column=col, padx=2, pady=2, sticky="ew")
-                    setattr(self, attr_name, button)
-        
-        # 配置列权重使按钮均匀分布
-        for i in range(3):
-            trade_frame.grid_columnconfigure(i, weight=1)
-            
         # 窗口自适应内容大小
         self.root.update_idletasks()
         
@@ -3777,7 +3727,14 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3):
             self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
-            self.sell_operation()
+            # 点击position_sell按钮
+            self.click_position_sell_button()
+
+            # 点击卖出确认按钮
+            self.click_buy_sell_confirm_button()
+
+            # 点击I Accept按钮
+            self.click_i_accept_button()
 
             if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
@@ -3804,12 +3761,17 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3): 
             self.logger.info("\033[32m✅ 执行only_sell_down\033[0m")
-            self.sell_operation()
+            
+            # 点击position_sell按钮
+            self.click_position_sell_button()
+
+            # 点击卖出确认按钮
+            self.click_buy_sell_confirm_button()
+
+            # 点击I Accept按钮
+            self.click_i_accept_button()
 
             if self.verify_trade('Sold', 'Down')[0]:
-                
-                self.click_buy_up_button()
-                self.click_buy_button()
                 # 增加卖出计数
                 self.sell_count += 1
                 
@@ -3829,7 +3791,7 @@ class CryptoTrader:
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
                 time.sleep(1)
-
+    
     def verify_trade(self, action_type, direction):
         """
         验证交易是否成功完成
@@ -3994,7 +3956,7 @@ class CryptoTrader:
             self.click_buy_up_button()
             self.click_buy_button()
         except Exception as e:
-            self.logger.error(f"回退卖出操作失败: {str(e)}")
+            self.logger.error(f"卖出操作失败: {str(e)}")
       
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
@@ -4561,8 +4523,6 @@ class CryptoTrader:
             if first_connection:
                 self.logger.info(f"✅ WebSocket 连接成功建立 - {coin_form_websocket.upper()}")
                 first_connection = False
-            else:
-                self.logger.info(f"🔄 WebSocket 重连成功 - {coin_form_websocket.upper()} (第{connection_attempts}次重连)")
 
         def on_message(ws, message):
             try:
@@ -5277,6 +5237,28 @@ class CryptoTrader:
             )
             buy_confirm_button.click()
     
+    def click_position_sell_button(self):
+        # 点击position_sell按钮
+        try:
+            start_time = time.perf_counter()
+            try:
+                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+            except TimeoutException:
+                positions_sell_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
+                )
+                
+            if positions_sell_button:
+                positions_sell_button.click()
+            else:
+                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
+        except Exception as e:
+            self.logger.error(f"卖出操作失败: {str(e)}")
+
     def click_position_sell_no(self):
         """点击 Positions-Sell-No 按钮"""
         try:
@@ -5343,7 +5325,40 @@ class CryptoTrader:
         except Exception as e:
             error_msg = f"点击 Positions-Sell-Yes 按钮失败: {str(e)}"
             self.logger.error(error_msg)
-            
+    
+    def click_buy_sell_confirm_button(self):
+        """点击买入卖出确认按钮"""
+        # 点击买入确认按钮
+        start_time = time.perf_counter()
+        try:
+            sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
+        except TimeoutException:
+            sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
+            )
+
+        if sell_confirm_button:
+            sell_confirm_button.click()
+        else:
+            self.logger.error("❌ \033[31m没有出现SELL_CONFIRM按钮,跳过点击\033[0m")
+
+        elapsed = time.perf_counter() - start_time
+        self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+    
+    def click_i_accept_button(self):
+        """点击I Accept按钮"""
+        # 等待ACCEPT弹窗出现
+        try:
+            accept_button = WebDriverWait(self.driver, 0.5).until(
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
+            )
+
+            if accept_button:
+                accept_button.click()    
+        except TimeoutException:
+            self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
+            pass  # 弹窗没出现,不用处理
+
     def click_sell_confirm_button(self):
         """点击sell-卖出按钮"""
         try:
