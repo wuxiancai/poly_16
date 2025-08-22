@@ -3755,6 +3755,9 @@ class CryptoTrader:
             # 点击I Accept按钮
             self.click_i_accept_button()
 
+            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
+            self.click_buy_button()
+
             if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
                 self.sell_count += 1
@@ -3789,6 +3792,10 @@ class CryptoTrader:
 
             # 点击I Accept按钮
             self.click_i_accept_button()
+
+            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
+            self.click_buy_up_button()
+            self.click_buy_button()
 
             if self.verify_trade('Sold', 'Down')[0]:
                 # 增加卖出计数
