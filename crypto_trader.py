@@ -6297,25 +6297,28 @@ class CryptoTrader:
                         border-radius: 6px 6px 0 0;
                     }
                     .control-section {
-                        max-width: 1160px;
-                        min-width: 1160px;
+                        
+                        width: 100%;
                         padding: 10px 10px 0 10px;
                         
                     }
                     .url-input-group {
                         display: flex; gap: 15px; 
+                        
                     }
                     .url-input-group input {
                         flex: 1; padding: 0 18px; border: 2px solid #ced4da;
                         border-radius: 6px; font-size: 14px; transition: all 0.3s ease;
-                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        background: transparent;
+                        border: none;
                         color: #2F3E46;
                         text-align: center;
                     }
                     .system-info {
-                        flex: 1; padding: 2px 18px; border: 2px solid #ced4da;
+                        flex: 1; padding:8px; border: 0 solid #ced4da;
                         border-radius: 6px; font-size: 13px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        
                         color: #2F3E46;
                         text-align: center;
                     }
@@ -6966,8 +6969,8 @@ class CryptoTrader:
                         <div class="monitor-controls-section">
                             <!-- URL输入区域 -->
                             <div class="control-section">
-                                <div class="url-input-group"  style="padding: 0 12px;">
-                                    <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
+                                <div class="url-input-group">
+                                    <input style="background: transparent; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);" type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
                                     <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
                                 <div id="statusMessage" class="status-message"></div>
