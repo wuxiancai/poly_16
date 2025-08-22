@@ -5787,7 +5787,7 @@ class CryptoTrader:
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>量化交易系统</title>
+                <title>兑谦量化交易系统</title>
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -5813,7 +5813,7 @@ class CryptoTrader:
                     }
                     .nav a { 
                         padding: 12px 24px; background: linear-gradient(45deg, #007bff, #0056b3); 
-                        color: white; text-decoration: none; border-radius: 6px; font-weight: 600;
+                        color: white; text-decoration: none; border-radius: 6px; font-weight: 400;
                         font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
                     }
                     .nav a:hover { 
@@ -5827,7 +5827,7 @@ class CryptoTrader:
                     .nav button {
                         padding: 12px 24px; background: linear-gradient(45deg, #17a2b8, #138496);
                         border: none; color: white; border-radius: 6px; cursor: pointer;
-                        font-size: 16px; font-weight: 600; transition: all 0.3s ease;
+                        font-size: 16px; font-weight: 400; transition: all 0.3s ease;
                         box-shadow: 0 4px 15px rgba(23,162,184,0.3);
                     }
                     .nav button:hover {
@@ -5921,19 +5921,19 @@ class CryptoTrader:
                         max-width: 140px;
                     }
                     .info-item label { 
-                        font-weight: 600; color: #6c757d; 
+                        font-weight: 400; color: #6c757d; 
                         font-size: 14px; 
                         flex-shrink: 0;
                         margin-right: 2px;
                     }
                     .info-item .value { 
-                        font-size: 14px; color: #2c3e50; font-weight: 600;
+                        font-size: 14px; color: #2c3e50; font-weight: 400;
                         font-family: 'Monaco', 'Menlo', monospace;
                         flex: 1;
                     }
                     .info-item select {
                         padding: 4px 8px; border: 1px solid #dee2e6; border-radius: 6px;
-                        font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        font-size: 14px; font-weight: 400; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         font-family: 'Monaco', 'Menlo', monospace;
                         color: #2c3e50;
                         transition: all 0.3s ease; cursor: pointer;
@@ -5954,7 +5954,7 @@ class CryptoTrader:
                     }
                     .position-content {
                         font-size: 14px;
-                        font-weight: 600;
+                        font-weight: 400;
                         color: #007bff;
                         display: flex;
                         align-items: center;
@@ -5967,28 +5967,33 @@ class CryptoTrader:
                     .binance-price-container {
                         display: flex;
                         flex-direction: row;
-                        gap: 5px;
+                        gap: 8px;
                         flex: 1;
                         align-items: center;
                         justify-content: center; /* 水平居中 */
                     }
                     /* 减少上方币安价格区与下方资产区之间的垂直间距 */
                     .binance-price-container + .binance-price-container {
-                        margin-top: 0px;
+                        margin-top: 2px;
+                        margin-bottom: 3px;
                     }
                     .binance-price-item {
                         display: flex;
                         align-items: center;
                         font-size: 14px;
                         gap: 4px;
+                        margin-top: 3px;
+                        margin-bottom: 2px;
                     }
                     .binance-label {
-                        font-weight: 600;
-                        color: #6c757d;
+                        font-weight: 400;
+                        background: linear-gradient(45deg, #667eea, #764ba2); /* 渐变色 */
+                        -webkit-background-clip: text;  /* 让背景裁剪到文字 */
+                        -webkit-text-fill-color: transparent; /* 文字填充透明，让背景显示出来 */
                     }
                     .binance-price-item .value {
                         font-size: 14px;
-                        font-weight: 600;
+                        font-weight: 400;
                         font-family: 'Monaco', 'Menlo', monospace;
                         color: #2c3e50;
                     }
@@ -6063,7 +6068,7 @@ class CryptoTrader:
                     .positions-grid { 
                         display: grid; 
                         grid-template-columns: 1fr 1fr; 
-                        gap: 2px; 
+                        gap: 10px; 
                         margin-top: 0px;
                         flex: 0.5;
                         max-height: 250px;
@@ -6073,7 +6078,7 @@ class CryptoTrader:
                         background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,249,250,0.9));
                         border-radius: 6px;
                         padding: 8px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                        box-shadow: 0 0 10px rgba(0,0,0,0.1);
                         backdrop-filter: blur(10px);
                         border: 1px solid rgba(255,255,255,0.2);
                         transition: all 0.3s ease;
@@ -6081,16 +6086,7 @@ class CryptoTrader:
                         overflow: hidden;
                         height: fit-content;
                     }
-                    .position-section::before {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 4px;
-                        background: linear-gradient(90deg, #667eea, #764ba2);
-                        border-radius: 6px 6px 0 0;
-                    }
+                    
                     .position-section:hover {
                         transform: translateY(-5px);
                         box-shadow: 0 12px 40px rgba(0,0,0,0.18);
@@ -6139,10 +6135,11 @@ class CryptoTrader:
                         display: grid; 
                         grid-template-columns: 60px 1fr 1fr; 
                         gap: 6px; 
-                        padding: 6px 0; 
-                        border-bottom: 1px solid rgba(0,0,0,0.05); 
+                        padding: 6px 6px; 
+                        border-bottom: 3px solid white; 
                         align-items: center; 
-                        font-size: 12px; 
+                        font-size: 12px;
+                        border-radius: 6px;
                         font-weight: 500;
                         transition: all 0.2s ease;
                     }
@@ -6166,19 +6163,20 @@ class CryptoTrader:
                         font-size: 10px;
                     }
                     .position-label { 
-                        font-weight: 700; 
+                        font-weight: 500; 
                         color: #495057; 
                         text-align: center;
+                        padding: 6px 6px;
                     }
                     .position-name {
-                        font-weight: 600;
+                        font-weight: 500;
                         color: #2F3E46; /* 深灰蓝,比纯黑柔和 */
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        
                         border-radius: 6px;
-                        padding: 8px;
+                        padding: 8px 1px;
                         font-size: 13px;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
@@ -6186,12 +6184,12 @@ class CryptoTrader:
                     .position-input {
                         width: 100%;
                         padding: 6px 8px;
-                        border: 1px solid rgba(0,0,0,0.1);
+                        border: 0 solid rgba(0,0,0,0.1);
                         border-radius: 6px;
                         font-size: 11px;
                         text-align: center;
-                        background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(248,249,250,0.9));
-                        font-weight: 600;
+                        background: transparent;
+                        font-weight: 400;
                         color: #2c3e50;
                         transition: all 0.3s ease;
                         font-family: 'Monaco', 'Menlo', monospace;
@@ -6328,7 +6326,7 @@ class CryptoTrader:
                     .url-input-group button {
                         padding: 6px 8px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         color: #2F3E46; border: none; border-radius: 6px; cursor: pointer;
-                        font-size: 16px; font-weight: 600; white-space: nowrap;
+                        font-size: 16px; font-weight: 400; white-space: nowrap;
                         transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(168,192,255,0.3);
                     }
                     .url-input-group button:hover {
@@ -6447,7 +6445,7 @@ class CryptoTrader:
                     
                     #currentTime {
                         font-size: 16px;
-                        font-weight: 600;
+                        font-weight: 400;
                         color: #2c3e50;
                         background: linear-gradient(45deg, #667eea, #764ba2);
                         -webkit-background-clip: text;
@@ -6462,7 +6460,7 @@ class CryptoTrader:
                     
                     .countdown-label {
                         font-size: 14px;
-                        font-weight: 600;
+                        font-weight: 400;
                         background: linear-gradient(45deg, #667eea, #764ba2);
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
@@ -6473,7 +6471,7 @@ class CryptoTrader:
                         gap: 1px;
                         align-items: center;
                         font-size: 16px;
-                        font-weight: bold;
+                        font-weight: 400;
                         color: #2c3e50;
                     }
                     
@@ -6820,7 +6818,7 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>量化交易系统</h1>
+                            <h1>兑谦量化交易系统</h1>
                         </div>
 
                         <!-- 主要内容区域：左右分栏 -->
@@ -6884,27 +6882,27 @@ class CryptoTrader:
                                 <form id="positionsForm">
                                     <div class="positions-grid">
                                         <div class="position-section up-section">
-                                            <div class="position-row header" style="padding: 14px 8px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); ">
-                                                <div class="position-label" style="padding: 8px 8px; border-radius: 6px;">方向</div>
+                                            <div class="position-row header" style="padding: 8px 6px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); ">
+                                                <div class="position-label">方向</div>
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise1</div>
                                                 <input type="number" class="position-input" id="up1_price" name="up1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up1_amount" name="up1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise2</div>
                                                 <input type="number" class="position-input" id="up2_price" name="up2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up2_amount" name="up2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise3</div>
                                                 <input type="number" class="position-input" id="up3_price" name="up3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up3_amount" name="up3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise4</div>
                                                 <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up4_amount" name="up4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
@@ -6913,27 +6911,27 @@ class CryptoTrader:
                                         </div>
                                         
                                         <div class="position-section down-section">
-                                            <div class="position-row header" style="padding: 14px 8px;background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+                                            <div class="position-row header" style="padding: 8px 6px;background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
-                                                <div class="position-label" style="padding: 8px 8px; border-radius: 6px;">方向</div>
+                                                <div class="position-label">方向</div>
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down1_amount" name="down1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down1</div>
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down2_amount" name="down2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down2</div>
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down3_amount" name="down3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down3</div>
                                             </div>
-                                            <div class="position-row">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down4_amount" name="down4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down4</div>
@@ -7233,34 +7231,49 @@ class CryptoTrader:
                     // 页面加载完成后立即更新一次系统信息
                     updateSystemInfo();
                     </script>
-                    
+                    <style>
+                    .table-header th {
+                        font-size: 13px;
+                        font-weight: 400;
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    .table-body td {
+                        font-size: 13px;
+                        font-weight: 400;
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    </style>
                     <!-- 交易记录表格 -->
                     <div style="max-width: 1160px; padding: 10px; background-color: #f8f9fa;">
                         
                         {% if data.cash_history and data.cash_history|length > 0 %}
                         <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <thead>
-                                    <tr style="background: linear-gradient(135deg, #007bff, #0056b3); color: white;">
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">日期</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Cash</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">利润</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">利润率</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">总利润</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">总利润率</th>
-                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">交易次数</th>
+                            <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 0 rgba(0,0,0,0.1);">
+                                <thead class="table-header">
+                                    <tr style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">日期</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">Cash</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">利润</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">利润率</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">总利润</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">总利润率</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">交易次数</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="table-body">
                                     {% for record in data.cash_history[:91] %}
                                     <tr style="{% if loop.index % 2 == 0 %}background-color: #f8f9fa;{% endif %}">
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">{{ record[0] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; font-weight: bold;">{{ record[1] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[2]|float > 0 %}#28a745{% elif record[2]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[2] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[3]|replace('%','')|float > 0 %}#28a745{% elif record[3]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[3] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[4]|float > 0 %}#28a745{% elif record[4]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[4] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; color: {% if record[5]|replace('%','')|float > 0 %}#28a745{% elif record[5]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[5] }}</td>
-                                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">{{ record[6] if record|length > 6 else '' }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd;">{{ record[0] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ record[1] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[2]|float > 0 %}#28a745{% elif record[2]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[2] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[3]|replace('%','')|float > 0 %}#28a745{% elif record[3]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[3] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[4]|float > 0 %}#28a745{% elif record[4]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[4] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[5]|replace('%','')|float > 0 %}#28a745{% elif record[5]|replace('%','')|float < 0 %}#dc3545{% else %}#6c757d{% endif %};">{{ record[5] }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd;">{{ record[6] if record|length > 6 else '' }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -7291,15 +7304,15 @@ class CryptoTrader:
                                 .results-table th {
                                     
                                     color: black;
-                                    padding: 15px 4px;
+                                    padding: 6px 4px;
                                     text-align: center;
-                                    font-weight: 600;
+                                    font-weight: 400;
                                     font-size: 13px;
                                     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
                                     border: none;
                                 }
                                 .results-table td {
-                                    padding: 12px 6px;
+                                    padding: 4px 6px;
                                     text-align: center;
                                     border-bottom: 1px solid #f0f2f5;
                                     font-size: 13px;
@@ -7314,11 +7327,11 @@ class CryptoTrader:
                                     width: 100%;
                                     border: none;
                                     text-align: center;
-                                    
+                                    background: transparent;
                                     font-size: 13px;
-                                    font-weight: 500;
+                                    font-weight: 400;
                                     
-                                    padding: 8px 4px;
+                                    padding: 4px 4px;
                                     border-radius: 6px;
                                     transition: all 0.3s ease;
                                 }
@@ -7331,7 +7344,7 @@ class CryptoTrader:
                                     
                                 }
                                 .month-result {
-                                    font-weight: 600;
+                                    font-weight: 400;
                                     color: #2c3e50;
                                     
                                     border-radius: 6px;
@@ -7621,7 +7634,7 @@ class CryptoTrader:
                     h2 { color: #333; text-align: center; margin-bottom: 20px; }
                     table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
                     th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
-                    th { background: #f6f8fa; text-align: center; font-weight: 600; }
+                    th { background: #f6f8fa; text-align: center; font-weight: 400; }
                     td:first-child { text-align: center; }
                     .positive { color: #28a745; font-weight: 500; }
                     .negative { color: #dc3545; font-weight: 500; }
