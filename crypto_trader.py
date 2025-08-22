@@ -489,9 +489,9 @@ class SMTPConnectionManager:
         """建立持久SMTP连接"""
         try:
             self.persistent_connection = self._create_connection()
-            print(f"✅ SMTP持久连接已建立: {self.smtp_server}:{self.smtp_port}")
+            
         except Exception as e:
-            print(f"❌ 建立SMTP持久连接失败: {str(e)}")
+            self.logger.info(f"❌ 建立SMTP持久连接失败: {str(e)}")
             self.persistent_connection = None
     
     def _ensure_connection_alive(self):
@@ -589,8 +589,6 @@ class AsyncEmailSender:
                         # 发送邮件
                         server.sendmail(sender, receivers, msg.as_string())
                         
-                        if self.logger:
-                            self.logger.info(f"✅ 邮件发送成功: {trade_type} -> {', '.join(receivers)}")
                         return True
                         
                     except Exception as e:
@@ -1268,9 +1266,7 @@ class CryptoTrader:
             # 异步更新到status_data
             self._update_status_async('positions', 'up_positions', up_positions)
             self._update_status_async('positions', 'down_positions', down_positions)
-            
-            self.logger.debug(f"已同步positions数据: up={len(up_positions)}, down={len(down_positions)}")
-            
+           
         except Exception as e:
             self.logger.error(f"同步positions数据失败: {e}")
     
@@ -1299,7 +1295,7 @@ class CryptoTrader:
             for attr_name in dir(self):
                 if hasattr(self, attr_name) and getattr(self, attr_name) is widget:
                     value = widget.get()
-                    self.logger.info(f"GUI输入框 {attr_name} 值已修改为: {value}")
+                    
                     # 同步到web_data
                     self.set_web_value(attr_name, value)
                     break
@@ -3821,6 +3817,8 @@ class CryptoTrader:
             self.logger.info("\033[34m✅ 开始验证交易\033[0m")
             # 智能等待逻辑：最多重试2次,每次等待3秒
             for attempt in range(2):
+                start_time = time.perf_counter()
+
                 start_time = time.time()
                 max_wait_time = 3  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
@@ -3850,6 +3848,9 @@ class CryptoTrader:
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
                                 
+                                elapsed = time.perf_counter() - start_time
+                                self.logger.info(f"\033[34m交易验证耗时 {elapsed:.3f} 秒\033[0m")
+
                                 # 同步交易验证信息到StatusDataManager
                                 self.status_data.update_data('trading', 'trade_verification', {
                                     'direction': direction,
@@ -3872,7 +3873,7 @@ class CryptoTrader:
             return False, 0, 0, 0
 
     def buy_operation(self, amount):
-        """买入操作的回退方法"""
+        """买入操作"""
         try:
             self.logger.info("\033[34m✅ 执行买入操作\033[0m")
             start_time = time.perf_counter()
@@ -5274,73 +5275,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"卖出操作失败: {str(e)}")
 
-    def click_position_sell_no(self):
-        """点击 Positions-Sell-No 按钮"""
-        try:
-            position_value = self.find_position_label_up()
-            # position_value 的值是true 或 false
-            # 根据position_value的值决定点击哪个按钮
-            if position_value:
-                # 如果第一行是Up,点击第二的按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_NO_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_NO_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            else:
-                # 如果第一行不存在或不是Up,使用默认的第一行按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            # 执行点击
-            self.driver.execute_script("arguments[0].click();", button)
-            
-        except Exception as e:
-            error_msg = f"点击 Positions-Sell-No 按钮失败: {str(e)}"
-            self.logger.error(error_msg)
-            
-    def click_position_sell_yes(self):
-        """点击 Positions-Sell-Yes 按钮"""
-        try:
-            position_value = self.find_position_label_down()
-            
-            # 根据position_value的值决定点击哪个按钮
-            
-            if position_value:
-                # 如果第二行是No,点击第一行YES 的 SELL的按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_YES_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_YES_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            else:
-                # 如果第二行不存在或不是No,使用默认的第一行按钮
-                try:
-                    button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-                except NoSuchElementException:
-                    button = self._find_element_with_retry(
-                        XPathConfig.POSITION_SELL_BUTTON,
-                        timeout=3,
-                        silent=True
-                    )
-            # 执行点击
-            self.driver.execute_script("arguments[0].click();", button)
-             
-        except Exception as e:
-            error_msg = f"点击 Positions-Sell-Yes 按钮失败: {str(e)}"
-            self.logger.error(error_msg)
-    
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
         # 点击买入确认按钮
@@ -5373,28 +5307,6 @@ class CryptoTrader:
         except TimeoutException:
             self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
             pass  # 弹窗没出现,不用处理
-
-    def click_sell_confirm_button(self):
-        """点击sell-卖出按钮"""
-        try:
-            # 点击Sell-卖出按钮
-            try:
-                sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-            except NoSuchElementException:
-                sell_confirm_button = self._find_element_with_retry(
-                    XPathConfig.SELL_CONFIRM_BUTTON,
-                    timeout=3,
-                    silent=True
-                )
-            
-            if sell_confirm_button:
-                sell_confirm_button.click()
-            else:
-                self.logger.warning("❗Sell-Confirm按钮未找到")
-            
-        except Exception as e:
-            error_msg = f"卖出操作失败: {str(e)}"
-            self.logger.error(error_msg)
 
     def click_buy_button(self):
         try:
@@ -5614,7 +5526,7 @@ class CryptoTrader:
             try:
                 server.login(sender, app_password)
                 server.sendmail(sender, receiver, msg.as_string())
-                #self.logger.info(f"✅ Chrome异常警报邮件发送成功")
+                
             except Exception as e:
                 self.logger.error(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
             finally:
