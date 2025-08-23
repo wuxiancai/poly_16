@@ -122,7 +122,7 @@ echo -e "${GREEN}启动 Chrome 中...${NC}"
     --disable-infobars \
     --disable-notifications \
     --test-type \
-    --user-data-dir="$HOME/ChromeDebug" \
+    --user-data-dir="$HOME/Library/Application Support/Google/Chrome/" \
     https://polymarket.com/markets/crypto
 
 echo -e "${GREEN}Chrome 已成功启动${NC}"
