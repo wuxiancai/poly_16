@@ -5770,7 +5770,7 @@ class CryptoTrader:
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>兑谦量化交易系统</title>
+                <title>兑复量化交易系统</title>
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -6820,7 +6820,7 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>兑谦量化交易系统
+                            <h1>兑复量化交易系统
                                 <span class="subtitle">Power by 正庭</span>
                             </h1>
                         </div>
@@ -7323,7 +7323,7 @@ class CryptoTrader:
                                     background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                                     border-radius: 6px;
                                     overflow: hidden;
-                                    
+                                    table-layout: fixed; 
                                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                                 }
                                 .results-table th {
@@ -7405,7 +7405,7 @@ class CryptoTrader:
                                 </thead>
                                 <tbody>
                                     <tr id="results-row">
-                                        <td><input type="number" id="table-principal" value="10000" min="0" step="0.01"></td>
+                                        <td><input type="number" id="table-principal" value="100000" min="0" step="0.01"></td>
                                         <td><input type="text" id="table-rate" value="1%"></td>
                                         <td><div id="month-1" class="month-result"></div></td>
                                         <td><div id="month-2" class="month-result"></div></td>
@@ -7679,7 +7679,7 @@ class CryptoTrader:
             <body>
                 
                 <div class=\"container\">
-                    <h2>兑谦量化交易记录</h2>
+                    <h2>兑复量化交易记录</h2>
                     <div class=\"page-info\">
                         显示第 {{ start + 1 if total > 0 else 0 }}-{{ end if end <= total else total }} 条,共 {{ total }} 条记录（第 {{ page }} / {{ total_pages }} 页）
                     </div>
