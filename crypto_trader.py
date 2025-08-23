@@ -4170,11 +4170,9 @@ class CryptoTrader:
     def schedule_auto_find_coin(self):
         """安排每天指定时间执行自动找币"""
         now = datetime.now()
-        self.logger.info(f"当前时间: {now}")
 
         # 计算下一个指定时间的时间点
         next_run = now.replace(hour=0, minute=10, second=0, microsecond=0)
-        self.logger.info(f"自动找币下次执行时间: {next_run}")
 
         if now >= next_run:
             next_run += timedelta(days=1)
@@ -4321,7 +4319,6 @@ class CryptoTrader:
         for i in range(3):
             try:
                 # 获取当前CASH值
-                self.logger.info(f"尝试获取CASH值,第 {i + 1} 次")
                 try:
                     cash_element = self.driver.find_element(By.XPATH, XPathConfig.CASH_VALUE[0])
                 except (NoSuchElementException, StaleElementReferenceException):
@@ -7447,19 +7444,19 @@ class CryptoTrader:
                                 <thead>
                                     <tr>
                                         <th>本金</th>
-                                        <th>日利率</th>
-                                        <th>1月</th>
-                                        <th>2月</th>
-                                        <th>3月</th>
-                                        <th>4月</th>
-                                        <th>5月</th>
-                                        <th>6月</th>
-                                        <th>7月</th>
-                                        <th>8月</th>
-                                        <th>9月</th>
-                                        <th>10月</th>
-                                        <th>11月</th>
-                                        <th>12月</th>
+                                        <th>日复利</th>
+                                        <th>30 天</th>
+                                        <th>60 天</th>
+                                        <th>90 天</th>
+                                        <th>120 天</th>
+                                        <th>150 天</th>
+                                        <th>180 天</th>
+                                        <th>210 天</th>
+                                        <th>240 天</th>
+                                        <th>270 天</th>
+                                        <th>300 天</th>
+                                        <th>330 天</th>
+                                        <th>360 天</th>
                                     </tr>
                                 </thead>
                                 <tbody>
