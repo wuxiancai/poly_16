@@ -184,7 +184,7 @@ token.txt
 
 # Data files
 data/
-
+*.csv
 *.xlsx
 *.json
 
