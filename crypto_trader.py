@@ -6068,10 +6068,10 @@ class CryptoTrader:
                     .position-section {
                         background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,249,250,0.9));
                         border-radius: 6px;
-                        padding: 8px;
-                        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                        padding: 5px;
+                        
                         backdrop-filter: blur(10px);
-                        border: 1px solid rgba(255,255,255,0.2);
+                        
                         transition: all 0.3s ease;
                         position: relative;
                         overflow: hidden;
