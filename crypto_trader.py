@@ -5307,63 +5307,46 @@ class CryptoTrader:
             if accept_button:
                 accept_button.click()    
         except TimeoutException:
-            self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
+            self.logger.info("❌ \033[31m没有ACCEPT弹窗出现,跳过\033[0m")
             pass  # 弹窗没出现,不用处理
 
     def click_buy_button(self):
+        """点击Buy按钮"""
         try:
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
-
-            if button:
-                button.click()
-            else:
-                self.logger.warning("❗Buy按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常,点击Buy按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy 按钮失败: {str(e)}")
+            button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
+        except (NoSuchElementException, StaleElementReferenceException):
+            button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
+            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY按钮")
+        if button:
+            button.click()
+        
+        self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败\033[0m")
 
     def click_buy_up_button(self):
-        """点击 Buy-UP 按钮"""
-        try:           
-            # 查找买YES按钮
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_UP_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=2, silent=True)
-                
-            if button:
-                button.click()
-            else:
-                self.logger.warning("❗Buy-UP按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常,点击Buy-UP按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy-UP 按钮失败: {str(e)}")
+        """点击 Buy-UP 按钮"""     
+        # 查找buy_up按钮
+        try:
+            button = self.driver.find_element(By.XPATH, XPathConfig.BUY_UP_BUTTON[0])
+        except NoSuchElementException:
+            button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=1, silent=True)
+            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_UP按钮")
+        if button:
+            button.click()
+        
+        self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败\033[0m")
 
     def click_buy_down_button(self):
         """点击 Buy-DOWN 按钮"""
+        # 查找买NO按钮
         try:
-            # 查找买NO按钮
-            try:
-                button = self.driver.find_element(By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0])
-            except (NoSuchElementException, StaleElementReferenceException):
-                button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=2, silent=True)
-                
-            if button:
-                button.click()
-            else:
-                self.logger.warning("❗Buy-DOWN按钮未找到")
-            
-        except (TimeoutException, AttributeError) as e:
-            self.logger.error(f"浏览器连接异常,点击Buy-DOWN按钮失败: {str(e)}")
-        except Exception as e:
-            self.logger.error(f"点击 Buy-DOWN 按钮失败: {str(e)}")
+            button = self.driver.find_element(By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0])
+        except NoSuchElementException:
+            button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=1, silent=True)
+            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_DOWN按钮")
+        if button:
+            button.click()
+        
+        self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败\033[0m")
     
     def close_windows(self):
         """关闭多余窗口"""
@@ -5795,7 +5778,7 @@ class CryptoTrader:
                         min-height: 100vh;
                     }
                     .container { 
-                        max-width: 1160px; margin: 2px auto; background: rgba(255, 255, 255, 0.95); 
+                        max-width: 1160px; margin: 2px auto; background: white; 
                         padding: 2px; border-radius: 6px; backdrop-filter: blur(10px);
                     }
                     .header { text-align: center; margin-bottom: 5px; }
@@ -5863,9 +5846,10 @@ class CryptoTrader:
                     
                     .right-panel {
                         flex: 1;
+                        min-width: 400px;
                         display: flex;
                         flex-direction: column;
-                        gap: 15px;
+                        gap: 18px;
                         align-items: stretch;
                     }
                     
@@ -5875,13 +5859,14 @@ class CryptoTrader:
                         display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
                         gap: 8px; 
                     }
+                    
                     .monitor-controls-section {
                         max-width: 1160px;
-                         
-                        padding: 2px 1px;
                         display: flex;
+                        padding: 1px 5px;
+
                         flex-wrap: wrap;
-                        gap: 15px;
+                        gap: 25px;
                         align-items: flex-start;
                         overflow: visible;
                     }
@@ -5946,11 +5931,15 @@ class CryptoTrader:
                     .position-container {
                         padding: 5px 5px;
                         border-radius: 6px;
+                        margin-top: 0;
                         display: flex;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         align-items: center;
                         justify-content: center;
                         gap: 8px;
                         flex-wrap: wrap;
+
+                        font-siez: 14px;
                     }
                     .position-content {
                         font-size: 14px;
@@ -5987,6 +5976,7 @@ class CryptoTrader:
                     }
                     .binance-label {
                         font-weight: 400;
+                        font-size: 14px;
                         background: linear-gradient(45deg, #667eea, #764ba2); /* 渐变色 */
                         -webkit-background-clip: text;  /* 让背景裁剪到文字 */
                         -webkit-text-fill-color: transparent; /* 文字填充透明，让背景显示出来 */
@@ -6004,22 +5994,23 @@ class CryptoTrader:
                         align-items: center;
                         gap: 25px;
                         flex: 2;
-                        min-height: 80px;
+                        margin-top: 5px;
+                        background: linear-gradient(135deg, #007bff, #00ffcc); /* 渐变色 */
+                        -webkit-background-clip: text;  /* 让背景裁剪到文字 */
+
                     }
                     
                     .up-price-display, .down-price-display {
                         font-size: 28px;
                         font-weight: 400;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        border: none;
                         
-                        background: linear-gradient(135deg, #007bff, #00ffcc); /* 渐变色 */
-                        -webkit-background-clip: text;  /* 让背景裁剪到文字 */
-                        /* -webkit-text-fill-color: transparent; 文字填充透明，让背景显示出来 */
                         text-align: center;
-                        padding: 12px 20px;
+                        padding: 8px 5px;
                         border-radius: 6px;
                         box-shadow: 0 6px 25px rgba(0,0,0,0.15);
-                        min-width: 180px;
-                        max-width: 250px;
+                        
                         flex: 1;
                         position: relative;
                         overflow: hidden;
@@ -6027,15 +6018,7 @@ class CryptoTrader:
                         font-family: 'Monaco', 'Menlo', monospace;
                     }
                     
-                    .up-price-display {
-                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                        border: none;
-                    }
                     
-                    .down-price-display {
-                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                        border: none;
-                    }
                     
                     .up-price-display:hover, .down-price-display:hover {
                         transform: translateY(-3px);
@@ -6070,7 +6053,7 @@ class CryptoTrader:
                     .positions-grid { 
                         display: grid; 
                         grid-template-columns: 1fr 1fr; 
-                        gap: 10px; 
+                        gap: 25px; 
                         margin-top: 0px;
                         flex: 0.5;
                         max-height: 250px;
@@ -6138,7 +6121,7 @@ class CryptoTrader:
                         grid-template-columns: 60px 1fr 1fr; 
                         gap: 6px; 
                         padding: 6px 6px; 
-                        border-bottom: 3px solid white; 
+                        border-bottom: 6px solid white; 
                         align-items: center; 
                         font-size: 12px;
                         border-radius: 6px;
@@ -6299,19 +6282,23 @@ class CryptoTrader:
                         border-radius: 6px 6px 0 0;
                     }
                     .control-section {
-                        
+                        background: white;
                         width: 100%;
-                        padding: 10px 10px 0 10px;
-                        
+
+                        margin: 0;
                     }
                     .url-input-group {
                         display: flex; gap: 15px; 
-                        
+                        width: 100%;
                     }
                     .url-input-group input {
-                        flex: 1; padding: 0 18px; border: 2px solid #ced4da;
-                        border-radius: 6px; font-size: 14px; transition: all 0.3s ease;
-                        background: transparent;
+                        flex: 1;
+                        border-radius: 6px; 
+                        font-size: 14px; 
+                        transition: all 0.3s ease;
+
+                        background: transparent; 
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         border: none;
                         color: #2F3E46;
                         text-align: center;
@@ -6355,17 +6342,16 @@ class CryptoTrader:
                         color: #721c24; border: 2px solid #f5c6cb; display: block;
                     }
                     .log-section {
-                        background: rgba(255, 255, 255, 0.9);
-                        border-radius: 6px; padding: 2px; color: #2c3e50;
+                        border-radius: 6px; padding: 0; 
                         font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
                         backdrop-filter: blur(5px);
-                        border: 1px solid rgba(233, 236, 239, 0.5);
+                        font-weight: 400;
                     }
                     
                     .log-container {
-                        height: 500px; overflow-y: auto; background: rgba(248, 249, 250, 0.8);
-                        border-radius: 6px; padding: 18px; border: 2px solid rgba(233, 236, 239, 0.5);
-                        margin-top: 0;
+                        height: 500px; overflow-y: auto; 
+                        border-radius: 6px; 
+                        margin-top: 5px;
                         /* 自定义滚动条样式 */
                         scrollbar-width: thin;
                         scrollbar-color: transparent transparent;
@@ -6433,8 +6419,8 @@ class CryptoTrader:
                     
                     /* 时间显示和倒计时样式 */
                     .time-display-section {
-                        margin-top: 6px;
-                        padding: 5px 10px;
+                        margin-top: 18px;
+                        padding: 8px 10px;
                         background: rgba(248, 249, 250, 0.9);
                         border-radius: 6px;
                         display: flex;
@@ -6846,8 +6832,8 @@ class CryptoTrader:
                                 </div>
                                 
                                 <!-- 持仓显示区域 -->
-                                <div class="position-container" id="positionContainer" style="display: flex; gap: 1px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); padding: 8px 16px; border-radius: 6px; margin: 8px 0;">
-                                    <div class="binance-price-item" style="display: inline-block;">
+                                <div class="position-container" id="positionContainer">
+                                    <div style="display: inline-block;">
                                         <span class="binance-label" id="positionInfo">方向: -- 数量: -- 价格: -- 金额: --</span>
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block; padding: 5px 8px;">
@@ -6886,7 +6872,7 @@ class CryptoTrader:
                                 <div class="card">
                                 <form id="positionsForm">
                                     <div class="positions-grid">
-                                        <div class="position-section up-section">
+                                        <div>
                                             <div class="position-row header" style="padding: 8px 6px; background: linear-gradient(135deg, #A8C0FF, #C6FFDD); ">
                                                 <div class="position-label">方向</div>
                                                 <div class="position-label">价格</div>
@@ -6912,10 +6898,9 @@ class CryptoTrader:
                                                 <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up4_amount" name="up4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
-
                                         </div>
                                         
-                                        <div class="position-section down-section">
+                                        <div>
                                             <div class="position-row header" style="padding: 8px 6px;background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
@@ -6972,7 +6957,7 @@ class CryptoTrader:
                             <!-- URL输入区域 -->
                             <div class="control-section">
                                 <div class="url-input-group">
-                                    <input style="background: transparent; background: linear-gradient(135deg, #A8C0FF, #C6FFDD);" type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
+                                    <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
                                     <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
                                 <div id="statusMessage" class="status-message"></div>
@@ -7253,11 +7238,26 @@ class CryptoTrader:
                     }
                     </style>
                     <!-- 交易记录表格 -->
-                    <div style="max-width: 1160px; padding: 10px; background-color: #f8f9fa;">
+                    <style>
+                        .table-container {
+                            width: 1148px;
+                            border-radius: 6px;
+                            flex-direction: row;
+                            gap: 8px;
+                            flex: 1;
+                            align-items: center;
+                            justify-content: center; /* 水平居中 */
+                            margin-top: 12px;
+                            padding: 5px; 
+                            margin-bottom: 3px;
+                            background-color: white;
+                        }
+                    </style>
+                    <div class="table-container">
                         
                         {% if data.cash_history and data.cash_history|length > 0 %}
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 0 rgba(0,0,0,0.1);">
+                        <div style="overflow-x: auto; border-radius: 6px;">
+                            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; box-shadow: 0 0 0 rgba(0,0,0,0.1);">
                                 <thead class="table-header">
                                     <tr style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">日期</th>
@@ -7284,18 +7284,25 @@ class CryptoTrader:
                                 </tbody>
                             </table>
                         </div>
-                        <div style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
+                        <style>
+                        .table-footer {
+                            background: linear-gradient(45deg, #667eea, #764ba2);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                        }
+                        </style>
+                        <div class="table-footer" style="text-align: center; margin-top: 15px;  font-size: 14px;">
                             显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
-                            <a href="{{ request.url_root }}history" target="_blank" style="color: #007bff; text-decoration: none;">查看完整记录</a> | 
-                            <a href="/trade_stats.html" target="_blank" style="color: #28a745; text-decoration: none;">交易统计分析</a>
+                            <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">查看完整记录</a> | 
+                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a>
                         </div>
                         {% else %}
-                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div style="text-align: center; padding: 40px; color: white;">
                             <p style="font-size: 18px; margin: 0;">📈 暂无交易记录</p>
                             <p style="font-size: 14px; margin: 10px 0 0 0;">数据将在每日 0:30 自动记录</p>
                         </div>
                         {% endif %}
-                        <div style="text-align: center;  padding: 20px; border-radius: 6px; ">
+                        <div style="text-align: center; border-radius: 6px; background: white; margin-top: 8px;">
                             <style>
                                 .results-table {
                                     width: 100%;
@@ -7303,7 +7310,7 @@ class CryptoTrader:
                                     background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                                     border-radius: 6px;
                                     overflow: hidden;
-                                    box-shadow: 0 8px 8px rgba(0,0,0,0.15);
+                                    
                                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                                 }
                                 .results-table th {
@@ -7325,8 +7332,7 @@ class CryptoTrader:
                                     transition: all 0.3s ease;
                                 }
                                 .results-table tr:hover td {
-                                    background-color: #f8f9ff;
-                                    transform: translateY(-1px);
+                                    
                                 }
                                 .results-table input {
                                     width: 100%;
@@ -7362,8 +7368,7 @@ class CryptoTrader:
                                     justify-content: center;
                                 }
                                 .month-result:hover {
-                                    transform: translateY(-2px);
-                                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+                                    
                                 }
                             </style>
                             <table class="results-table">
@@ -7661,7 +7666,7 @@ class CryptoTrader:
             <body>
                 
                 <div class=\"container\">
-                    <h2>Polymarket自动交易记录</h2>
+                    <h2>兑谦量化交易记录</h2>
                     <div class=\"page-info\">
                         显示第 {{ start + 1 if total > 0 else 0 }}-{{ end if end <= total else total }} 条,共 {{ total }} 条记录（第 {{ page }} / {{ total_pages }} 页）
                     </div>
