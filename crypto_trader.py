@@ -5789,6 +5789,12 @@ class CryptoTrader:
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
                     }
                     .header p { color: #5a6c7d; margin: 5px 0 0 0; font-size: 18px; font-weight: 500; }
+                    .header .subtitle {
+                        font-size: 8px;   /* 小字体 */
+                        color: #666;       /* 灰色，避免喧宾夺主 */
+                        margin-left: 0;  /* 和标题留点间距 */
+                        font-weight: 400;
+                    }   
                     .nav { 
                         display: flex; justify-content: center; gap: 20px; 
                         margin-bottom: 5px; padding: 8px; background: rgba(248, 249, 250, 0.8); 
@@ -5866,7 +5872,7 @@ class CryptoTrader:
                         padding: 1px 5px;
 
                         flex-wrap: wrap;
-                        gap: 25px;
+                        gap: 30px;
                         align-items: flex-start;
                         overflow: visible;
                     }
@@ -6284,19 +6290,21 @@ class CryptoTrader:
                     .control-section {
                         background: white;
                         width: 100%;
-
+                        gap: 25px;
                         margin: 0;
                     }
                     .url-input-group {
-                        display: flex; gap: 15px; 
+                        display: flex; 
+                        gap: 18px; 
                         width: 100%;
+
                     }
                     .url-input-group input {
                         flex: 1;
                         border-radius: 6px; 
                         font-size: 14px; 
                         transition: all 0.3s ease;
-
+                        
                         background: transparent; 
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
                         border: none;
@@ -6304,10 +6312,13 @@ class CryptoTrader:
                         text-align: center;
                     }
                     .system-info {
-                        flex: 1; padding:8px; border: 0 solid #ced4da;
-                        border-radius: 6px; font-size: 13px; transition: all 0.3s ease;
+                        flex: 1; 
+                        padding: 10px 5px; 
+                        border: 0 solid #ced4da;
+                        border-radius: 6px; 
+                        font-size: 13px; transition: all 0.3s ease;
                         background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
-                        
+                        width: 100%
                         color: #2F3E46;
                         text-align: center;
                     }
@@ -6426,7 +6437,7 @@ class CryptoTrader:
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        gap: 8px;
+                        gap: 25px;
                         flex-wrap: wrap;
                     }
                     
@@ -6809,7 +6820,9 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>兑谦量化交易系统</h1>
+                            <h1>兑谦量化交易系统
+                                <span class="subtitle">Power by 正庭</span>
+                            </h1>
                         </div>
 
                         <!-- 主要内容区域：左右分栏 -->
@@ -6960,7 +6973,7 @@ class CryptoTrader:
                                     <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
                                     <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
-                                <div id="statusMessage" class="status-message"></div>
+                                <div class="status-message" id="statusMessage"></div>
                             </div>
                         </div>
                     
