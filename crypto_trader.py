@@ -51,6 +51,7 @@ from watchdog.events import FileSystemEventHandler
 # 禁用urllib3的连接池警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings('ignore', message='Connection pool is full, discarding connection')
+
 # 通过降低日志级别来抑制urllib3.connectionpool的警告输出
 logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
@@ -3064,7 +3065,9 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
                         self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        self.driver.refresh()
+                
+                        # 计时开始
+                        start_time = time.perf_counter()
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3075,8 +3078,10 @@ class CryptoTrader:
                         self.buy_operation(self.yes1_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            self.buy_yes1_amount = float(self.yes1_amount_entry.get())
-                            
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
+
                             # 重置Up1和Down1价格为0
                             self.yes1_price_entry.configure(foreground='black')
                             self.yes1_price_entry.delete(0, tk.END)
@@ -3140,6 +3145,9 @@ class CryptoTrader:
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3153,7 +3161,9 @@ class CryptoTrader:
                         self.buy_operation(self.no1_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            self.buy_no1_amount = float(self.no1_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
 
                             # 重置Up1和Down1价格为0
                             self.yes1_price_entry.delete(0, tk.END)
@@ -3233,6 +3243,9 @@ class CryptoTrader:
                 # 检查Yes2价格匹配
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅  \033[32mUp 2: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3243,7 +3256,9 @@ class CryptoTrader:
                         self.buy_operation(self.yes2_amount_entry.get())
                         
                         if self.verify_trade('Bought', 'Up')[0]:
-                            self.buy_yes2_amount = float(self.yes2_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
                             self.yes2_price_entry.delete(0, tk.END)
@@ -3305,6 +3320,9 @@ class CryptoTrader:
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[31mDown 2: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3318,7 +3336,9 @@ class CryptoTrader:
                         self.buy_operation(self.no2_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            self.buy_no2_amount = float(self.no2_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
                             self.yes2_price_entry.delete(0, tk.END)
@@ -3398,6 +3418,9 @@ class CryptoTrader:
                 # 检查Yes3价格匹配
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[32mUp 3: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3409,7 +3432,9 @@ class CryptoTrader:
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
-                            self.buy_yes3_amount = float(self.yes3_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
                             self.yes3_price_entry.delete(0, tk.END)
@@ -3475,6 +3500,9 @@ class CryptoTrader:
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[31mDown 3: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3488,7 +3516,9 @@ class CryptoTrader:
                         self.buy_operation(self.no3_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            self.buy_no3_amount = float(self.no3_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
                             self.yes3_price_entry.delete(0, tk.END)
@@ -3571,6 +3601,9 @@ class CryptoTrader:
                 # 检查Yes4价格匹配
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3581,7 +3614,9 @@ class CryptoTrader:
                         self.buy_operation(self.yes4_amount_entry.get())
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            self.yes4_amount = float(self.yes4_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
@@ -3647,6 +3682,9 @@ class CryptoTrader:
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     for retry in range(3):
+                        # 计时开始
+                        start_time = time.perf_counter()
+
                         self.logger.info(f"✅ \033[31mDown 4: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
@@ -3660,7 +3698,10 @@ class CryptoTrader:
                         self.buy_operation(self.no4_amount_entry.get())
  
                         if self.verify_trade('Bought', 'Down')[0]:
-                            self.no4_amount = float(self.no4_amount_entry.get())
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
+                            
                             # 设置 YES4/No4的价格为0
                             self.no4_price_entry.delete(0, tk.END)
                             self.no4_price_entry.insert(0, "0") 
@@ -3734,6 +3775,9 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3):
             self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
+            # 计时
+            start_time = time.perf_counter()
+
             # 点击position_sell按钮
             self.click_position_sell_up_button()    
 
@@ -3746,6 +3790,10 @@ class CryptoTrader:
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
             self.click_buy_button()
 
+            # 计时结束
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
+            
             if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
                 self.sell_count += 1
@@ -3771,7 +3819,9 @@ class CryptoTrader:
         # 重试 3 次
         for retry in range(3): 
             self.logger.info("\033[31m✅ 执行only_sell_down\033[0m")
-            
+            # 计时
+            start_time = time.perf_counter()
+
             # 点击position_sell按钮
             self.click_position_sell_down_button()
 
@@ -3784,6 +3834,10 @@ class CryptoTrader:
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
             self.click_buy_up_button()
             self.click_buy_button()
+            # 计时结束
+            elapsed = time.perf_counter() - start_time
+
+            self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
             if self.verify_trade('Sold', 'Down')[0]:
                 # 增加卖出计数
@@ -3820,6 +3874,7 @@ class CryptoTrader:
             self.logger.info("\033[34m✅ 开始验证交易\033[0m")
             # 智能等待逻辑：最多重试2次,每次等待3秒
             for attempt in range(2):
+                # 计时
                 start_time = time.perf_counter()
 
                 start_time = time.time()
@@ -3851,8 +3906,9 @@ class CryptoTrader:
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}")
                                 
+                                # 计时结束
                                 elapsed = time.perf_counter() - start_time
-                                self.logger.info(f"\033[34m交易验证耗时 {elapsed:.3f} 秒\033[0m")
+                                self.logger.info(f"\033[34m交易验证耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
                                 # 同步交易验证信息到StatusDataManager
                                 self.status_data.update_data('trading', 'trade_verification', {
@@ -3880,6 +3936,7 @@ class CryptoTrader:
         """买入操作"""
         try:
             self.logger.info("\033[34m✅ 执行买入操作\033[0m")
+            # 计时
             start_time = time.perf_counter()
 
             # 查找并设置金额输入框
@@ -3892,9 +3949,11 @@ class CryptoTrader:
             amount_input.clear()
             amount_input.send_keys(str(amount))
 
+            # 计时
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"\033[34m买入金额{amount},点击按钮耗时 {elapsed:.3f} 秒\033[0m")
 
+            # 计时
             start_time = time.perf_counter()
             # 点击确认按钮
             try:
@@ -3904,7 +3963,7 @@ class CryptoTrader:
 
             if buy_confirm_button:
                 buy_confirm_button.click()
-
+            # 计时
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
 
@@ -3914,9 +3973,9 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
                 )
                 accept_button.click()
-
+                self.logger.info("✅ \033[34mACCEPT弹窗点击完成\033[0m")
             except TimeoutException:
-                self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
+                pass
                 
             self.logger.info("✅ \033[34m买入操作完成\033[0m")
             self.click_buy_up_button()
@@ -5242,7 +5301,7 @@ class CryptoTrader:
         self.cash_history.append(new_record)
 
     def click_buy_confirm_button(self):
-        """点击买入确认按钮 - 已弃用,建议使用buy_operation"""
+        """点击买入确认按钮 """
         try:
             buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
             buy_confirm_button.click()
