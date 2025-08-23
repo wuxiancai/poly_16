@@ -6175,26 +6175,26 @@ class CryptoTrader:
                     .position-input {
                         width: 100%;
                         padding: 6px 8px;
-                        border: 0 solid rgba(0,0,0,0.1);
+                        border: none;
                         border-radius: 6px;
                         font-size: 11px;
                         text-align: center;
                         background: transparent;
                         font-weight: 400;
                         color: #2c3e50;
-                        transition: all 0.3s ease;
+                        
                         font-family: 'Monaco', 'Menlo', monospace;
                     }
                     .position-input:focus {
                         outline: none;
                         border-color: #667eea;
                         box-shadow: 0 0 0 4px rgba(102,126,234,0.15);
-                        background: white;
+                        background: transparent;
                         transform: scale(1.02);
                     }
                     .position-input:hover {
                         border-color: rgba(102,126,234,0.5);
-                        background: white;
+                        background: transparent;
                     }
                     .position-controls {
                         display: flex;
