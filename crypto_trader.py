@@ -780,7 +780,7 @@ class Logger:
 class CryptoTrader:
     def __init__(self):
         super().__init__()
-        self.logger = Logger('poly')
+        self.logger = Logger('兑复')
         self.driver = None
         self.running = False
         self.trading = False
@@ -7742,7 +7742,7 @@ class CryptoTrader:
                     <table>
                         <tr>
                             <th>日期</th>
-                            <th>Cash</th>
+                            <th>资金</th>
                             <th>利润</th>
                             <th>利润率</th>
                             <th>总利润</th>
