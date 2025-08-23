@@ -8176,7 +8176,7 @@ class CryptoTrader:
         }
         
         .header {
-            background: #007bff;
+            background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
             color: white;
             padding: 20px;
             text-align: center;
@@ -8185,6 +8185,9 @@ class CryptoTrader:
         .header h1 {
             font-size: 1.8em;
             margin: 0;
+            background: linear-gradient(135deg, #007bff, #00ffcc); /* 渐变色 */
+            -webkit-background-clip: text;  /* 让背景裁剪到文字 */
+            -webkit-text-fill-color: transparent; /* 文字填充透明，让背景显示出来 */
         }
         
         .content {
@@ -8196,18 +8199,20 @@ class CryptoTrader:
             gap: 15px;
             margin-bottom: 20px;
             align-items: center;
+            background: transparent;
+            
+            
         }
         
         .controls input, .controls select {
             padding: 8px 12px;
-            border: 1px solid #ddd;
+            border: none;
             border-radius: 6px;
             font-size: 14px;
         }
         
         .btn {
-            background: #007bff;
-            color: white;
+            background: transparent;
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
@@ -8220,8 +8225,8 @@ class CryptoTrader:
         }
         
         .chart-container {
-            background: white;
-            border: 1px solid #ddd;
+            
+            
             border-radius: 6px;
             padding: 20px;
             margin-bottom: 20px;
@@ -8253,8 +8258,7 @@ class CryptoTrader:
         }
         
         .stats-card {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
+            
             border-radius: 6px;
             padding: 8px 4px;
             text-align: center;
@@ -8290,20 +8294,20 @@ class CryptoTrader:
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>交易统计分析</h1>
+    <div class="container" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+        <div class="header" >
+            <h1 >交易统计分析</h1>
         </div>
         
         <div class="content">
             <div class="controls">
-                <input type="date" id="dateInput" />
-                <select id="viewType">
+                <input style="background: transparent;" type="date" id="dateInput" />
+                <select style="background: transparent;" id="viewType">
                     <option value="daily">日统计</option>
                     <option value="weekly">周统计</option>
                     <option value="monthly">月统计</option>
                 </select>
-                <button class="btn" onclick="updateChart()">更新数据</button>
+                <button class="btn" style="font-size: 12px;" onclick="updateChart()">更新数据</button>
             </div>
             
             <div class="chart-container">
