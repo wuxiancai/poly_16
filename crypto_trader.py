@@ -1243,7 +1243,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        up_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
+                        up_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         up_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -1258,7 +1258,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        down_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
+                        down_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         down_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -2628,16 +2628,16 @@ class CryptoTrader:
             self.no4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
 
             self._update_status_async('positions', 'up_positions', [
-                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
             self._update_status_async('positions', 'down_positions', [
-                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
             
             # 获取当前CASH并显示,此CASH再次点击start按钮时会更新
@@ -2680,16 +2680,16 @@ class CryptoTrader:
         
         # 异步同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         self._update_status_async('positions', 'up_positions', [
-            {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-            {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-            {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-            {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+            {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+            {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+            {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+            {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
         ])
         self._update_status_async('positions', 'down_positions', [
-            {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-            {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-            {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-            {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+            {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+            {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+            {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+            {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
         ])
         
         self.logger.info("✅ \033[32m设置 YES1-4/NO1-4金额成功\033[0m")
@@ -3039,16 +3039,16 @@ class CryptoTrader:
         # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         try:
             self._update_status_async('positions', 'up_positions', [
-                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
             self._update_status_async('positions', 'down_positions', [
-                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
         except Exception as e:
             self.logger.info("\033[34m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败\033[0m")
@@ -5531,7 +5531,7 @@ class CryptoTrader:
             str_portfolio_value = str(portfolio_value)
             
             content = f"""
-            交易价格: {price:.2f}¢
+            交易价格: {price:.0f}¢
             交易金额: ${amount:.2f}
             SHARES: {shares}
             当前买入次数: {self.buy_count}
