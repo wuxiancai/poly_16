@@ -2909,7 +2909,7 @@ class CryptoTrader:
     def refresh_page(self):
         """智能定时刷新页面 - 优化刷新频率和条件"""
         # 增加刷新间隔到8-15分钟,减少不必要的刷新
-        random_minutes = random.uniform(2, 6)
+        random_minutes = random.uniform(2, 3)
         self.refresh_interval = int(random_minutes * 60000)  # 转换为毫秒
         
         # 初始化刷新失败计数器（如果不存在）
@@ -3941,12 +3941,11 @@ class CryptoTrader:
             # 查找并设置金额输入框
             try:
                 amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
-            except NoSuchElementException:
-                self.logger.info("❌ 找不到 amount_input按钮")
-            
-            # 清空并设置新值
-            amount_input.clear()
-            amount_input.send_keys(str(amount))
+                # 清空并设置新值
+                amount_input.clear()
+                amount_input.send_keys(str(amount))
+            except (NoSuchElementException, StaleElementReferenceException) as e:
+                self.logger.info(f"❌ 找不到或无法操作 amount_input按钮: {str(e)}")
 
             # 计时
             elapsed = time.perf_counter() - start_time
@@ -3957,11 +3956,9 @@ class CryptoTrader:
             # 点击确认按钮
             try:
                 buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
-            except NoSuchElementException:
-                self.logger.info("❌ 找不到buy_confirm_button按钮")
-
-            if buy_confirm_button:
                 buy_confirm_button.click()
+            except (NoSuchElementException, StaleElementReferenceException) as e:
+                self.logger.info(f"❌ 找不到或无法点击buy_confirm_button按钮: {str(e)}")
 
             # 计时结束
             elapsed = time.perf_counter() - start_time
@@ -3995,11 +3992,9 @@ class CryptoTrader:
             start_time_count = time.perf_counter()
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
-            except NoSuchElementException:
-                self.logger.info("❌ 找不到positions_sell_button按钮")
-                
-            if positions_sell_button:
                 positions_sell_button.click()
+            except (NoSuchElementException, StaleElementReferenceException) as e:
+                self.logger.info(f"❌ 找不到或无法点击positions_sell_button按钮: {str(e)}")
             
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ \033[34m点击position_sell按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
@@ -4009,11 +4004,9 @@ class CryptoTrader:
             start_time = time.perf_counter()
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-            except NoSuchElementException:
-                self.logger.info("❌ 找不到sell_confirm_button按钮")
-
-            if sell_confirm_button:
                 sell_confirm_button.click()
+            except (NoSuchElementException, StaleElementReferenceException) as e:
+                self.logger.info(f"❌ 找不到或无法点击sell_confirm_button按钮: {str(e)}")
             
             # 计时结束
             elapsed = time.perf_counter() - start_time
@@ -5326,56 +5319,63 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
             positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0])
-        except NoSuchElementException:
-            self.logger.info("❌ 找不到positions_sell_down_button按钮")
-            
-        if positions_sell_button:
             positions_sell_button.click()
-
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ 点击position_sell_down按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
-        else:
-            self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+        except NoSuchElementException:
+            self.logger.info("❌ 找不到positions_sell_down_button按钮")
+        except Exception as e:
+            self.logger.error(f"❌ 点击position_sell_down按钮失败: {str(e)}")
 
     def click_position_sell_up_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
-
-            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])      
-        except NoSuchElementException:
-            positions_sell_button = self._find_element_with_retry(
-                XPathConfig.POSITION_SELL_UP_BUTTON,
-                timeout=1,
-                silent=True
-            )
-
-        if positions_sell_button:
+            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
             positions_sell_button.click()
-
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
-        else:
-            self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+        except NoSuchElementException:
+            try:
+                positions_sell_button = self._find_element_with_retry(
+                    XPathConfig.POSITION_SELL_UP_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
+                if positions_sell_button:
+                    positions_sell_button.click()
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                else:
+                    self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+            except Exception as e:
+                self.logger.error(f"❌ 重试点击position_sell_up按钮失败: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ 点击position_sell_up按钮失败: {str(e)}")
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
         try:
             start_time = time.perf_counter()
-
             sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-        except Exception as e:
-            self._find_element_with_retry(
-                XPathConfig.SELL_CONFIRM_BUTTON,
-                timeout=1,
-                silent=True
-            )
-
-        if sell_confirm_button:
             sell_confirm_button.click()
-
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+        except Exception as e:
+            try:
+                sell_confirm_button = self._find_element_with_retry(
+                    XPathConfig.SELL_CONFIRM_BUTTON,
+                    timeout=1,
+                    silent=True
+                )
+                if sell_confirm_button:
+                    sell_confirm_button.click()
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                else:
+                    self.logger.error("❌ 找不到sell_confirm按钮")
+            except Exception as retry_e:
+                self.logger.error(f"❌ 点击sell_confirm按钮失败: {str(retry_e)}")
 
 
     def click_i_accept_button(self):
@@ -5398,39 +5398,48 @@ class CryptoTrader:
         """点击Buy按钮"""
         try:
             button = self.driver.find_element(By.XPATH, XPathConfig.BUY_BUTTON[0])
-        except (NoSuchElementException, StaleElementReferenceException):
-            button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
-            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY按钮")
-        if button:
             button.click()
-        else:
-            self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败\033[0m")
+        except (NoSuchElementException, StaleElementReferenceException):
+            try:
+                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
+                if button:
+                    button.click()
+                else:
+                    self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY按钮")
+            except Exception as e:
+                self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败: {str(e)}\033[0m")
 
     def click_buy_up_button(self):
         """点击 Buy-UP 按钮"""     
         # 查找buy_up按钮
         try:
             button = self.driver.find_element(By.XPATH, XPathConfig.BUY_UP_BUTTON[0])
-        except NoSuchElementException:
-            button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=1, silent=True)
-            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_UP按钮")
-        if button:
             button.click()
-        else:
-            self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败\033[0m")
+        except (NoSuchElementException, StaleElementReferenceException):
+            try:
+                button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=1, silent=True)
+                if button:
+                    button.click()
+                else:
+                    self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_UP按钮")
+            except Exception as e:
+                self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败: {str(e)}\033[0m")
 
     def click_buy_down_button(self):
         """点击 Buy-DOWN 按钮"""
         # 查找buy_down按钮
         try:
             button = self.driver.find_element(By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0])
-        except NoSuchElementException:
-            button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=1, silent=True)
-            self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_DOWN按钮")
-        if button:
             button.click()
-        else:
-            self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败\033[0m")
+        except (NoSuchElementException, StaleElementReferenceException):
+            try:
+                button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=1, silent=True)
+                if button:
+                    button.click()
+                else:
+                    self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_DOWN按钮")
+            except Exception as e:
+                self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败: {str(e)}\033[0m")
     
     def close_windows(self):
         """关闭多余窗口"""
