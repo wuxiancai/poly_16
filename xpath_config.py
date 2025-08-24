@@ -27,18 +27,6 @@ class XPathConfig:
         '//button[.//span[contains(text(), "No")] and .//span[contains(text(), "¢")]]'
     ]
 
-    # 5.Sell Yes 按钮长期有效
-    SELL_YES_BUTTON = [
-        '//button[.//span[contains(text(), "Up")] and .//span[contains(text(), "¢")]]',
-        '//button[.//span[contains(text(), "Yes")] and .//span[contains(text(), "¢")]]' 
-    ]
-
-    # 6.Sell No 按钮长期有效
-    SELL_NO_BUTTON = [
-        '//button[.//span[contains(text(), "Down")] and .//span[contains(text(), "¢")]]',
-        '//button[.//span[contains(text(), "No")] and .//span[contains(text(), "¢")]]'   
-    ]
-
     # 7.Buy-确认买入按钮
     BUY_CONFIRM_BUTTON = [
         '//button[@class="c-bDcLpV c-bDcLpV-fLyPyt-color-blue c-bDcLpV-ileGDsu-css"]',
