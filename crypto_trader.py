@@ -5301,57 +5301,75 @@ class CryptoTrader:
         """点击买入确认按钮 """
         try:
             buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
-            buy_confirm_button.click()
+
         except NoSuchElementException:
             buy_confirm_button = self._find_element_with_retry(
                 XPathConfig.BUY_CONFIRM_BUTTON,
                 timeout=3,
                 silent=True
             )
+        if buy_confirm_button:
             buy_confirm_button.click()
+        else:
+            self.logger.info("❌ 找不到buy_confirm_button按钮")
     
     def click_position_sell_down_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
-            try:
-                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0])
-            except NoSuchElementException:
-                self.logger.info("❌ 找不到positions_sell_down_button按钮")
-                
-            if positions_sell_button:
-                positions_sell_button.click()
-            else:
-                self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
+            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0])
+        except NoSuchElementException:
+            self.logger.info("❌ 找不到positions_sell_down_button按钮")
+            
+        if positions_sell_button:
+            positions_sell_button.click()
 
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
-
-        except Exception as e:
-            self.logger.error(f"卖出操作失败: {str(e)}")
+            self.logger.info(f"✅ 点击position_sell_down按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+        else:
+            self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
 
     def click_position_sell_up_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
-            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
+
+            positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])      
+        except NoSuchElementException:
+            positions_sell_button = self._find_element_with_retry(
+                XPathConfig.POSITION_SELL_UP_BUTTON,
+                timeout=1,
+                silent=True
+            )
+
+        if positions_sell_button:
             positions_sell_button.click()
+
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
-        except Exception as e:
-            self.logger.error(f"卖出操作失败: {str(e)}")
+            self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+        else:
+            self.logger.error("❌ \033[31m没有出现POSITION_SELL按钮,跳过点击\033[0m")
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
-        start_time = time.perf_counter()
         try:
+            start_time = time.perf_counter()
+
             sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
-            sell_confirm_button.click()
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
         except Exception as e:
-            self.logger.error(f"❌ 没有出现SELL_CONFIRM按钮: {str(e)}")
-    
+            self._find_element_with_retry(
+                XPathConfig.SELL_CONFIRM_BUTTON,
+                timeout=1,
+                silent=True
+            )
+
+        if sell_confirm_button:
+            sell_confirm_button.click()
+
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
+
     def click_i_accept_button(self):
         """点击I Accept按钮"""
         # 等待ACCEPT弹窗出现
@@ -5361,9 +5379,11 @@ class CryptoTrader:
             )
 
             if accept_button:
-                accept_button.click()    
+                accept_button.click()
+                self.logger.info("✅ 点击了ACCEPT按钮")
+                
         except TimeoutException:
-            self.logger.info("❌ \033[31m没有ACCEPT弹窗出现,跳过\033[0m")
+            
             pass  # 弹窗没出现,不用处理
 
     def click_buy_button(self):
@@ -5375,8 +5395,8 @@ class CryptoTrader:
             self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY按钮")
         if button:
             button.click()
-        
-        self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败\033[0m")
+        else:
+            self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败\033[0m")
 
     def click_buy_up_button(self):
         """点击 Buy-UP 按钮"""     
@@ -5388,12 +5408,12 @@ class CryptoTrader:
             self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_UP按钮")
         if button:
             button.click()
-        
-        self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败\033[0m")
+        else:
+            self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败\033[0m")
 
     def click_buy_down_button(self):
         """点击 Buy-DOWN 按钮"""
-        # 查找买NO按钮
+        # 查找buy_down按钮
         try:
             button = self.driver.find_element(By.XPATH, XPathConfig.BUY_DOWN_BUTTON[0])
         except NoSuchElementException:
@@ -5401,8 +5421,8 @@ class CryptoTrader:
             self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_DOWN按钮")
         if button:
             button.click()
-        
-        self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败\033[0m")
+        else:
+            self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败\033[0m")
     
     def close_windows(self):
         """关闭多余窗口"""
@@ -6949,22 +6969,22 @@ class CryptoTrader:
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise1</div>
-                                                <input type="number" class="position-input" id="up1_price" name="up1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up1_price" name="up1_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up1_amount" name="up1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise2</div>
-                                                <input type="number" class="position-input" id="up2_price" name="up2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up2_price" name="up2_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up2_amount" name="up2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise3</div>
-                                                <input type="number" class="position-input" id="up3_price" name="up3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up3_price" name="up3_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up3_amount" name="up3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                                 <div class="position-name">Rise4</div>
-                                                <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="up4_price" name="up4_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="up4_amount" name="up4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                             </div>
                                         </div>
@@ -6976,22 +6996,22 @@ class CryptoTrader:
                                                 <div class="position-label">方向</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down1_amount" name="down1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down1</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down2_amount" name="down2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down2</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down3_amount" name="down3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down3</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down4_amount" name="down4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down4</div>
                                             </div>
