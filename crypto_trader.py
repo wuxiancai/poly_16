@@ -778,6 +778,159 @@ class Logger:
     def critical(self, message):
         self.logger.critical(message)
 
+class WebDriverPool:
+    """WebDriver实例池管理器 - 支持多实例高效交易"""
+    def __init__(self, max_instances=3):
+        self.max_instances = max_instances  # 云服务器内存限制，减少实例数
+        self.active_drivers = []
+        self.available_drivers = []  # 可复用的空闲实例
+        self.driver_usage = {}  # 跟踪每个driver的使用情况
+        self.lock = threading.RLock()
+        self.last_cleanup = time.time()
+        self.cleanup_interval = 4 * 3600  # 4小时清理一次
+        
+    def get_driver(self, chrome_options):
+        """获取可用的WebDriver实例，优先复用空闲实例"""
+        with self.lock:
+            # 定期清理僵尸进程
+            self._periodic_cleanup()
+            
+            # 优先使用可复用的空闲实例
+            if self.available_drivers:
+                driver = self.available_drivers.pop(0)
+                self.driver_usage[id(driver)] = {
+                    'last_used': time.time(),
+                    'usage_count': self.driver_usage.get(id(driver), {}).get('usage_count', 0) + 1
+                }
+                return driver
+            
+            # 创建新实例（不限制数量，让系统自然管理）
+            try:
+                driver = webdriver.Chrome(options=chrome_options)
+                self.active_drivers.append(driver)
+                self.driver_usage[id(driver)] = {
+                    'created_at': time.time(),
+                    'last_used': time.time(),
+                    'usage_count': 1
+                }
+                return driver
+            except Exception as e:
+                logging.error(f"创建WebDriver失败: {e}")
+                return None
+    
+    def return_driver(self, driver):
+        """归还WebDriver实例到池中供复用"""
+        with self.lock:
+            if driver and id(driver) in self.driver_usage:
+                try:
+                    # 检查driver是否还活着
+                    driver.current_window_handle
+                    # 清理当前页面状态，准备复用
+                    driver.delete_all_cookies()
+                    driver.execute_script("window.localStorage.clear();")
+                    driver.execute_script("window.sessionStorage.clear();")
+                    
+                    # 移到可复用队列
+                    if driver in self.active_drivers:
+                        self.active_drivers.remove(driver)
+                    if driver not in self.available_drivers:
+                        self.available_drivers.append(driver)
+                        
+                    self.driver_usage[id(driver)]['last_used'] = time.time()
+                    logging.info(f"WebDriver实例已归还到池中供复用")
+                except Exception as e:
+                    # driver已损坏，直接清理
+                    self._force_cleanup_driver(driver)
+                    
+    def _periodic_cleanup(self):
+        """定期清理僵尸进程和长时间未使用的实例"""
+        current_time = time.time()
+        if current_time - self.last_cleanup < self.cleanup_interval:
+            return
+            
+        self.last_cleanup = current_time
+        logging.info("开始定期清理WebDriver僵尸进程...")
+        
+        # 清理僵尸进程
+        self._cleanup_zombie_drivers()
+        
+        # 清理长时间未使用的实例（超过2小时）
+        inactive_threshold = current_time - 2 * 3600
+        drivers_to_remove = []
+        
+        for driver in self.available_drivers[:]:
+            driver_id = id(driver)
+            if driver_id in self.driver_usage:
+                last_used = self.driver_usage[driver_id].get('last_used', 0)
+                if last_used < inactive_threshold:
+                    drivers_to_remove.append(driver)
+                    
+        for driver in drivers_to_remove:
+            self._force_cleanup_driver(driver)
+            
+        logging.info(f"定期清理完成，清理了{len(drivers_to_remove)}个长时间未使用的实例")
+        
+    def _cleanup_zombie_drivers(self):
+        """清理僵尸WebDriver进程"""
+        all_drivers = self.active_drivers + self.available_drivers
+        zombie_drivers = []
+        
+        for driver in all_drivers[:]:
+            try:
+                # 尝试获取当前窗口句柄来检查driver是否还活着
+                driver.current_window_handle
+            except Exception:
+                # driver已经是僵尸进程
+                zombie_drivers.append(driver)
+                
+        for driver in zombie_drivers:
+            self._force_cleanup_driver(driver)
+            
+        if zombie_drivers:
+            logging.info(f"清理了{len(zombie_drivers)}个僵尸WebDriver进程")
+            
+    def _force_cleanup_driver(self, driver):
+        """强制清理WebDriver实例"""
+        try:
+            # 从所有列表中移除
+            if driver in self.active_drivers:
+                self.active_drivers.remove(driver)
+            if driver in self.available_drivers:
+                self.available_drivers.remove(driver)
+                
+            # 清理使用记录
+            driver_id = id(driver)
+            if driver_id in self.driver_usage:
+                del self.driver_usage[driver_id]
+                
+            # 尝试正常关闭
+            driver.quit()
+        except Exception as e:
+            logging.error(f"强制清理WebDriver失败: {e}")
+            
+    def close_all(self):
+        """关闭所有WebDriver实例"""
+        with self.lock:
+            all_drivers = self.active_drivers + self.available_drivers
+            for driver in all_drivers:
+                try:
+                    driver.quit()
+                except Exception as e:
+                    logging.error(f"关闭WebDriver失败: {e}")
+            self.active_drivers.clear()
+            self.available_drivers.clear()
+            self.driver_usage.clear()
+            
+    def get_stats(self):
+        """获取WebDriver池统计信息"""
+        with self.lock:
+            return {
+                'active_drivers': len(self.active_drivers),
+                'available_drivers': len(self.available_drivers),
+                'total_drivers': len(self.active_drivers) + len(self.available_drivers),
+                'driver_usage_records': len(self.driver_usage)
+            }
+
 class CryptoTrader:
     def __init__(self):
         super().__init__()
@@ -822,6 +975,9 @@ class CryptoTrader:
         self.cache_lock = threading.Lock()
         self.restart_lock = threading.Lock()  # 添加重启锁
         self.is_restarting = False  # 重启状态标志
+        
+        # 初始化WebDriver池
+        self.webdriver_pool = WebDriverPool(max_instances=1)  # 限制最多1个WebDriver实例
 
         # 初始化本金
         self.initial_amount = 0.4
@@ -1847,70 +2003,41 @@ class CryptoTrader:
                 os.system('rm -f ~/ChromeDebug/Default/Sessions/*')
                 os.system('rm -f ~/ChromeDebug/Default/Last*')
 
-                # 通用内存和性能优化参数（适用于所有系统）
+                # 基本必要参数
                 chrome_options.add_argument('--no-sandbox')
-                chrome_options.add_argument('--disable-gpu')
-                chrome_options.add_argument('--disable-software-rasterizer')
-                chrome_options.add_argument('--disable-background-networking')
-                chrome_options.add_argument('--disable-default-apps')
-                chrome_options.add_argument('--disable-extensions')
-                chrome_options.add_argument('--disable-sync')
-                chrome_options.add_argument('--metrics-recording-only')
-                chrome_options.add_argument('--no-first-run')
-                chrome_options.add_argument('--disable-session-crashed-bubble')
-                chrome_options.add_argument('--disable-translate')
-                chrome_options.add_argument('--disable-background-timer-throttling')
-                chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-                chrome_options.add_argument('--disable-renderer-backgrounding')
-                chrome_options.add_argument('--disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins')
-                chrome_options.add_argument('--noerrdialogs')
                 chrome_options.add_argument('--disable-infobars')
                 chrome_options.add_argument('--disable-notifications')
-                chrome_options.add_argument('--test-type')
                 
-                # 内存优化参数
-                chrome_options.add_argument('--memory-pressure-off')
-                chrome_options.add_argument('--max_old_space_size=512')
-                chrome_options.add_argument('--aggressive-cache-discard')
-                chrome_options.add_argument('--disable-background-mode')
-                chrome_options.add_argument('--disable-plugins')
-                chrome_options.add_argument('--disable-plugins-discovery')
-                chrome_options.add_argument('--disable-preconnect')
-                chrome_options.add_argument('--disable-prefetch')
-                chrome_options.add_argument('--disable-web-security')
-                chrome_options.add_argument('--disable-features=VizDisplayCompositor')
-                chrome_options.add_argument('--disable-ipc-flooding-protection')
-                chrome_options.add_argument('--disable-component-extensions-with-background-pages')
-                chrome_options.add_argument('--disable-client-side-phishing-detection')
-                chrome_options.add_argument('--disable-hang-monitor')
-                chrome_options.add_argument('--disable-prompt-on-repost')
-                chrome_options.add_argument('--disable-domain-reliability')
-                chrome_options.add_argument('--disable-component-update')
-                chrome_options.add_argument('--disable-background-downloads')
-                chrome_options.add_argument('--disable-add-to-shelf')
-                chrome_options.add_argument('--disable-datasaver-prompt')
-                chrome_options.add_argument('--disable-desktop-notifications')
-                chrome_options.add_argument('--disable-device-discovery-notifications')
+                # 云服务器优化参数 - 适配3.6G内存，无GPU环境
+                chrome_options.add_argument('--max-old-space-size=2048')  # 限制内存使用到2GB，为系统预留空间
+                chrome_options.add_argument('--disable-gpu')  # 禁用GPU，使用软件渲染
+                chrome_options.add_argument('--disable-gpu-rasterization')  # 禁用GPU光栅化
+                chrome_options.add_argument('--disable-gpu-sandbox')  # 禁用GPU沙盒
+                chrome_options.add_argument('--disable-software-rasterizer')  # 禁用软件光栅化以节省内存
+                chrome_options.add_argument('--disable-background-timer-throttling')  # 禁用后台定时器节流
+                chrome_options.add_argument('--disable-renderer-backgrounding')  # 禁用渲染器后台化
+                chrome_options.add_argument('--disable-backgrounding-occluded-windows')  # 禁用被遮挡窗口的后台化
+                chrome_options.add_argument('--disable-features=TranslateUI,VizDisplayCompositor')  # 禁用翻译UI和高级合成器
                 
-                # 进程和线程限制
-                chrome_options.add_argument('--renderer-process-limit=1')
-                chrome_options.add_argument('--max-gum-fps=30')
-                chrome_options.add_argument('--memory-pressure-thresholds=0.8,0.9')
+                # 内存和进程优化 - 适配云服务器资源限制
+                chrome_options.add_argument('--renderer-process-limit=2')  # 限制渲染进程数量
+                chrome_options.add_argument('--max-gum-fps=30')  # 降低帧率以节省资源
+                chrome_options.add_argument('--memory-pressure-off')  # 关闭内存压力检测
+                chrome_options.add_argument('--max_old_space_size=1536')  # V8引擎内存限制1.5GB
+                chrome_options.add_argument('--disable-dev-shm-usage')  # 禁用/dev/shm使用，避免共享内存问题
                 
-                system = platform.system()
-                if system == 'Linux':
-                    # Linux特定优化
-                    chrome_options.add_argument('--single-process')
-                    chrome_options.add_argument('--disable-dev-shm-usage')
-                elif system == 'Darwin':  # macOS
-                    # macOS特定优化
-                    chrome_options.add_argument('--disable-dev-shm-usage')
-                    chrome_options.add_argument('--disable-gpu-sandbox')
-                elif system == 'Windows':
-                    # Windows特定优化
-                    chrome_options.add_argument('--disable-gpu-sandbox')
+                # 云服务器特定优化
+                chrome_options.add_argument('--disable-extensions')  # 禁用扩展
+                chrome_options.add_argument('--disable-plugins')  # 禁用插件
+                chrome_options.add_argument('--disable-web-security')  # 禁用Web安全检查以提升性能
+                chrome_options.add_argument('--disable-features=VizDisplayCompositor')  # 禁用高级合成器
+                chrome_options.add_argument('--disable-ipc-flooding-protection')  # 禁用IPC洪水保护
+                chrome_options.add_argument('--virtual-time-budget=5000')  # 设置虚拟时间预算
                     
-                self.driver = webdriver.Chrome(options=chrome_options)
+                # 使用WebDriver池获取实例
+                self.driver = self.webdriver_pool.get_driver(chrome_options)
+                if not self.driver:
+                    raise Exception("无法从WebDriver池获取实例")
             try:
                 # 在当前标签页打开URL
                 self.driver.get(new_url)
@@ -1981,8 +2108,8 @@ class CryptoTrader:
         """优化版价格监控 - 动态调整监控频率 + 智能内存管理"""
         base_interval = 0.3  # 基础监控间隔300ms
         error_count = 0
-        memory_check_counter = 0
-        memory_check_interval = 200  # 每200次循环检查一次内存（约60秒）
+        last_memory_check = time.time()
+        memory_check_interval = 4 * 3600  # 每4小时检查一次内存
         
         while not self.stop_event.is_set():
             try:
@@ -1991,15 +2118,15 @@ class CryptoTrader:
                 self.check_balance()
                 self.check_prices()
                 
-                # 定期内存检查和清理
-                memory_check_counter += 1
-                if memory_check_counter >= memory_check_interval:
+                # 定期内存检查和清理（每4小时检查一次）
+                current_time = time.time()
+                if current_time - last_memory_check >= memory_check_interval:
                     try:
                         self.clear_chrome_mem_cache()
-                        memory_check_counter = 0  # 重置计数器
+                        last_memory_check = current_time  # 更新最后检查时间
                     except Exception as mem_e:
                         self.logger.warning(f"内存检查失败: {mem_e}")
-                        memory_check_counter = 0  # 即使失败也重置计数器
+                        last_memory_check = current_time  # 即使失败也更新时间
                 
                 # 根据执行时间动态调整间隔
                 execution_time = time.time() - start_time
@@ -8930,7 +9057,15 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"❌ 日志监听器关闭时出错: {str(e)}")
         
-        # 关闭WebDriver和Chrome进程
+        # 关闭WebDriver池中的所有实例
+        if app and hasattr(app, 'webdriver_pool'):
+            try:
+                app.webdriver_pool.close_all()
+                print("✅ WebDriver池已关闭")
+            except Exception as e:
+                print(f"❌ WebDriver池关闭时出错: {str(e)}")
+        
+        # 关闭单独的WebDriver实例（兼容性保留）
         if app and hasattr(app, 'driver') and app.driver:
             try:
                 app.driver.quit()
