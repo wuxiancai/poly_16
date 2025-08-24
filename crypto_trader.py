@@ -331,7 +331,8 @@ class StatusDataManager:
                 'auto_find_time': '2:00',
                 'last_trade_time': None,
                 'trade_count': 22,
-                'remaining_trades': 22
+                'remaining_trades': 22,
+                'trade_verification': None
             },
             'prices': {
                 'polymarket_up': '--',
@@ -1846,28 +1847,68 @@ class CryptoTrader:
                 os.system('rm -f ~/ChromeDebug/Default/Sessions/*')
                 os.system('rm -f ~/ChromeDebug/Default/Last*')
 
+                # 通用内存和性能优化参数（适用于所有系统）
+                chrome_options.add_argument('--no-sandbox')
+                chrome_options.add_argument('--disable-gpu')
+                chrome_options.add_argument('--disable-software-rasterizer')
+                chrome_options.add_argument('--disable-background-networking')
+                chrome_options.add_argument('--disable-default-apps')
+                chrome_options.add_argument('--disable-extensions')
+                chrome_options.add_argument('--disable-sync')
+                chrome_options.add_argument('--metrics-recording-only')
+                chrome_options.add_argument('--no-first-run')
+                chrome_options.add_argument('--disable-session-crashed-bubble')
+                chrome_options.add_argument('--disable-translate')
+                chrome_options.add_argument('--disable-background-timer-throttling')
+                chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+                chrome_options.add_argument('--disable-renderer-backgrounding')
+                chrome_options.add_argument('--disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins')
+                chrome_options.add_argument('--noerrdialogs')
+                chrome_options.add_argument('--disable-infobars')
+                chrome_options.add_argument('--disable-notifications')
+                chrome_options.add_argument('--test-type')
+                
+                # 内存优化参数
+                chrome_options.add_argument('--memory-pressure-off')
+                chrome_options.add_argument('--max_old_space_size=512')
+                chrome_options.add_argument('--aggressive-cache-discard')
+                chrome_options.add_argument('--disable-background-mode')
+                chrome_options.add_argument('--disable-plugins')
+                chrome_options.add_argument('--disable-plugins-discovery')
+                chrome_options.add_argument('--disable-preconnect')
+                chrome_options.add_argument('--disable-prefetch')
+                chrome_options.add_argument('--disable-web-security')
+                chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+                chrome_options.add_argument('--disable-ipc-flooding-protection')
+                chrome_options.add_argument('--disable-component-extensions-with-background-pages')
+                chrome_options.add_argument('--disable-client-side-phishing-detection')
+                chrome_options.add_argument('--disable-hang-monitor')
+                chrome_options.add_argument('--disable-prompt-on-repost')
+                chrome_options.add_argument('--disable-domain-reliability')
+                chrome_options.add_argument('--disable-component-update')
+                chrome_options.add_argument('--disable-background-downloads')
+                chrome_options.add_argument('--disable-add-to-shelf')
+                chrome_options.add_argument('--disable-datasaver-prompt')
+                chrome_options.add_argument('--disable-desktop-notifications')
+                chrome_options.add_argument('--disable-device-discovery-notifications')
+                
+                # 进程和线程限制
+                chrome_options.add_argument('--renderer-process-limit=1')
+                chrome_options.add_argument('--max-gum-fps=30')
+                chrome_options.add_argument('--memory-pressure-thresholds=0.8,0.9')
+                
                 system = platform.system()
                 if system == 'Linux':
-                    # 添加与启动脚本一致的所有参数
-                    chrome_options.add_argument('--no-sandbox')
-                    chrome_options.add_argument('--disable-gpu')
-                    chrome_options.add_argument('--disable-software-rasterizer')
-                    chrome_options.add_argument('--disable-background-networking')
-                    chrome_options.add_argument('--disable-default-apps')
-                    chrome_options.add_argument('--disable-extensions')
-                    chrome_options.add_argument('--disable-sync')
-                    chrome_options.add_argument('--metrics-recording-only')
-                    chrome_options.add_argument('--no-first-run')
-                    chrome_options.add_argument('--disable-session-crashed-bubble')
-                    chrome_options.add_argument('--disable-translate')
-                    chrome_options.add_argument('--disable-background-timer-throttling')
-                    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-                    chrome_options.add_argument('--disable-renderer-backgrounding')
-                    chrome_options.add_argument('--disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins')
-                    chrome_options.add_argument('--noerrdialogs')
-                    chrome_options.add_argument('--disable-infobars')
-                    chrome_options.add_argument('--disable-notifications')
-                    chrome_options.add_argument('--test-type')
+                    # Linux特定优化
+                    chrome_options.add_argument('--single-process')
+                    chrome_options.add_argument('--disable-dev-shm-usage')
+                elif system == 'Darwin':  # macOS
+                    # macOS特定优化
+                    chrome_options.add_argument('--disable-dev-shm-usage')
+                    chrome_options.add_argument('--disable-gpu-sandbox')
+                elif system == 'Windows':
+                    # Windows特定优化
+                    chrome_options.add_argument('--disable-gpu-sandbox')
                     
                 self.driver = webdriver.Chrome(options=chrome_options)
             try:
@@ -1937,9 +1978,11 @@ class CryptoTrader:
         self.running = False
 
     def monitor_prices(self):
-        """优化版价格监控 - 动态调整监控频率"""
+        """优化版价格监控 - 动态调整监控频率 + 智能内存管理"""
         base_interval = 0.3  # 基础监控间隔300ms
         error_count = 0
+        memory_check_counter = 0
+        memory_check_interval = 200  # 每200次循环检查一次内存（约60秒）
         
         while not self.stop_event.is_set():
             try:
@@ -1947,6 +1990,16 @@ class CryptoTrader:
                 
                 self.check_balance()
                 self.check_prices()
+                
+                # 定期内存检查和清理
+                memory_check_counter += 1
+                if memory_check_counter >= memory_check_interval:
+                    try:
+                        self.clear_chrome_mem_cache()
+                        memory_check_counter = 0  # 重置计数器
+                    except Exception as mem_e:
+                        self.logger.warning(f"内存检查失败: {mem_e}")
+                        memory_check_counter = 0  # 即使失败也重置计数器
                 
                 # 根据执行时间动态调整间隔
                 execution_time = time.time() - start_time
@@ -4941,56 +4994,200 @@ class CryptoTrader:
                 self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
 
     def clear_chrome_mem_cache(self):
-        # 关闭所有 Chrome 和 chromedriver 进程
-        # 设置触发阈值（单位：KB）
-        THRESHOLD_KB = 200 * 1024  # 200MB
-
-        # 获取当前可用内存（单位：KB）
+        """智能Chrome内存清理机制"""
         try:
-            with open('/proc/meminfo', 'r') as f:
-                for line in f:
-                    if line.startswith('MemAvailable:'):
-                        available_kb = int(line.split()[1])
-                        break
-                else:
-                    self.logger.warning("无法获取MemAvailable信息")
-                    return
+            # 获取系统内存信息
+            memory_info = self._get_system_memory_info()
+            if not memory_info:
+                return
             
-            # 判断是否小于阈值
-            if available_kb < THRESHOLD_KB:
-                self.logger.info(f"\033[31m可用内存低于{THRESHOLD_KB / 1024}MB,重启 CHROME\033[0m")
+            available_mb = memory_info['available_mb']
+            chrome_memory_mb = memory_info['chrome_memory_mb']
+            
+            # 动态阈值：可用内存低于512MB 或 Chrome占用超过1GB
+            low_memory_threshold = 512
+            chrome_memory_threshold = 1024
+            
+            should_cleanup = (
+                available_mb < low_memory_threshold or 
+                chrome_memory_mb > chrome_memory_threshold
+            )
+            
+            if should_cleanup:
+                self.logger.info(
+                    f"\033[31m内存清理触发: 可用内存{available_mb}MB, Chrome占用{chrome_memory_mb}MB\033[0m"
+                )
                 
-                system = platform.system()
-                if system == "Windows":
-                    subprocess.run("taskkill /f /im chrome.exe", shell=True)
-                    subprocess.run("taskkill /f /im chromedriver.exe", shell=True)
-                elif system == "Darwin":  # macOS
-                    subprocess.run("pkill -9 'Google Chrome'", shell=True)
-                    subprocess.run("pkill -9 chromedriver", shell=True)
-                else:  # Linux
-                    subprocess.run("pkill -9 chrome", shell=True)
-                    subprocess.run("pkill -9 chromedriver", shell=True)
-
-                    # 发送交易邮件
-                    self.send_trade_email(
-                        trade_type="可用内存低于300MB,已经重启 CHROME!",
-                        price=self.price,
-                        amount=self.amount,
-                        shares=self.shares,
-                        trade_count=self.buy_count,
-                        cash_value=self.cash_value,
-                        portfolio_value=self.portfolio_value
-                    )
-                # 删除真正的缓存文件夹：Cache/Cache_Data
-                cache_data_path = os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data")
-                if os.path.exists(cache_data_path):
-                    shutil.rmtree(cache_data_path)
-                    self.logger.info("✅ 已删除 Cache_Data 缓存")
-                else:
-                    self.logger.info("ℹ️ 未找到 Cache_Data 缓存目录")
-
+                # 优雅关闭WebDriver
+                self._graceful_close_webdriver()
+                
+                # 强制清理Chrome进程
+                self._force_cleanup_chrome_processes()
+                
+                # 清理Chrome缓存文件
+                self._cleanup_chrome_cache_files()
+                
+                # 发送通知邮件
+                self.send_trade_email(
+                    trade_type=f"内存清理完成: 可用{available_mb}MB, Chrome占用{chrome_memory_mb}MB",
+                    price=self.price,
+                    amount=self.amount,
+                    shares=self.shares,
+                    trade_count=self.buy_count,
+                    cash_value=self.cash_value,
+                    portfolio_value=self.portfolio_value
+                )
+                
+                # 等待进程完全退出后重启浏览器
+                time.sleep(3)
+                self.restart_browser(force_restart=True)
+                
+            else:
+                self.logger.debug(
+                    f"内存状态正常: 可用{available_mb}MB, Chrome占用{chrome_memory_mb}MB"
+                )
+                
         except Exception as e:
-            self.logger.error(f"❌ 关闭Chrome进程失败: {str(e)}")
+            self.logger.error(f"❌ Chrome内存清理失败: {str(e)}")
+    
+    def _get_system_memory_info(self):
+        """获取系统内存信息（跨平台）"""
+        try:
+            import psutil
+            
+            # 获取系统内存信息
+            memory = psutil.virtual_memory()
+            available_mb = memory.available // (1024 * 1024)
+            
+            # 获取Chrome进程内存占用
+            chrome_memory_mb = 0
+            for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+                try:
+                    proc_name = proc.info['name'].lower()
+                    if any(name in proc_name for name in ['chrome', 'chromedriver']):
+                        chrome_memory_mb += proc.info['memory_info'].rss // (1024 * 1024)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            return {
+                'available_mb': available_mb,
+                'chrome_memory_mb': chrome_memory_mb,
+                'total_mb': memory.total // (1024 * 1024),
+                'used_percent': memory.percent
+            }
+            
+        except ImportError:
+            # 如果没有psutil，使用系统特定的方法
+            return self._get_memory_info_fallback()
+        except Exception as e:
+            self.logger.warning(f"获取内存信息失败: {e}")
+            return None
+    
+    def _get_memory_info_fallback(self):
+        """备用内存信息获取方法"""
+        try:
+            system = platform.system()
+            
+            if system == "Linux":
+                with open('/proc/meminfo', 'r') as f:
+                    for line in f:
+                        if line.startswith('MemAvailable:'):
+                            available_kb = int(line.split()[1])
+                            return {'available_mb': available_kb // 1024, 'chrome_memory_mb': 0}
+            
+            elif system == "Darwin":  # macOS
+                result = subprocess.run(['vm_stat'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    # 简化的macOS内存解析
+                    return {'available_mb': 1024, 'chrome_memory_mb': 0}  # 默认值
+            
+            return {'available_mb': 1024, 'chrome_memory_mb': 0}  # 默认值
+            
+        except Exception as e:
+            self.logger.warning(f"备用内存信息获取失败: {e}")
+            return None
+    
+    def _graceful_close_webdriver(self):
+        """优雅关闭WebDriver"""
+        if hasattr(self, 'driver') and self.driver:
+            try:
+                # 先尝试关闭所有窗口
+                for handle in self.driver.window_handles:
+                    try:
+                        self.driver.switch_to.window(handle)
+                        self.driver.close()
+                    except Exception:
+                        pass
+                
+                # 然后退出WebDriver
+                self.driver.quit()
+                self.logger.info("✅ WebDriver已优雅关闭")
+                
+            except Exception as e:
+                self.logger.warning(f"WebDriver优雅关闭失败: {e}")
+            finally:
+                self.driver = None
+    
+    def _force_cleanup_chrome_processes(self):
+        """强制清理Chrome进程"""
+        try:
+            system = platform.system()
+            
+            if system == "Windows":
+                subprocess.run("taskkill /f /im chrome.exe", shell=True, capture_output=True)
+                subprocess.run("taskkill /f /im chromedriver.exe", shell=True, capture_output=True)
+            elif system == "Darwin":  # macOS
+                subprocess.run("pkill -9 'Google Chrome'", shell=True, capture_output=True)
+                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
+            else:  # Linux
+                subprocess.run("pkill -9 chrome", shell=True, capture_output=True)
+                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
+            
+            self.logger.info("✅ Chrome进程已强制清理")
+            
+        except Exception as e:
+            self.logger.error(f"强制清理Chrome进程失败: {e}")
+    
+    def _cleanup_chrome_cache_files(self):
+        """清理Chrome缓存文件"""
+        try:
+            system = platform.system()
+            cache_paths = []
+            
+            if system == "Windows":
+                cache_paths = [
+                    os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/Cache"),
+                    os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/Code Cache"),
+                ]
+            elif system == "Darwin":  # macOS
+                cache_paths = [
+                    os.path.expanduser("~/Library/Caches/Google/Chrome/Default/Cache"),
+                    os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/Cache"),
+                ]
+            else:  # Linux
+                cache_paths = [
+                    os.path.expanduser("~/.cache/google-chrome/Default/Cache"),
+                    os.path.expanduser("~/.config/google-chrome/Default/Cache"),
+                    os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data"),
+                ]
+            
+            cleaned_count = 0
+            for cache_path in cache_paths:
+                if os.path.exists(cache_path):
+                    try:
+                        shutil.rmtree(cache_path)
+                        cleaned_count += 1
+                        self.logger.info(f"✅ 已清理缓存: {cache_path}")
+                    except Exception as e:
+                        self.logger.warning(f"清理缓存失败 {cache_path}: {e}")
+            
+            if cleaned_count > 0:
+                self.logger.info(f"✅ 共清理了 {cleaned_count} 个缓存目录")
+            else:
+                self.logger.info("ℹ️ 未找到需要清理的缓存目录")
+                
+        except Exception as e:
+            self.logger.error(f"清理Chrome缓存失败: {e}")
 
     # 已删除重复的schedule_record_and_show_cash函数,使用schedule_record_cash_daily代替
 
@@ -8732,6 +8929,32 @@ if __name__ == "__main__":
                 print("✅ 日志监听器已关闭")
             except Exception as e:
                 print(f"❌ 日志监听器关闭时出错: {str(e)}")
+        
+        # 关闭WebDriver和Chrome进程
+        if app and hasattr(app, 'driver') and app.driver:
+            try:
+                app.driver.quit()
+                print("✅ WebDriver已关闭")
+            except Exception as e:
+                print(f"❌ WebDriver关闭时出错: {str(e)}")
+        
+        # 强制清理所有Chrome和ChromeDriver进程
+        try:
+            import platform
+            import subprocess
+            system = platform.system()
+            if system == "Windows":
+                subprocess.run("taskkill /f /im chrome.exe", shell=True, capture_output=True)
+                subprocess.run("taskkill /f /im chromedriver.exe", shell=True, capture_output=True)
+            elif system == "Darwin":  # macOS
+                subprocess.run("pkill -9 'Google Chrome'", shell=True, capture_output=True)
+                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
+            else:  # Linux
+                subprocess.run("pkill -9 chrome", shell=True, capture_output=True)
+                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
+            print("✅ Chrome进程已强制清理")
+        except Exception as e:
+            print(f"❌ Chrome进程清理时出错: {str(e)}")
         
         # 关闭HTTP session
         if app and hasattr(app, 'http_session'):
