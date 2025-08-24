@@ -492,7 +492,7 @@ class SMTPConnectionManager:
             self.persistent_connection = self._create_connection()
             
         except Exception as e:
-            self.logger.info(f"❌ 建立SMTP持久连接失败: {str(e)}")
+            print(f"❌ 建立SMTP持久连接失败: {str(e)}")
             self.persistent_connection = None
     
     def _ensure_connection_alive(self):
@@ -3875,8 +3875,6 @@ class CryptoTrader:
             # 智能等待逻辑：最多重试2次,每次等待3秒
             for attempt in range(2):
                 # 计时
-                start_time = time.perf_counter()
-
                 start_time = time.time()
                 max_wait_time = 4  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
@@ -3884,6 +3882,8 @@ class CryptoTrader:
                 # 智能等待循环
                 while time.time() - start_time < max_wait_time:
                     try:
+                        # 计时开始
+                        start_time_count = time.perf_counter()
                         # 快速检查是否有交易记录出现
                         history_element = WebDriverWait(self.driver, 0.1).until(
                             EC.presence_of_element_located((By.XPATH, XPathConfig.HISTORY[0])))
@@ -3907,7 +3907,7 @@ class CryptoTrader:
                                 self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}")
                                 
                                 # 计时结束
-                                elapsed = time.perf_counter() - start_time
+                                elapsed = time.perf_counter() - start_time_count
                                 self.logger.info(f"\033[34m交易验证耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
                                 # 同步交易验证信息到StatusDataManager
@@ -3935,10 +3935,9 @@ class CryptoTrader:
     def buy_operation(self, amount):
         """买入操作"""
         try:
-            self.logger.info("\033[34m✅ 执行买入操作\033[0m")
             # 计时
             start_time = time.perf_counter()
-
+            start_time_count = time.perf_counter()
             # 查找并设置金额输入框
             try:
                 amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
@@ -3951,7 +3950,7 @@ class CryptoTrader:
 
             # 计时
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"\033[34m买入金额{amount},点击按钮耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"\033[34m✅ 买入金额{amount},点击amount和输入金额共耗时\033[0m\033[31m {elapsed:.3f} 秒\033[0m")
 
             # 计时
             start_time = time.perf_counter()
@@ -3963,9 +3962,10 @@ class CryptoTrader:
 
             if buy_confirm_button:
                 buy_confirm_button.click()
-            # 计时
+
+            # 计时结束
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"✅ \033[34m点击买入确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 处理可能的ACCEPT弹窗
             try:
@@ -3976,8 +3976,9 @@ class CryptoTrader:
                 self.logger.info("✅ \033[34mACCEPT弹窗点击完成\033[0m")
             except TimeoutException:
                 pass
-                
-            self.logger.info("✅ \033[34m买入操作完成\033[0m")
+            # 计时结束
+            elapsed = time.perf_counter() - start_time_count
+            self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
             self.click_buy_up_button()
 
         except Exception as e:
@@ -3989,7 +3990,9 @@ class CryptoTrader:
         """卖出操作的回退方法,仅仅night_auto_sell_check调用"""
         try:
             # 点击position_sell按钮
+            # 计时
             start_time = time.perf_counter()
+            start_time_count = time.perf_counter()
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
             except NoSuchElementException:
@@ -3999,9 +4002,10 @@ class CryptoTrader:
                 positions_sell_button.click()
             
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"✅ \033[34m点击position_sell按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 点击卖出确认按钮
+            # 计时
             start_time = time.perf_counter()
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
@@ -4010,9 +4014,10 @@ class CryptoTrader:
 
             if sell_confirm_button:
                 sell_confirm_button.click()
-
+            
+            # 计时结束
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"点击按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"✅ \033[34m点击卖出确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 等待ACCEPT弹窗出现
             try:
@@ -4026,11 +4031,14 @@ class CryptoTrader:
                 self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
                 pass  # 弹窗没出现,不用处理
 
-            self.logger.info("✅ \033[34m买入操作完成\033[0m")
+            # 计时结束
+            elapsed = time.perf_counter() - start_time_count
+            self.logger.info(f"✅ \033[34m卖出操作完成!\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 预防价格接近时在卖的时候又买了
             self.click_buy_up_button()
             self.click_buy_button()
+            
         except Exception as e:
             self.logger.error(f"卖出操作失败: {str(e)}")
       
