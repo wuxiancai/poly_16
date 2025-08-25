@@ -388,6 +388,10 @@ class StatusDataManager:
                 self._data[category] = {}
             self._data[category][key] = value
             self._data['system']['last_update'] = datetime.now().strftime('%H:%M:%S')
+            
+            # 如果是交易验证数据更新，设置通知标志
+            if category == 'trading' and key == 'trade_verification':
+                self._data['system']['position_updated'] = True
     
     def update_position(self, position_type, index, price=None, amount=None):
         """更新持仓信息"""
@@ -6709,8 +6713,8 @@ class CryptoTrader:
                         // 初始化持仓信息显示
                         updatePositionInfo();
                         
-                        // 定时刷新持仓信息（每5秒刷新一次）
-                        setInterval(updatePositionInfo, 5000);
+                        // 启动持仓更新检查（每2秒检查一次是否有更新通知）
+                        setInterval(checkPositionUpdate, 2000);
                         
                         // 添加URL输入框事件监听器
                         const urlInput = document.getElementById('urlInput');
@@ -6789,10 +6793,20 @@ class CryptoTrader:
                             });
                     }
                     
+                    function checkPositionUpdate() {
+                        fetch('/api/positions/check-update')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.updated) {
+                                    // 检测到持仓更新，立即刷新持仓信息
+                                    updatePositionInfo();
+                                }
+                            })
+                            .catch(error => {
+                                // 静默处理错误，避免控制台噪音
+                            });
+                    }
 
-                    
-
-                    
                     function updateCoin() {
                         const coin = document.getElementById('coinSelect').value;
                         fetch('/api/update_coin', {
@@ -7709,6 +7723,21 @@ class CryptoTrader:
                     'error': str(e),
                     'position': None
                 }), 500
+        
+        @app.route("/api/positions/check-update")
+        def check_position_update():
+            """检查持仓信息是否有更新"""
+            try:
+                position_updated = self.status_data.get_value('system', 'position_updated') or False
+                if position_updated:
+                    # 清除通知标志
+                    self.status_data.update_data('system', 'position_updated', False)
+                    return jsonify({'updated': True})
+                else:
+                    return jsonify({'updated': False})
+            except Exception as e:
+                self.logger.error(f"检查持仓更新失败: {str(e)}")
+                return jsonify({'updated': False, 'error': str(e)}), 500
          
         @app.route("/history")
         def history():
