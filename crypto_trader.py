@@ -8704,13 +8704,13 @@ class CryptoTrader:
 
             # --- 打印日志 ---
             self.logger.info(
-                f"📊 内存使用情况: Python={python_mb:.1f}MB, Chromedriver={chromedriver_mb:.1f}MB, "
-                f"Chrome={chrome_mb:.1f}MB ➡️ 总计: {total_mb:.1f}MB ({total_gb:.2f}GB)"
+                f"📊 \033[34m内存使用情况: \033[0mPython=\033[31m{python_mb:.1f}MB,\033[0m Chromedriver=\033[31m{chromedriver_mb:.1f}MB\033[0m, "
+                f"Chrome=\033[31m{chrome_mb:.1f}MB\033[0m ➡️ 总计: \033[31m{total_mb:.1f}MB ({total_gb:.2f}GB)\033[0m"
             )
 
             if chrome_mb > 0:
                 group_info = ", ".join([f"{k}={v:.1f}MB" for k, v in chrome_groups.items() if v > 0])
-                self.logger.info(f"   🔍 Chrome 内存分布: {group_info}")
+                self.logger.info(f"🔍 \033[34mChrome 内存分布: {group_info}\033[0m")
 
             # --- 内存阈值检测 ---
             if total_gb > self.memory_threshold:
