@@ -594,17 +594,16 @@ class AsyncEmailSender:
                         
                     except Exception as e:
                         if self.logger:
-                            self.logger.error(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                            print(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
                         if attempt < max_retries - 1:
-                            if self.logger:
-                                self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                            print(f"等待 {retry_delay} 秒后重试...")
                             time.sleep(retry_delay)
                         else:
                             raise e
                             
             except Exception as e:
                 if self.logger:
-                    self.logger.error(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                    print(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
@@ -5579,7 +5578,7 @@ class CryptoTrader:
                 server.sendmail(sender, receiver, msg.as_string())
                 
             except Exception as e:
-                self.logger.error(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
+                print(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
             finally:
                 try:
                     server.quit()
