@@ -2480,12 +2480,6 @@ class CryptoTrader:
                     self.set_web_value('yes_price_label', f"Up: {up_price_val:.1f}")
                     self.set_web_value('no_price_label', f"Down: {down_price_val:.1f}")
                     
-                    # 重置失败计数器（价格获取成功）
-                    if hasattr(self, 'price_check_fail_count'):
-                        self.price_check_fail_count = 0
-                    if hasattr(self, 'element_fail_count'):
-                        self.element_fail_count = 0
-                    
                     # 执行所有交易检查函数（仅在没有交易进行时）
                     if not self.trading:
                         self.First_trade(up_price_val, down_price_val)
@@ -2511,37 +2505,12 @@ class CryptoTrader:
                 self.logger.warning(f"数据获取不完整,缺失: {', '.join(missing_info)}")
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
-                # 智能刷新：仅在连续失败时才刷新
-                if not hasattr(self, 'price_check_fail_count'):
-                    self.price_check_fail_count = 0
-                self.price_check_fail_count += 1
                 
-                if self.price_check_fail_count >= 3:
-                    try:
-                        self.logger.info("连续3次价格获取失败,执行页面刷新")
-                        self.driver.refresh()
-                        time.sleep(2)
-                        self.price_check_fail_count = 0
-                    except Exception:
-                        pass
-
         except (StaleElementReferenceException, NoSuchElementException) as e:
             self.logger.warning(f"元素引用失效: {str(e)}")
             self.yes_price_label.config(text="Up: Retry")
             self.no_price_label.config(text="Down: Retry")
-            # 智能刷新：仅在元素失效时才刷新
-            if not hasattr(self, 'element_fail_count'):
-                self.element_fail_count = 0
-            self.element_fail_count += 1
             
-            if self.element_fail_count >= 2:
-                try:
-                    self.logger.info("连续2次元素失效,执行页面刷新")
-                    self.driver.refresh()
-                    time.sleep(2)
-                    self.element_fail_count = 0
-                except Exception:
-                    pass
         except AttributeError as e:
             self.logger.error(f"浏览器连接异常: {str(e)}")
             if not self.is_restarting:
@@ -2948,7 +2917,7 @@ class CryptoTrader:
     def refresh_page(self):
         """智能定时刷新页面 - 优化刷新频率和条件"""
         # 增加刷新间隔到8-15分钟,减少不必要的刷新
-        random_minutes = random.uniform(2, 3)
+        random_minutes = random.uniform(3, 6)
         self.refresh_interval = int(random_minutes * 60000)  # 转换为毫秒
         
         # 初始化刷新失败计数器（如果不存在）
@@ -2966,17 +2935,12 @@ class CryptoTrader:
                     except Exception as e:
                         self.logger.error(f"取消旧定时器失败: {str(e)}")
 
-                # 智能刷新条件判断
-                should_refresh = self._should_refresh_page()
-                
-                if self.running and self.driver and not self.trading and should_refresh:
+                if self.running and self.driver and not self.trading:
                     try:
                         # 验证浏览器连接是否正常
                         self.driver.execute_script("return navigator.userAgent")
-                        refresh_time = self.refresh_interval / 60000 # 转换为分钟,用于输入日志
                         
                         # 清空元素缓存,因为页面即将刷新
-                        self._clear_element_cache()
                         self.driver.refresh()
                         
                         # 重置失败计数器
@@ -3005,49 +2969,6 @@ class CryptoTrader:
             finally:
                 # 安排下一次检查（确保循环持续）
                 self.refresh_page_timer = self.root.after(self.refresh_interval, self.refresh_page)
-
-    def _should_refresh_page(self):
-        """智能判断是否需要刷新页面"""
-        try:
-            # 检查页面是否响应正常
-            if not self.driver:
-                return False
-                
-            # 检查页面加载状态
-            ready_state = self.driver.execute_script("return document.readyState")
-            if ready_state != "complete":
-                return True  # 页面未完全加载,需要刷新
-                
-            # 检查是否存在关键元素（价格按钮）
-            try:
-                buttons = self.driver.find_elements(By.TAG_NAME, "button")
-                price_buttons = [btn for btn in buttons if '¢' in btn.text and ('Up' in btn.text or 'Down' in btn.text)]
-                if len(price_buttons) < 2:
-                    return True  # 关键元素缺失,需要刷新
-            except Exception:
-                return True  # 元素查找失败,需要刷新
-                
-            # 检查页面是否有错误信息
-            try:
-                error_elements = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Error') or contains(text(), '错误') or contains(text(), 'Failed')]") 
-                if error_elements:
-                    return True  # 页面有错误,需要刷新
-            except Exception:
-                pass
-                
-            # 检查网络连接状态
-            try:
-                online_status = self.driver.execute_script("return navigator.onLine")
-                if not online_status:
-                    return True  # 网络断开,需要刷新
-            except Exception:
-                pass
-                
-            return False  # 页面状态良好,无需刷新
-            
-        except Exception as e:
-            self.logger.debug(f"页面状态检查失败: {str(e)}")
-            return True  # 检查失败,保守起见进行刷新
     
     def stop_refresh_page(self):
         """停止页面刷新"""
