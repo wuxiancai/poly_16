@@ -37,7 +37,6 @@ import csv
 from flask import Flask, render_template_string, request, url_for, jsonify
 import psutil
 import socket
-import urllib.request
 import requests
 from trade_stats_manager import TradeStatsManager
 import urllib3
@@ -1014,7 +1013,7 @@ class CryptoTrader:
 
         # 初始化内存监控
         self.memory_monitor_enabled = True
-        self.memory_check_interval = 14400  # 4小时检查一次 (14400秒)
+        self.memory_check_interval = 3600  # 4小时检查一次 (14400秒)
         self.memory_threshold = 3.2  # 内存使用超过3.2GB时触发清理 (提高阈值避免误触发)
         self.chrome_memory_threshold = 2048  # Chrome内存超过1.5GB时才重启 (提高阈值)
         self.last_memory_check = time.time()
@@ -8706,9 +8705,7 @@ class CryptoTrader:
     
     def check_memory_usage(self):
         """检查内存使用情况"""
-        try:
-            import psutil
-            
+        try:  
             # 获取当前进程的内存使用情况
             process = psutil.Process()
             memory_info = process.memory_info()
