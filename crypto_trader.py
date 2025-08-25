@@ -331,8 +331,7 @@ class StatusDataManager:
                 'auto_find_time': '2:00',
                 'last_trade_time': None,
                 'trade_count': 22,
-                'remaining_trades': 22,
-                'trade_verification': None
+                'remaining_trades': 22
             },
             'prices': {
                 'polymarket_up': '--',
@@ -778,159 +777,6 @@ class Logger:
     def critical(self, message):
         self.logger.critical(message)
 
-class WebDriverPool:
-    """WebDriver实例池管理器 - 支持多实例高效交易"""
-    def __init__(self, max_instances=3):
-        self.max_instances = max_instances  # 云服务器内存限制，减少实例数
-        self.active_drivers = []
-        self.available_drivers = []  # 可复用的空闲实例
-        self.driver_usage = {}  # 跟踪每个driver的使用情况
-        self.lock = threading.RLock()
-        self.last_cleanup = time.time()
-        self.cleanup_interval = 4 * 3600  # 4小时清理一次
-        
-    def get_driver(self, chrome_options):
-        """获取可用的WebDriver实例，优先复用空闲实例"""
-        with self.lock:
-            # 定期清理僵尸进程
-            self._periodic_cleanup()
-            
-            # 优先使用可复用的空闲实例
-            if self.available_drivers:
-                driver = self.available_drivers.pop(0)
-                self.driver_usage[id(driver)] = {
-                    'last_used': time.time(),
-                    'usage_count': self.driver_usage.get(id(driver), {}).get('usage_count', 0) + 1
-                }
-                return driver
-            
-            # 创建新实例（不限制数量，让系统自然管理）
-            try:
-                driver = webdriver.Chrome(options=chrome_options)
-                self.active_drivers.append(driver)
-                self.driver_usage[id(driver)] = {
-                    'created_at': time.time(),
-                    'last_used': time.time(),
-                    'usage_count': 1
-                }
-                return driver
-            except Exception as e:
-                logging.error(f"创建WebDriver失败: {e}")
-                return None
-    
-    def return_driver(self, driver):
-        """归还WebDriver实例到池中供复用"""
-        with self.lock:
-            if driver and id(driver) in self.driver_usage:
-                try:
-                    # 检查driver是否还活着
-                    driver.current_window_handle
-                    # 清理当前页面状态，准备复用
-                    driver.delete_all_cookies()
-                    driver.execute_script("window.localStorage.clear();")
-                    driver.execute_script("window.sessionStorage.clear();")
-                    
-                    # 移到可复用队列
-                    if driver in self.active_drivers:
-                        self.active_drivers.remove(driver)
-                    if driver not in self.available_drivers:
-                        self.available_drivers.append(driver)
-                        
-                    self.driver_usage[id(driver)]['last_used'] = time.time()
-                    logging.info(f"WebDriver实例已归还到池中供复用")
-                except Exception as e:
-                    # driver已损坏，直接清理
-                    self._force_cleanup_driver(driver)
-                    
-    def _periodic_cleanup(self):
-        """定期清理僵尸进程和长时间未使用的实例"""
-        current_time = time.time()
-        if current_time - self.last_cleanup < self.cleanup_interval:
-            return
-            
-        self.last_cleanup = current_time
-        logging.info("开始定期清理WebDriver僵尸进程...")
-        
-        # 清理僵尸进程
-        self._cleanup_zombie_drivers()
-        
-        # 清理长时间未使用的实例（超过2小时）
-        inactive_threshold = current_time - 2 * 3600
-        drivers_to_remove = []
-        
-        for driver in self.available_drivers[:]:
-            driver_id = id(driver)
-            if driver_id in self.driver_usage:
-                last_used = self.driver_usage[driver_id].get('last_used', 0)
-                if last_used < inactive_threshold:
-                    drivers_to_remove.append(driver)
-                    
-        for driver in drivers_to_remove:
-            self._force_cleanup_driver(driver)
-            
-        logging.info(f"定期清理完成，清理了{len(drivers_to_remove)}个长时间未使用的实例")
-        
-    def _cleanup_zombie_drivers(self):
-        """清理僵尸WebDriver进程"""
-        all_drivers = self.active_drivers + self.available_drivers
-        zombie_drivers = []
-        
-        for driver in all_drivers[:]:
-            try:
-                # 尝试获取当前窗口句柄来检查driver是否还活着
-                driver.current_window_handle
-            except Exception:
-                # driver已经是僵尸进程
-                zombie_drivers.append(driver)
-                
-        for driver in zombie_drivers:
-            self._force_cleanup_driver(driver)
-            
-        if zombie_drivers:
-            logging.info(f"清理了{len(zombie_drivers)}个僵尸WebDriver进程")
-            
-    def _force_cleanup_driver(self, driver):
-        """强制清理WebDriver实例"""
-        try:
-            # 从所有列表中移除
-            if driver in self.active_drivers:
-                self.active_drivers.remove(driver)
-            if driver in self.available_drivers:
-                self.available_drivers.remove(driver)
-                
-            # 清理使用记录
-            driver_id = id(driver)
-            if driver_id in self.driver_usage:
-                del self.driver_usage[driver_id]
-                
-            # 尝试正常关闭
-            driver.quit()
-        except Exception as e:
-            logging.error(f"强制清理WebDriver失败: {e}")
-            
-    def close_all(self):
-        """关闭所有WebDriver实例"""
-        with self.lock:
-            all_drivers = self.active_drivers + self.available_drivers
-            for driver in all_drivers:
-                try:
-                    driver.quit()
-                except Exception as e:
-                    logging.error(f"关闭WebDriver失败: {e}")
-            self.active_drivers.clear()
-            self.available_drivers.clear()
-            self.driver_usage.clear()
-            
-    def get_stats(self):
-        """获取WebDriver池统计信息"""
-        with self.lock:
-            return {
-                'active_drivers': len(self.active_drivers),
-                'available_drivers': len(self.available_drivers),
-                'total_drivers': len(self.active_drivers) + len(self.available_drivers),
-                'driver_usage_records': len(self.driver_usage)
-            }
-
 class CryptoTrader:
     def __init__(self):
         super().__init__()
@@ -975,9 +821,6 @@ class CryptoTrader:
         self.cache_lock = threading.Lock()
         self.restart_lock = threading.Lock()  # 添加重启锁
         self.is_restarting = False  # 重启状态标志
-        
-        # 初始化WebDriver池
-        self.webdriver_pool = WebDriverPool(max_instances=1)  # 限制最多1个WebDriver实例
 
         # 初始化本金
         self.initial_amount = 0.4
@@ -1400,7 +1243,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        up_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
+                        up_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         up_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -1415,7 +1258,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        down_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
+                        down_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         down_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -2003,41 +1846,30 @@ class CryptoTrader:
                 os.system('rm -f ~/ChromeDebug/Default/Sessions/*')
                 os.system('rm -f ~/ChromeDebug/Default/Last*')
 
-                # 基本必要参数
-                chrome_options.add_argument('--no-sandbox')
-                chrome_options.add_argument('--disable-infobars')
-                chrome_options.add_argument('--disable-notifications')
-                
-                # 云服务器优化参数 - 适配3.6G内存，无GPU环境
-                chrome_options.add_argument('--max-old-space-size=2048')  # 限制内存使用到2GB，为系统预留空间
-                chrome_options.add_argument('--disable-gpu')  # 禁用GPU，使用软件渲染
-                chrome_options.add_argument('--disable-gpu-rasterization')  # 禁用GPU光栅化
-                chrome_options.add_argument('--disable-gpu-sandbox')  # 禁用GPU沙盒
-                chrome_options.add_argument('--disable-software-rasterizer')  # 禁用软件光栅化以节省内存
-                chrome_options.add_argument('--disable-background-timer-throttling')  # 禁用后台定时器节流
-                chrome_options.add_argument('--disable-renderer-backgrounding')  # 禁用渲染器后台化
-                chrome_options.add_argument('--disable-backgrounding-occluded-windows')  # 禁用被遮挡窗口的后台化
-                chrome_options.add_argument('--disable-features=TranslateUI,VizDisplayCompositor')  # 禁用翻译UI和高级合成器
-                
-                # 内存和进程优化 - 适配云服务器资源限制
-                chrome_options.add_argument('--renderer-process-limit=2')  # 限制渲染进程数量
-                chrome_options.add_argument('--max-gum-fps=30')  # 降低帧率以节省资源
-                chrome_options.add_argument('--memory-pressure-off')  # 关闭内存压力检测
-                chrome_options.add_argument('--max_old_space_size=1536')  # V8引擎内存限制1.5GB
-                chrome_options.add_argument('--disable-dev-shm-usage')  # 禁用/dev/shm使用，避免共享内存问题
-                
-                # 云服务器特定优化
-                chrome_options.add_argument('--disable-extensions')  # 禁用扩展
-                chrome_options.add_argument('--disable-plugins')  # 禁用插件
-                chrome_options.add_argument('--disable-web-security')  # 禁用Web安全检查以提升性能
-                chrome_options.add_argument('--disable-features=VizDisplayCompositor')  # 禁用高级合成器
-                chrome_options.add_argument('--disable-ipc-flooding-protection')  # 禁用IPC洪水保护
-                chrome_options.add_argument('--virtual-time-budget=5000')  # 设置虚拟时间预算
+                system = platform.system()
+                if system == 'Linux':
+                    # 添加与启动脚本一致的所有参数
+                    chrome_options.add_argument('--no-sandbox')
+                    chrome_options.add_argument('--disable-gpu')
+                    chrome_options.add_argument('--disable-software-rasterizer')
+                    chrome_options.add_argument('--disable-background-networking')
+                    chrome_options.add_argument('--disable-default-apps')
+                    chrome_options.add_argument('--disable-extensions')
+                    chrome_options.add_argument('--disable-sync')
+                    chrome_options.add_argument('--metrics-recording-only')
+                    chrome_options.add_argument('--no-first-run')
+                    chrome_options.add_argument('--disable-session-crashed-bubble')
+                    chrome_options.add_argument('--disable-translate')
+                    chrome_options.add_argument('--disable-background-timer-throttling')
+                    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+                    chrome_options.add_argument('--disable-renderer-backgrounding')
+                    chrome_options.add_argument('--disable-features=TranslateUI,BlinkGenPropertyTrees,SitePerProcess,IsolateOrigins')
+                    chrome_options.add_argument('--noerrdialogs')
+                    chrome_options.add_argument('--disable-infobars')
+                    chrome_options.add_argument('--disable-notifications')
+                    chrome_options.add_argument('--test-type')
                     
-                # 使用WebDriver池获取实例
-                self.driver = self.webdriver_pool.get_driver(chrome_options)
-                if not self.driver:
-                    raise Exception("无法从WebDriver池获取实例")
+                self.driver = webdriver.Chrome(options=chrome_options)
             try:
                 # 在当前标签页打开URL
                 self.driver.get(new_url)
@@ -2105,11 +1937,9 @@ class CryptoTrader:
         self.running = False
 
     def monitor_prices(self):
-        """优化版价格监控 - 动态调整监控频率 + 智能内存管理"""
+        """优化版价格监控 - 动态调整监控频率"""
         base_interval = 0.3  # 基础监控间隔300ms
         error_count = 0
-        last_memory_check = time.time()
-        memory_check_interval = 4 * 3600  # 每4小时检查一次内存
         
         while not self.stop_event.is_set():
             try:
@@ -2117,16 +1947,6 @@ class CryptoTrader:
                 
                 self.check_balance()
                 self.check_prices()
-                
-                # 定期内存检查和清理（每4小时检查一次）
-                current_time = time.time()
-                if current_time - last_memory_check >= memory_check_interval:
-                    try:
-                        self.clear_chrome_mem_cache()
-                        last_memory_check = current_time  # 更新最后检查时间
-                    except Exception as mem_e:
-                        self.logger.warning(f"内存检查失败: {mem_e}")
-                        last_memory_check = current_time  # 即使失败也更新时间
                 
                 # 根据执行时间动态调整间隔
                 execution_time = time.time() - start_time
@@ -2808,16 +2628,16 @@ class CryptoTrader:
             self.no4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
 
             self._update_status_async('positions', 'up_positions', [
-                {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-                {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-                {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-                {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
             self._update_status_async('positions', 'down_positions', [
-                {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-                {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-                {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-                {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
             
             # 获取当前CASH并显示,此CASH再次点击start按钮时会更新
@@ -2860,16 +2680,16 @@ class CryptoTrader:
         
         # 异步同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         self._update_status_async('positions', 'up_positions', [
-            {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-            {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-            {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-            {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+            {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+            {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+            {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+            {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
         ])
         self._update_status_async('positions', 'down_positions', [
-            {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-            {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-            {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-            {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+            {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+            {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+            {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+            {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
         ])
         
         self.logger.info("✅ \033[32m设置 YES1-4/NO1-4金额成功\033[0m")
@@ -3219,16 +3039,16 @@ class CryptoTrader:
         # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         try:
             self._update_status_async('positions', 'up_positions', [
-                {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
-                {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
-                {'price': f"{float(self.yes3_price_entry.get()):.0f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
-                {'price': f"{float(self.yes4_price_entry.get()):.0f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
+                {'price': f"{float(self.yes1_price_entry.get()):.2f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
+                {'price': f"{float(self.yes2_price_entry.get()):.2f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
+                {'price': f"{float(self.yes3_price_entry.get()):.2f}", 'amount': f"{float(self.yes3_amount_entry.get()):.2f}"},  # UP3
+                {'price': f"{float(self.yes4_price_entry.get()):.2f}", 'amount': f"{float(self.yes4_amount_entry.get()):.2f}"}   # UP4
             ])
             self._update_status_async('positions', 'down_positions', [
-                {'price': f"{float(self.no1_price_entry.get()):.0f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
-                {'price': f"{float(self.no2_price_entry.get()):.0f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
-                {'price': f"{float(self.no3_price_entry.get()):.0f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
-                {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
+                {'price': f"{float(self.no1_price_entry.get()):.2f}", 'amount': f"{float(self.no1_amount_entry.get()):.2f}"},   # DOWN1
+                {'price': f"{float(self.no2_price_entry.get()):.2f}", 'amount': f"{float(self.no2_amount_entry.get()):.2f}"},   # DOWN2
+                {'price': f"{float(self.no3_price_entry.get()):.2f}", 'amount': f"{float(self.no3_amount_entry.get()):.2f}"},   # DOWN3
+                {'price': f"{float(self.no4_price_entry.get()):.2f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
         except Exception as e:
             self.logger.info("\033[34m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败\033[0m")
@@ -5121,202 +4941,31 @@ class CryptoTrader:
                 self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
 
     def clear_chrome_mem_cache(self):
-        """智能Chrome内存清理机制"""
+        """清理所有孤儿 chromedriver (PPID=1)"""
         try:
-            # 获取系统内存信息
-            memory_info = self._get_system_memory_info()
-            if not memory_info:
-                return
-            
-            available_mb = memory_info['available_mb']
-            chrome_memory_mb = memory_info['chrome_memory_mb']
-            
-            # 动态阈值：可用内存低于512MB 或 Chrome占用超过1GB
-            low_memory_threshold = 512
-            chrome_memory_threshold = 1024
-            
-            should_cleanup = (
-                available_mb < low_memory_threshold or 
-                chrome_memory_mb > chrome_memory_threshold
+            # 获取 chromedriver 的 PID 和 PPID
+            result = subprocess.check_output(
+                "ps -eo pid,ppid,cmd | grep chromedriver | grep -v grep",
+                shell=True,
+                text=True
             )
-            
-            if should_cleanup:
-                self.logger.info(
-                    f"\033[31m内存清理触发: 可用内存{available_mb}MB, Chrome占用{chrome_memory_mb}MB\033[0m"
-                )
-                
-                # 优雅关闭WebDriver
-                self._graceful_close_webdriver()
-                
-                # 强制清理Chrome进程
-                self._force_cleanup_chrome_processes()
-                
-                # 清理Chrome缓存文件
-                self._cleanup_chrome_cache_files()
-                
-                # 发送通知邮件
-                self.send_trade_email(
-                    trade_type=f"内存清理完成: 可用{available_mb}MB, Chrome占用{chrome_memory_mb}MB",
-                    price=self.price,
-                    amount=self.amount,
-                    shares=self.shares,
-                    trade_count=self.buy_count,
-                    cash_value=self.cash_value,
-                    portfolio_value=self.portfolio_value
-                )
-                
-                # 等待进程完全退出后重启浏览器
-                time.sleep(3)
-                self.restart_browser(force_restart=True)
-                
-            else:
-                self.logger.debug(
-                    f"内存状态正常: 可用{available_mb}MB, Chrome占用{chrome_memory_mb}MB"
-                )
-                
-        except Exception as e:
-            self.logger.error(f"❌ Chrome内存清理失败: {str(e)}")
-    
-    def _get_system_memory_info(self):
-        """获取系统内存信息（跨平台）"""
-        try:
-            import psutil
-            
-            # 获取系统内存信息
-            memory = psutil.virtual_memory()
-            available_mb = memory.available // (1024 * 1024)
-            
-            # 获取Chrome进程内存占用
-            chrome_memory_mb = 0
-            for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
-                try:
-                    proc_name = proc.info['name'].lower()
-                    if any(name in proc_name for name in ['chrome', 'chromedriver']):
-                        chrome_memory_mb += proc.info['memory_info'].rss // (1024 * 1024)
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+            killed = []
+            for line in result.splitlines():
+                parts = line.strip().split(maxsplit=2)
+                if len(parts) < 3:
                     continue
-            
-            return {
-                'available_mb': available_mb,
-                'chrome_memory_mb': chrome_memory_mb,
-                'total_mb': memory.total // (1024 * 1024),
-                'used_percent': memory.percent
-            }
-            
-        except ImportError:
-            # 如果没有psutil，使用系统特定的方法
-            return self._get_memory_info_fallback()
-        except Exception as e:
-            self.logger.warning(f"获取内存信息失败: {e}")
-            return None
-    
-    def _get_memory_info_fallback(self):
-        """备用内存信息获取方法"""
-        try:
-            system = platform.system()
-            
-            if system == "Linux":
-                with open('/proc/meminfo', 'r') as f:
-                    for line in f:
-                        if line.startswith('MemAvailable:'):
-                            available_kb = int(line.split()[1])
-                            return {'available_mb': available_kb // 1024, 'chrome_memory_mb': 0}
-            
-            elif system == "Darwin":  # macOS
-                result = subprocess.run(['vm_stat'], capture_output=True, text=True)
-                if result.returncode == 0:
-                    # 简化的macOS内存解析
-                    return {'available_mb': 1024, 'chrome_memory_mb': 0}  # 默认值
-            
-            return {'available_mb': 1024, 'chrome_memory_mb': 0}  # 默认值
-            
-        except Exception as e:
-            self.logger.warning(f"备用内存信息获取失败: {e}")
-            return None
-    
-    def _graceful_close_webdriver(self):
-        """优雅关闭WebDriver"""
-        if hasattr(self, 'driver') and self.driver:
-            try:
-                # 先尝试关闭所有窗口
-                for handle in self.driver.window_handles:
+                pid, ppid, cmd = parts
+                if ppid == "1":  # 孤儿进程
+                    self.logger.info(f"✅ \033[34m[清理] 杀掉遗留 chromedriver: PID={pid}, CMD={cmd}\033[0m")
                     try:
-                        self.driver.switch_to.window(handle)
-                        self.driver.close()
-                    except Exception:
+                        os.kill(int(pid), 9)
+                        killed.append(pid)
+                    except ProcessLookupError:
                         pass
-                
-                # 然后退出WebDriver
-                self.driver.quit()
-                self.logger.info("✅ WebDriver已优雅关闭")
-                
-            except Exception as e:
-                self.logger.warning(f"WebDriver优雅关闭失败: {e}")
-            finally:
-                self.driver = None
-    
-    def _force_cleanup_chrome_processes(self):
-        """强制清理Chrome进程"""
-        try:
-            system = platform.system()
-            
-            if system == "Windows":
-                subprocess.run("taskkill /f /im chrome.exe", shell=True, capture_output=True)
-                subprocess.run("taskkill /f /im chromedriver.exe", shell=True, capture_output=True)
-            elif system == "Darwin":  # macOS
-                subprocess.run("pkill -9 'Google Chrome'", shell=True, capture_output=True)
-                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
-            else:  # Linux
-                subprocess.run("pkill -9 chrome", shell=True, capture_output=True)
-                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
-            
-            self.logger.info("✅ Chrome进程已强制清理")
-            
-        except Exception as e:
-            self.logger.error(f"强制清理Chrome进程失败: {e}")
-    
-    def _cleanup_chrome_cache_files(self):
-        """清理Chrome缓存文件"""
-        try:
-            system = platform.system()
-            cache_paths = []
-            
-            if system == "Windows":
-                cache_paths = [
-                    os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/Cache"),
-                    os.path.expanduser("~/AppData/Local/Google/Chrome/User Data/Default/Code Cache"),
-                ]
-            elif system == "Darwin":  # macOS
-                cache_paths = [
-                    os.path.expanduser("~/Library/Caches/Google/Chrome/Default/Cache"),
-                    os.path.expanduser("~/Library/Application Support/Google/Chrome/Default/Cache"),
-                ]
-            else:  # Linux
-                cache_paths = [
-                    os.path.expanduser("~/.cache/google-chrome/Default/Cache"),
-                    os.path.expanduser("~/.config/google-chrome/Default/Cache"),
-                    os.path.expanduser("~/ChromeDebug/Default/Cache/Cache_Data"),
-                ]
-            
-            cleaned_count = 0
-            for cache_path in cache_paths:
-                if os.path.exists(cache_path):
-                    try:
-                        shutil.rmtree(cache_path)
-                        cleaned_count += 1
-                        self.logger.info(f"✅ 已清理缓存: {cache_path}")
-                    except Exception as e:
-                        self.logger.warning(f"清理缓存失败 {cache_path}: {e}")
-            
-            if cleaned_count > 0:
-                self.logger.info(f"✅ 共清理了 {cleaned_count} 个缓存目录")
-            else:
-                self.logger.info("ℹ️ 未找到需要清理的缓存目录")
-                
-        except Exception as e:
-            self.logger.error(f"清理Chrome缓存失败: {e}")
-
-    # 已删除重复的schedule_record_and_show_cash函数,使用schedule_record_cash_daily代替
+            if not killed:
+                self.logger.info("\033[32m[OK] 没有发现遗留 chromedriver 进程\033[0m")
+        except subprocess.CalledProcessError:
+            self.logger.info("\033[32m[OK] 没有发现 chromedriver 进程\033[0m")
 
     def load_cash_history(self):
         """启动时从CSV加载全部历史记录, 兼容旧4/6列并补齐为7列(日期,Cash,利润,利润率,总利润,总利润率,交易次数)"""
@@ -5855,7 +5504,7 @@ class CryptoTrader:
             str_portfolio_value = str(portfolio_value)
             
             content = f"""
-            交易价格: {price:.0f}¢
+            交易价格: {price:.2f}¢
             交易金额: ${amount:.2f}
             SHARES: {shares}
             当前买入次数: {self.buy_count}
@@ -9056,40 +8705,6 @@ if __name__ == "__main__":
                 print("✅ 日志监听器已关闭")
             except Exception as e:
                 print(f"❌ 日志监听器关闭时出错: {str(e)}")
-        
-        # 关闭WebDriver池中的所有实例
-        if app and hasattr(app, 'webdriver_pool'):
-            try:
-                app.webdriver_pool.close_all()
-                print("✅ WebDriver池已关闭")
-            except Exception as e:
-                print(f"❌ WebDriver池关闭时出错: {str(e)}")
-        
-        # 关闭单独的WebDriver实例（兼容性保留）
-        if app and hasattr(app, 'driver') and app.driver:
-            try:
-                app.driver.quit()
-                print("✅ WebDriver已关闭")
-            except Exception as e:
-                print(f"❌ WebDriver关闭时出错: {str(e)}")
-        
-        # 强制清理所有Chrome和ChromeDriver进程
-        try:
-            import platform
-            import subprocess
-            system = platform.system()
-            if system == "Windows":
-                subprocess.run("taskkill /f /im chrome.exe", shell=True, capture_output=True)
-                subprocess.run("taskkill /f /im chromedriver.exe", shell=True, capture_output=True)
-            elif system == "Darwin":  # macOS
-                subprocess.run("pkill -9 'Google Chrome'", shell=True, capture_output=True)
-                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
-            else:  # Linux
-                subprocess.run("pkill -9 chrome", shell=True, capture_output=True)
-                subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
-            print("✅ Chrome进程已强制清理")
-        except Exception as e:
-            print(f"❌ Chrome进程清理时出错: {str(e)}")
         
         # 关闭HTTP session
         if app and hasattr(app, 'http_session'):
