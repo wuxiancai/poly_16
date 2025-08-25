@@ -8654,61 +8654,66 @@ class CryptoTrader:
             self.memory_monitor_timer.start()
         except Exception as e:
             self.logger.error(f"启动内存监控失败: {e}")
-    
-    def check_memory_usage(self, detailed: bool = False):
-        """检查内存使用情况（Python + ChromeDriver + Chrome），支持详细模式"""
+
+    def check_memory_usage(self):
+        """检查内存使用情况"""
         try:
-            # 1. 当前 Python 主进程
+            # --- 当前 Python 进程 ---
             process = psutil.Process()
-            python_mem = process.memory_info().rss / 1024 / 1024  # MB
+            memory_info = process.memory_info()
+            python_mb = memory_info.rss / 1024 / 1024
 
-            # 2. 全局搜索 chrome/chromedriver 进程
-            chromedriver_mem = 0.0
-            chrome_mem = 0.0
-            details = []
+            # --- Chrome & Chromedriver ---
+            chrome_mb = 0.0
+            chromedriver_mb = 0.0
+            chrome_groups = {"renderer": 0.0, "gpu": 0.0, "browser": 0.0, "utility": 0.0, "other": 0.0}
 
-            for p in psutil.process_iter(['pid', 'name', 'exe', 'memory_info', 'cmdline']):
+            for p in psutil.process_iter(attrs=["pid", "name", "cmdline", "memory_info"]):
                 try:
-                    exe_name = (p.info['name'] or "").lower()
-                    exe_path = os.path.basename(p.info['exe'] or "")
-                    rss_mb = (p.info['memory_info'].rss) / 1024 / 1024
-                    cmdline = " ".join(p.info['cmdline'][:5]) if p.info['cmdline'] else ""
+                    name = p.info["name"]
+                    mem_mb = p.info["memory_info"].rss / 1024 / 1024
 
-                    if "chromedriver" in exe_name or "chromedriver" in exe_path:
-                        chromedriver_mem += rss_mb
-                        if detailed:
-                            details.append(
-                                f"    🟢 Chromedriver PID={p.info['pid']}, MEM={rss_mb:.1f}MB, CMD={cmdline}"
-                            )
-                    elif "chrome" in exe_name or "chrome" in exe_path:
-                        chrome_mem += rss_mb
-                        if detailed:
-                            details.append(
-                                f"    🔵 Chrome PID={p.info['pid']}, MEM={rss_mb:.1f}MB, CMD={cmdline}"
-                            )
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    if not name:
+                        continue
+
+                    # 统计 chromedriver
+                    if "chromedriver" in name.lower():
+                        chromedriver_mb += mem_mb
+
+                    # 统计 chrome
+                    elif "chrome" in name.lower():
+                        chrome_mb += mem_mb
+                        cmdline = " ".join(p.info.get("cmdline") or [])
+
+                        if "--type=renderer" in cmdline:
+                            chrome_groups["renderer"] += mem_mb
+                        elif "--type=gpu-process" in cmdline:
+                            chrome_groups["gpu"] += mem_mb
+                        elif "--type=utility" in cmdline:
+                            chrome_groups["utility"] += mem_mb
+                        elif "--type=browser" in cmdline or "--no-sandbox" in cmdline:
+                            chrome_groups["browser"] += mem_mb
+                        else:
+                            chrome_groups["other"] += mem_mb
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
 
-            total_mem = python_mem + chromedriver_mem + chrome_mem
-            memory_gb = total_mem / 1024
+            total_mb = python_mb + chromedriver_mb + chrome_mb
+            total_gb = total_mb / 1024
 
-            # 总览
+            # --- 打印日志 ---
             self.logger.info(
-                f"📊 \033[34m内存使用情况:\033[0m "
-                f"Python={python_mem:.1f}MB, "
-                f"Chromedriver={chromedriver_mem:.1f}MB, "
-                f"Chrome={chrome_mem:.1f}MB "
-                f"➡️ 总计: \033[31m{total_mem:.1f}MB ({memory_gb:.2f}GB)\033[0m"
+                f"📊 内存使用情况: Python={python_mb:.1f}MB, Chromedriver={chromedriver_mb:.1f}MB, "
+                f"Chrome={chrome_mb:.1f}MB ➡️ 总计: {total_mb:.1f}MB ({total_gb:.2f}GB)"
             )
 
-            # 详细模式：打印每个进程
-            if detailed and details:
-                self.logger.info("🔍 子进程详情:")
-                for d in sorted(details, key=lambda x: float(x.split("MEM=")[1].split("MB")[0]), reverse=True):
-                    self.logger.info(d)
+            if chrome_mb > 0:
+                group_info = ", ".join([f"{k}={v:.1f}MB" for k, v in chrome_groups.items() if v > 0])
+                self.logger.info(f"   🔍 Chrome 内存分布: {group_info}")
 
-            # 阈值检测
-            if memory_gb > self.memory_threshold:
+            # --- 内存阈值检测 ---
+            if total_gb > self.memory_threshold:
                 self.logger.warning(
                     f"⚠️ \033[31m内存使用超过阈值 {self.memory_threshold}GB, 开始清理...\033[0m"
                 )
@@ -8717,10 +8722,10 @@ class CryptoTrader:
             self.last_memory_check = time.time()
 
         except ImportError:
-            self.logger.warning("❌ \033[31mpsutil模块未安装,无法监控内存使用\033[0m")
+            self.logger.warning("❌ psutil模块未安装,无法监控内存使用")
         except Exception as e:
-            self.logger.error(f"\033[31m检查内存使用失败: {e}\033[0m")
-
+            self.logger.error(f"检查内存使用失败: {e}")
+            
     def cleanup_memory(self):
         """清理内存和资源"""
         try:
