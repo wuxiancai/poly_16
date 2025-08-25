@@ -26,6 +26,7 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 import socket
 import sys
+import signal
 import logging
 from xpath_config import XPathConfig
 import random
@@ -1011,6 +1012,21 @@ class CryptoTrader:
             messagebox.showerror("错误", "程序初始化失败,请检查日志文件")
             sys.exit(1)
 
+        # 初始化内存监控
+        self.memory_monitor_enabled = True
+        self.memory_check_interval = 14400  # 4小时检查一次 (14400秒)
+        self.memory_threshold = 3.2  # 内存使用超过3.2GB时触发清理 (提高阈值避免误触发)
+        self.chrome_memory_threshold = 2048  # Chrome内存超过1.5GB时才重启 (提高阈值)
+        self.last_memory_check = time.time()
+        self.memory_monitor_timer = None
+        self.consecutive_high_memory_count = 0  # 连续高内存使用次数
+        self.max_consecutive_count = 2  # 连续2次检测到高内存才触发重启
+        
+        # 启动内存监控
+        if self.memory_monitor_enabled:
+            self.start_memory_monitoring()
+            self.logger.info("✅ \033[34m内存监控系统已启动\033[0m")
+        
         # 打印启动参数
         self.logger.info(f"✅ 初始化成功: {sys.argv}")
       
@@ -1820,8 +1836,8 @@ class CryptoTrader:
         # 12.启动自动Swap检查（每30分钟检查一次）
         self.root.after(100000, self.schedule_auto_use_swap)
 
-        # 13.启动自动清除缓存
-        self.root.after(120000, self.schedule_clear_chrome_mem_cache)
+        # 13.启动自动清除缓存 (已整合到内存监控机制中)
+        # self.root.after(120000, self.schedule_clear_chrome_mem_cache)  # 已移除独立调度
 
         # 14. 启动程序立即获取当前CASH值
         self.root.after(25000, self.get_cash_value)
@@ -1939,6 +1955,8 @@ class CryptoTrader:
         """优化版价格监控 - 动态调整监控频率"""
         base_interval = 0.3  # 基础监控间隔300ms
         error_count = 0
+        memory_check_counter = 0  # 内存检查计数器
+        memory_check_frequency = 10  # 每1000次循环检查一次内存(约5分钟)
         
         while not self.stop_event.is_set():
             try:
@@ -1946,6 +1964,19 @@ class CryptoTrader:
                 
                 self.check_balance()
                 self.check_prices()
+                
+                # 轻量级内存检查 - 避免频繁检查影响性能
+                memory_check_counter += 1
+                if memory_check_counter >= memory_check_frequency:
+                    try:
+                        import psutil
+                        process = psutil.Process()
+                        memory_mb = process.memory_info().rss / 1024 / 1024
+                        if memory_mb > 3000:  # 超过3GB时记录警告
+                            self.logger.warning(f"⚠️ 交易过程中内存使用较高: {memory_mb:.1f}MB")
+                        memory_check_counter = 0  # 重置计数器
+                    except:
+                        pass  # 忽略内存检查错误，不影响交易
                 
                 # 根据执行时间动态调整间隔
                 execution_time = time.time() - start_time
@@ -2028,10 +2059,18 @@ class CryptoTrader:
             # 1. 清理现有连接
             if self.driver:
                 try:
+                    self.logger.info("正在清理旧的WebDriver实例...")
                     self.driver.quit()
-                except Exception:
-                    pass
-                self.driver = None
+                    self.logger.info("✅ 旧WebDriver实例已清理")
+                    # 等待进程完全退出
+                    time.sleep(2)
+                except Exception as e:
+                    self.logger.warning(f"清理旧WebDriver失败: {e}")
+                finally:
+                    self.driver = None
+                    
+            # 额外的进程清理确保没有僵尸进程 - 使用统一的清理方法
+            self.cleanup_orphan_chromedriver()
             
             # 2. 如果需要强制重启,启动新的Chrome进程
             if force_restart:
@@ -2286,11 +2325,9 @@ class CryptoTrader:
             self.schedule_auto_use_swap()
             self.logger.info("✅ 恢复了自动Swap检查定时器")
             
-            # 10.重新启动自动清除缓存
-            if hasattr(self,'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer:
-                self.root.after_cancel(self.clear_chrome_mem_cache_timer)
-            self.clear_chrome_mem_cache()
-            self.logger.info("✅ 恢复了自动清除缓存定时器")
+            # 10.重新启动自动清除缓存 (已整合到内存监控机制中)
+            # 孤儿ChromeDriver清理已整合到内存监控，无需独立定时器
+            self.logger.info("✅ 孤儿进程清理已整合到内存监控机制")
 
             # 智能恢复时间敏感类定时器
             current_time = datetime.now()
@@ -4797,6 +4834,27 @@ class CryptoTrader:
             if self.running and not self.stop_event.is_set():
                  self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)
 
+    def schedule_auto_use_swap(self):
+        """
+        调度自动Swap检查
+        每30分钟执行一次检查
+        """
+        try:
+            # 执行Swap检查
+            self.auto_use_swap()
+            
+            # 只有在定时器未被取消的情况下才设置下一次检查
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
+                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
+            
+        except Exception as e:
+            self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
+            # 即使出错也要设置下一次检查（但要检查定时器状态）
+            if (self.running and not self.stop_event.is_set() and 
+                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
+                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)
+                
     def auto_use_swap(self):
         """
         自动Swap管理功能
@@ -4897,50 +4955,12 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"❌ 自动Swap管理失败: {str(e)}")
 
-    def schedule_auto_use_swap(self):
-        """
-        调度自动Swap检查
-        每30分钟执行一次检查
-        """
-        try:
-            # 执行Swap检查
-            self.auto_use_swap()
-            
-            # 只有在定时器未被取消的情况下才设置下一次检查
-            if (self.running and not self.stop_event.is_set() and 
-                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
-                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)  # 30分钟 = 30 * 60 * 1000毫秒
-            
-        except Exception as e:
-            self.logger.error(f"❌ 调度自动Swap检查失败: {str(e)}")
-            # 即使出错也要设置下一次检查（但要检查定时器状态）
-            if (self.running and not self.stop_event.is_set() and 
-                hasattr(self, 'auto_use_swap_timer') and self.auto_use_swap_timer is not None):
-                self.auto_use_swap_timer = self.root.after(60 * 60 * 1000, self.schedule_auto_use_swap)
+    # schedule_clear_chrome_mem_cache 方法已移除
+    # 孤儿ChromeDriver清理功能已整合到 cleanup_memory() 方法中
+    # 通过内存监控机制统一管理，无需独立的定时器调度
 
-    def schedule_clear_chrome_mem_cache(self):
-        """
-        调度清除Chrome内存缓存
-        每60分钟执行一次检查
-        """
-        try:
-            # 执行清除内存缓存
-            self.clear_chrome_mem_cache()
-            
-            # 只有在定时器未被取消的情况下才设置下一次检查
-            if (self.running and not self.stop_event.is_set() and 
-                hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
-                self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)  # 60分钟 = 60 * 60 * 1000毫秒
-            
-        except Exception as e:
-            self.logger.error(f"❌ 调度清除Chrome内存缓存失败: {str(e)}")
-            # 即使出错也要设置下一次检查（但要检查定时器状态）
-            if (self.running and not self.stop_event.is_set() and 
-                hasattr(self, 'clear_chrome_mem_cache_timer') and self.clear_chrome_mem_cache_timer is not None):
-                self.clear_chrome_mem_cache_timer = self.root.after(60 * 60 * 1000, self.schedule_clear_chrome_mem_cache)
-
-    def clear_chrome_mem_cache(self):
-        """清理所有孤儿 chromedriver (PPID=1)"""
+    def cleanup_orphan_chromedriver(self):
+        """清理所有孤儿 chromedriver 进程 (PPID=1)"""
         try:
             # 获取 chromedriver 的 PID 和 PPID
             result = subprocess.check_output(
@@ -4955,16 +4975,20 @@ class CryptoTrader:
                     continue
                 pid, ppid, cmd = parts
                 if ppid == "1":  # 孤儿进程
-                    self.logger.info(f"✅ \033[34m[清理] 杀掉遗留 chromedriver: PID={pid}, CMD={cmd}\033[0m")
+                    self.logger.info(f"🧹 \033[34m清理孤儿ChromeDriver: PID={pid}, CMD={cmd}\033[0m")
                     try:
                         os.kill(int(pid), 9)
                         killed.append(pid)
                     except ProcessLookupError:
                         pass
-            if not killed:
-                self.logger.info("\033[32m[OK] 没有发现遗留 chromedriver 进程\033[0m")
+            if killed:
+                self.logger.info(f"✅ \033[34m已清理 {len(killed)} 个孤儿ChromeDriver进程\033[0m")
+            else:
+                self.logger.debug("✅ 未发现孤儿ChromeDriver进程")
         except subprocess.CalledProcessError:
-            self.logger.info("\033[32m[OK] 没有发现 chromedriver 进程\033[0m")
+            self.logger.debug("✅ 未发现ChromeDriver进程")
+        except Exception as e:
+            self.logger.error(f"清理孤儿ChromeDriver进程失败: {e}")
 
     def load_cash_history(self):
         """启动时从CSV加载全部历史记录, 兼容旧4/6列并补齐为7列(日期,Cash,利润,利润率,总利润,总利润率,交易次数)"""
@@ -6685,6 +6709,9 @@ class CryptoTrader:
                         
                         // 初始化持仓信息显示
                         updatePositionInfo();
+                        
+                        // 定时刷新持仓信息（每5秒刷新一次）
+                        setInterval(updatePositionInfo, 5000);
                         
                         // 添加URL输入框事件监听器
                         const urlInput = document.getElementById('urlInput');
@@ -8665,9 +8692,152 @@ class CryptoTrader:
                 self.logger.info("日志监听已停止")
             except Exception as e:
                 self.logger.error(f"停止日志监听失败: {e}")
+    
+    def start_memory_monitoring(self):
+        """启动内存监控"""
+        try:
+            self.check_memory_usage()
+            # 设置定时器，每4小时检查一次
+            self.memory_monitor_timer = threading.Timer(self.memory_check_interval, self.start_memory_monitoring)
+            self.memory_monitor_timer.daemon = True
+            self.memory_monitor_timer.start()
+        except Exception as e:
+            self.logger.error(f"启动内存监控失败: {e}")
+    
+    def check_memory_usage(self):
+        """检查内存使用情况"""
+        try:
+            import psutil
+            
+            # 获取当前进程的内存使用情况
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_mb = memory_info.rss / 1024 / 1024  # 转换为MB
+            memory_gb = memory_mb / 1024  # 转换为GB
+            
+            self.logger.info(f"📊 \033[34m当前内存使用: \033[31m{memory_mb:.1f}MB ({memory_gb:.2f}GB)\033[0m\033[0m")
+            
+            # 如果内存使用超过阈值，触发清理
+            if memory_gb > self.memory_threshold:
+                self.logger.warning(f"⚠️ \033[31m内存使用超过阈值 {self.memory_threshold}GB,开始清理...\033[0m")
+                self.cleanup_memory()
+            
+            # 更新最后检查时间
+            self.last_memory_check = time.time()
+            
+        except ImportError:
+            self.logger.warning("❌ \033[31mpsutil模块未安装,无法监控内存使用\033[0m")
+        except Exception as e:
+            self.logger.error(f"\033[31m检查内存使用失败: {e}\033[0m")
+    
+    def cleanup_memory(self):
+        """清理内存和资源"""
+        try:
+            self.logger.info("🧹 开始内存清理...")
+            
+            # 1. 清理元素缓存
+            if hasattr(self, 'element_cache'):
+                self.element_cache.clear()
+                self.logger.info("✅ 已清理元素缓存")
+            
+            # 2. 强制垃圾回收
+            import gc
+            collected = gc.collect()
+            self.logger.info(f"✅ \033[34m垃圾回收完成,回收了 {collected} 个对象\033[0m")
+            
+            # 3. 智能检查Chrome内存使用，避免频繁重启
+            if hasattr(self, 'driver') and self.driver:
+                try:
+                    # 检查Chrome进程的内存使用
+                    import psutil
+                    chrome_memory = 0
+                    chrome_process_count = 0
+                    for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+                        try:
+                            if 'chrome' in proc.info['name'].lower():
+                                chrome_memory += proc.info['memory_info'].rss / 1024 / 1024  # MB
+                                chrome_process_count += 1
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            continue
+                    
+                    self.logger.info(f"📊 Chrome进程数: {chrome_process_count}, 总内存: {chrome_memory:.1f}MB")
+                    
+                    # 使用更严格的条件判断是否需要重启
+                    if chrome_memory > self.chrome_memory_threshold:
+                        self.consecutive_high_memory_count += 1
+                        self.logger.warning(f"⚠️ \033[31mChrome内存使用较高: {chrome_memory:.1f}MB (连续{self.consecutive_high_memory_count}次)\033[0m")
+                        
+                        # 只有连续多次检测到高内存使用才重启
+                        if self.consecutive_high_memory_count >= self.max_consecutive_count:
+                            self.logger.warning(f"🔄 \033[31mChrome内存持续过高，执行重启: {chrome_memory:.1f}MB\033[0m")
+                            self.restart_browser()
+                            self.consecutive_high_memory_count = 0  # 重置计数器
+                    else:
+                        # 内存正常，重置计数器
+                        if self.consecutive_high_memory_count > 0:
+                            self.logger.info(f"✅ \033[34mChrome内存恢复正常: {chrome_memory:.1f}MB (重置计数器)\033[0m")
+                        self.consecutive_high_memory_count = 0
+                        
+                except Exception as e:
+                    self.logger.error(f"检查Chrome内存使用失败: {e}")
+            
+            # 4. 清理孤儿ChromeDriver进程
+            self.cleanup_orphan_chromedriver()
+            
+            self.logger.info("🧹 \033[34m内存清理完成\033[0m")
+            
+        except Exception as e:
+            self.logger.error(f"\033[31m内存清理失败: {e}\033[0m")
+    
+    def stop_memory_monitoring(self):
+        """停止内存监控"""
+        try:
+            if hasattr(self, 'memory_monitor_timer') and self.memory_monitor_timer:
+                self.memory_monitor_timer.cancel()
+                self.memory_monitor_timer = None
+                self.logger.info("✅ 内存监控已停止")
+        except Exception as e:
+            self.logger.error(f"停止内存监控失败: {e}")
+
+def signal_handler(signum, frame):
+    """信号处理器 - 确保程序异常退出时清理WebDriver实例"""
+    global app
+    print(f"✅ \033[34m\n收到信号 {signum}，正在清理资源...\033[0m")
+    
+    if app and hasattr(app, 'driver') and app.driver:
+        try:
+            app.driver.quit()
+            print("✅ \033[34mWebDriver已通过信号处理器关闭\033[0m")
+        except Exception as e:
+            print(f"❌ \033[31m信号处理器关闭WebDriver时出错: {str(e)}\033[0m")
+    
+    # 强制清理Chrome进程
+    try:
+        system = platform.system()
+        if system == "Windows":
+            subprocess.run("taskkill /f /im chrome.exe", shell=True, capture_output=True)
+            subprocess.run("taskkill /f /im chromedriver.exe", shell=True, capture_output=True)
+        elif system == "Darwin":  # macOS
+            subprocess.run("pkill -9 'Google Chrome'", shell=True, capture_output=True)
+            subprocess.run("pkill -9 'chromedriver'", shell=True, capture_output=True)
+        else:  # Linux
+            subprocess.run("pkill -9 chrome", shell=True, capture_output=True)
+            subprocess.run("pkill -9 chromedriver", shell=True, capture_output=True)
+        print("✅ \033[34mChrome进程已强制清理\033[0m")
+    except Exception as e:
+        print(f"❌ \033[31m强制清理Chrome进程时出错: {str(e)}\033[0m")
+    
+    sys.exit(0)
 
 if __name__ == "__main__":
     app = None
+    
+    # 注册信号处理器
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # 终止信号
+    if hasattr(signal, 'SIGHUP'):
+        signal.signal(signal.SIGHUP, signal_handler)   # 挂起信号 (Unix)
+    
     try:
         # 打印启动参数,用于调试
         
@@ -8685,33 +8855,49 @@ if __name__ == "__main__":
         if app and hasattr(app, 'async_email_sender'):
             try:
                 app.async_email_sender.shutdown()
-                print("✅ 邮件发送器已关闭")
+                print("✅ \033[34m邮件发送器已关闭\033[0m")
             except Exception as e:
-                print(f"❌ 邮件发送器关闭时出错: {str(e)}")
+                print(f"❌ \033[31m邮件发送器关闭时出错: {str(e)}\033[0m")
         
         # 关闭异步数据更新器
         if app and hasattr(app, 'async_data_updater'):
             try:
                 app.async_data_updater.shutdown()
-                print("✅ 异步数据更新器已关闭")
+                print("✅ \033[34m异步数据更新器已关闭\033[0m")
             except Exception as e:
-                print(f"❌ 异步数据更新器关闭时出错: {str(e)}")
+                print(f"❌ \033[31m异步数据更新器关闭时出错: {str(e)}\033[0m")
         
         # 关闭日志监听器
         if app and hasattr(app, 'log_observer'):
             try:
                 app.stop_log_monitoring()
-                print("✅ 日志监听器已关闭")
+                print("✅ \033[34m日志监听器已关闭\033[0m")
             except Exception as e:
-                print(f"❌ 日志监听器关闭时出错: {str(e)}")
+                print(f"❌ \033[31m日志监听器关闭时出错: {str(e)}\033[0m")  
+        
+        # 关闭WebDriver实例
+        if app and hasattr(app, 'driver') and app.driver:
+            try:
+                app.driver.quit()
+                print("✅ \033[34mWebDriver已关闭\033[0m")
+            except Exception as e:
+                print(f"❌ \033[31mWebDriver关闭时出错: {str(e)}\033[0m")
+        
+        # 停止内存监控
+        if app and hasattr(app, 'stop_memory_monitoring'):
+            try:
+                app.stop_memory_monitoring()
+                print("✅ \033[34m内存监控已停止\033[0m")
+            except Exception as e:
+                print(f"❌ \033[31m内存监控停止时出错: {str(e)}\033[0m")
         
         # 关闭HTTP session
         if app and hasattr(app, 'http_session'):
             try:
                 app.http_session.close()
-                print("✅ HTTP连接池已关闭")
+                print("✅ \033[34mHTTP连接池已关闭\033[0m")
             except Exception as e:
-                print(f"❌ HTTP连接池关闭时出错: {str(e)}")
+                print(f"❌ \033[31mHTTP连接池关闭时出错: {str(e)}\033[0m")
         
-        print("✅ 程序清理完成")
+        print("✅ \033[34m程序清理完成\033[0m")
     
