@@ -1825,7 +1825,7 @@ class CryptoTrader:
         self.root.after(36000, self.schedule_price_setting)
         
         # 10.启动页面刷新
-        self.refresh_page_timer = self.root.after(40000, self.refresh_page)
+        self.refresh_page_timer = self.root.after(140000, self.refresh_page)
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
         # 11.启动夜间自动卖出检查（每30分钟检查一次）
