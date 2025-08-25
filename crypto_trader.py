@@ -1017,18 +1017,13 @@ class CryptoTrader:
 
         # 初始化内存监控
         self.memory_monitor_enabled = True
-        self.memory_check_interval = 3600  # 4小时检查一次 (14400秒)
+        self.memory_check_interval = 3600  # 1小时检查一次 (14400秒)
         self.memory_threshold = 3.2  # 内存使用超过3.2GB时触发清理 (提高阈值避免误触发)
-        self.chrome_memory_threshold = 2048  # Chrome内存超过1.5GB时才重启 (提高阈值)
+        self.chrome_memory_threshold = 2048  # Chrome内存超过2GB时才重启 (提高阈值)
         self.last_memory_check = time.time()
         self.memory_monitor_timer = None
         self.consecutive_high_memory_count = 0  # 连续高内存使用次数
         self.max_consecutive_count = 2  # 连续2次检测到高内存才触发重启
-        
-        # 启动内存监控
-        if self.memory_monitor_enabled:
-            self.start_memory_monitoring()
-            self.logger.info("✅ \033[34m内存监控系统已启动\033[0m")
         
         # 打印启动参数
         self.logger.info(f"✅ 初始化成功: {sys.argv}")
@@ -1847,7 +1842,12 @@ class CryptoTrader:
         
         # 15.每天 0:30 获取 cash 值并展示历史记录页面
         self.root.after(60000, self.schedule_record_cash_daily)
-           
+
+        # 16.启动内存监控
+        if self.memory_monitor_enabled:
+            self.root.after(65000, self.start_memory_monitoring)
+            
+            
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
         try:
@@ -8644,9 +8644,11 @@ class CryptoTrader:
     
     def start_memory_monitoring(self):
         """启动内存监控"""
+        self.logger.info("✅ \033[34m内存监控系统已启动\033[0m")
+
         try:
             self.check_memory_usage()
-            # 设置定时器，每4小时检查一次
+            # 设置定时器，每1小时检查一次
             self.memory_monitor_timer = threading.Timer(self.memory_check_interval, self.start_memory_monitoring)
             self.memory_monitor_timer.daemon = True
             self.memory_monitor_timer.start()
