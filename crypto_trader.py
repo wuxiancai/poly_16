@@ -2503,9 +2503,10 @@ class CryptoTrader:
                     missing_info.append("Down价格")
                     
                 self.logger.warning(f"数据获取不完整,缺失: {', '.join(missing_info)}")
+
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
-                
+
         except (StaleElementReferenceException, NoSuchElementException) as e:
             self.logger.warning(f"元素引用失效: {str(e)}")
             self.yes_price_label.config(text="Up: Retry")
@@ -4820,7 +4821,6 @@ class CryptoTrader:
                         return
                         
                 available_mb = available_kb // 1024
-                #self.logger.info(f"🔍 当前可用内存: {available_mb} MB")
                 
                 # 判断是否小于阈值
                 if available_kb < THRESHOLD_KB:
@@ -8654,29 +8654,54 @@ class CryptoTrader:
             self.logger.error(f"启动内存监控失败: {e}")
     
     def check_memory_usage(self):
-        """检查内存使用情况"""
-        try:  
-            # 获取当前进程的内存使用情况
-            process = psutil.Process()
+        """检查内存使用情况（Python + ChromeDriver + Chrome）"""
+        try:
+            process = psutil.Process()  # 当前 Python 主进程
             memory_info = process.memory_info()
-            memory_mb = memory_info.rss / 1024 / 1024  # 转换为MB
-            memory_gb = memory_mb / 1024  # 转换为GB
+            python_mem = memory_info.rss / 1024 / 1024  # MB
+
+            # 累加子进程内存
+            chromedriver_mem = 0.0
+            chrome_mem = 0.0
             
-            self.logger.info(f"📊 \033[34m当前内存使用: \033[31m{memory_mb:.1f}MB ({memory_gb:.2f}GB)\033[0m\033[0m")
-            
-            # 如果内存使用超过阈值，触发清理
+            for child in process.children(recursive=True):
+                try:
+                    cmdline = " ".join(child.cmdline())
+                    rss_mb = child.memory_info().rss / 1024 / 1024
+                    if "chromedriver" in cmdline:
+                        chromedriver_mem += rss_mb
+                    elif "chrome" in cmdline:
+                        chrome_mem += rss_mb
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+
+            total_mem = python_mem + chromedriver_mem + chrome_mem
+            memory_gb = total_mem / 1024
+
+            # 日志输出
+            self.logger.info(
+                f"📊 \033[34m内存使用情况:\033[0m "
+                f"Python={python_mem:.1f}MB, "
+                f"Chromedriver={chromedriver_mem:.1f}MB, "
+                f"Chrome={chrome_mem:.1f}MB "
+                f"➡️ 总计: \033[31m{total_mem:.1f}MB ({memory_gb:.2f}GB)\033[0m"
+            )
+
+            # 如果超过阈值，触发清理
             if memory_gb > self.memory_threshold:
-                self.logger.warning(f"⚠️ \033[31m内存使用超过阈值 {self.memory_threshold}GB,开始清理...\033[0m")
+                self.logger.warning(
+                    f"⚠️ \033[31m内存使用超过阈值 {self.memory_threshold}GB, 开始清理...\033[0m"
+                )
                 self.cleanup_memory()
-            
-            # 更新最后检查时间
+
+            # 更新时间
             self.last_memory_check = time.time()
-            
+
         except ImportError:
             self.logger.warning("❌ \033[31mpsutil模块未安装,无法监控内存使用\033[0m")
         except Exception as e:
             self.logger.error(f"\033[31m检查内存使用失败: {e}\033[0m")
-    
+        
     def cleanup_memory(self):
         """清理内存和资源"""
         try:
