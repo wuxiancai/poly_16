@@ -8655,32 +8655,44 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"启动内存监控失败: {e}")
     
-    def check_memory_usage(self):
-        """检查内存使用情况（Python + ChromeDriver + Chrome）"""
+    def check_memory_usage(self, detailed: bool = False):
+        """检查内存使用情况（Python + ChromeDriver + Chrome），支持详细模式"""
         try:
-            process = psutil.Process()  # 当前 Python 主进程
-            memory_info = process.memory_info()
-            python_mem = memory_info.rss / 1024 / 1024  # MB
+            import psutil, os
 
-            # 累加子进程内存
+            process = psutil.Process()  # 当前 Python 主进程
+            python_mem = process.memory_info().rss / 1024 / 1024  # MB
+
             chromedriver_mem = 0.0
             chrome_mem = 0.0
-            
+
+            details = []  # 保存详细信息
+
             for child in process.children(recursive=True):
                 try:
-                    cmdline = " ".join(child.cmdline())
+                    exe_name = os.path.basename(child.exe())  # 可执行文件名
                     rss_mb = child.memory_info().rss / 1024 / 1024
-                    if "chromedriver" in cmdline:
+                    cmdline = " ".join(child.cmdline()[:5])  # 取前 5 个参数，避免太长
+
+                    if "chromedriver" in exe_name.lower():
                         chromedriver_mem += rss_mb
-                    elif "chrome" in cmdline:
+                        if detailed:
+                            details.append(
+                                f"    🟢 Chromedriver PID={child.pid}, MEM={rss_mb:.1f}MB, CMD={cmdline}"
+                            )
+                    elif "chrome" in exe_name.lower():
                         chrome_mem += rss_mb
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        if detailed:
+                            details.append(
+                                f"    🔵 Chrome PID={child.pid}, MEM={rss_mb:.1f}MB, CMD={cmdline}"
+                            )
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
 
             total_mem = python_mem + chromedriver_mem + chrome_mem
             memory_gb = total_mem / 1024
 
-            # 日志输出
+            # 总览
             self.logger.info(
                 f"📊 \033[34m内存使用情况:\033[0m "
                 f"Python={python_mem:.1f}MB, "
@@ -8689,21 +8701,26 @@ class CryptoTrader:
                 f"➡️ 总计: \033[31m{total_mem:.1f}MB ({memory_gb:.2f}GB)\033[0m"
             )
 
-            # 如果超过阈值，触发清理
+            # 打印详细模式
+            if detailed and details:
+                self.logger.info("🔍 子进程详情:")
+                for d in details:
+                    self.logger.info(d)
+
+            # 阈值检测
             if memory_gb > self.memory_threshold:
                 self.logger.warning(
                     f"⚠️ \033[31m内存使用超过阈值 {self.memory_threshold}GB, 开始清理...\033[0m"
                 )
                 self.cleanup_memory()
 
-            # 更新时间
             self.last_memory_check = time.time()
 
         except ImportError:
             self.logger.warning("❌ \033[31mpsutil模块未安装,无法监控内存使用\033[0m")
         except Exception as e:
             self.logger.error(f"\033[31m检查内存使用失败: {e}\033[0m")
-        
+            
     def cleanup_memory(self):
         """清理内存和资源"""
         try:
