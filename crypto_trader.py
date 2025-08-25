@@ -1242,7 +1242,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        up_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
+                        up_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         up_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -1257,7 +1257,7 @@ class CryptoTrader:
                     try:
                         price = float(price_entry.get() or '0')
                         amount = float(amount_entry.get() or '0')
-                        down_positions.append({'price': f"{price:.2f}", 'amount': f"{amount:.2f}"})
+                        down_positions.append({'price': f"{price:.0f}", 'amount': f"{amount:.2f}"})
                     except ValueError:
                         down_positions.append({'price': "0.00", 'amount': "0.00"})
                 else:
@@ -5503,7 +5503,7 @@ class CryptoTrader:
             str_portfolio_value = str(portfolio_value)
             
             content = f"""
-            交易价格: {price:.2f}¢
+            交易价格: {price:.0f}¢
             交易金额: ${amount:.2f}
             SHARES: {shares}
             当前买入次数: {self.buy_count}
