@@ -3014,6 +3014,23 @@ class CryptoTrader:
         except Exception as e:
             self.logger.info("\033[34m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败\033[0m")
 
+    def reset_up_down_price_0(self, trade_no: int):
+        """
+        重置指定交易编号的 YES/NO 输入框为 "0"
+        trade_no: 交易编号（1,2,3,4,...）
+        """
+        yes_entry = getattr(self, f"yes{trade_no}_price_entry")
+        no_entry  = getattr(self, f"no{trade_no}_price_entry")
+
+        # 重置 YES 输入框
+        yes_entry.delete(0, tk.END)
+        yes_entry.insert(0, "0")
+        yes_entry.configure(foreground='black')
+
+        no_entry.delete(0, tk.END)
+        no_entry.insert(0, "0")
+        no_entry.configure(foreground='black')
+
     def First_trade(self, up_price, down_price):
         """第一次交易价格设置为 0.54 买入,最多重试3次,失败发邮件"""
         try:
@@ -3044,12 +3061,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
 
                             # 重置Up1和Down1价格为0
-                            self.yes1_price_entry.configure(foreground='black')
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, "0")
-                            self.no1_price_entry.configure(foreground='black')
-                            self.no1_price_entry.delete(0, tk.END)
-                            self.no1_price_entry.insert(0, "0")
+                            self.reset_up_down_price_0(1)
                             
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
@@ -3127,12 +3139,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
 
                             # 重置Up1和Down1价格为0
-                            self.yes1_price_entry.delete(0, tk.END)
-                            self.yes1_price_entry.insert(0, "0")
-                            self.yes1_price_entry.configure(foreground='black')
-                            self.no1_price_entry.delete(0, tk.END)
-                            self.no1_price_entry.insert(0, "0")
-                            self.no1_price_entry.configure(foreground='black')
+                            self.reset_up_down_price_0(1)
                             
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
@@ -3222,12 +3229,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
-                            self.yes2_price_entry.delete(0, tk.END)
-                            self.yes2_price_entry.insert(0, "0")
-                            self.yes2_price_entry.configure(foreground='black')
-                            self.no2_price_entry.delete(0, tk.END)
-                            self.no2_price_entry.insert(0, "0")
-                            self.no2_price_entry.configure(foreground='black')
+                            self.reset_up_down_price_0(2)
                             
                             # 卖出DOWN
                             self.only_sell_down()
@@ -3302,12 +3304,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
-                            self.yes2_price_entry.delete(0, tk.END)
-                            self.yes2_price_entry.insert(0, "0")
-                            self.yes2_price_entry.configure(foreground='black')
-                            self.no2_price_entry.delete(0, tk.END)
-                            self.no2_price_entry.insert(0, "0")
-                            self.no2_price_entry.configure(foreground='black')
+                            self.reset_up_down_price_0(2)
                             
                             # 卖出UP
                             self.only_sell_up()
@@ -3398,13 +3395,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
-                            self.yes3_price_entry.delete(0, tk.END)
-                            self.yes3_price_entry.insert(0, "0")
-                            self.yes3_price_entry.configure(foreground='black')
-                            self.no3_price_entry.delete(0, tk.END)
-                            self.no3_price_entry.insert(0, "0")
-                            self.no3_price_entry.configure(foreground='black')
-                            #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
+                            self.reset_up_down_price_0(3)
 
                             # 卖出DOWN
                             self.only_sell_down()
@@ -3482,13 +3473,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
-                            self.yes3_price_entry.delete(0, tk.END)
-                            self.yes3_price_entry.insert(0, "0")
-                            self.yes3_price_entry.configure(foreground='black')
-                            self.no3_price_entry.delete(0, tk.END)
-                            self.no3_price_entry.insert(0, "0")
-                            self.no3_price_entry.configure(foreground='black')
-                            #self.logger.info(f"\033[34m✅ Yes3和No3价格已重置为0\033[0m")
+                            self.reset_up_down_price_0(3)
 
                             # 卖出UP
                             self.only_sell_up()
@@ -3580,13 +3565,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 设置 YES4/No4的价格为0
-                            self.no4_price_entry.delete(0, tk.END)
-                            self.no4_price_entry.insert(0, "0") 
-                            self.no4_price_entry.configure(foreground='black')
-                            self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, "0") 
-                            self.yes4_price_entry.configure(foreground='black')
-                            #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
+                            self.reset_up_down_price_0(4)
 
                             # 卖出DOWN
                             self.only_sell_down()
@@ -3664,13 +3643,7 @@ class CryptoTrader:
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 设置 YES4/No4的价格为0
-                            self.no4_price_entry.delete(0, tk.END)
-                            self.no4_price_entry.insert(0, "0") 
-                            self.no4_price_entry.configure(foreground='black')
-                            self.yes4_price_entry.delete(0, tk.END)
-                            self.yes4_price_entry.insert(0, "0") 
-                            self.yes4_price_entry.configure(foreground='black')
-                            #self.logger.info(f"✅ \033[34mYES4/No4价格已重置为0\033[0m")
+                            self.reset_up_down_price_0(4)
 
                             # 卖出UP
                             self.only_sell_up()
@@ -3837,6 +3810,7 @@ class CryptoTrader:
             for attempt in range(2):
                 # 计时
                 start_time = time.time()
+
                 max_wait_time = 4  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
 
@@ -8702,15 +8676,9 @@ class CryptoTrader:
             total_mb = python_mb + chromedriver_mb + chrome_mb
             total_gb = total_mb / 1024
 
-            # --- 打印日志 ---
-            self.logger.info(
-                f"📊 \033[34m内存使用情况: \033[0mPython=\033[31m{python_mb:.1f}MB,\033[0m Chromedriver=\033[31m{chromedriver_mb:.1f}MB\033[0m, "
-                f"Chrome=\033[31m{chrome_mb:.1f}MB\033[0m ➡️ 总计: \033[31m{total_mb:.1f}MB ({total_gb:.2f}GB)\033[0m"
-            )
-
             if chrome_mb > 0:
                 group_info = ", ".join([f"{k}={v:.1f}MB" for k, v in chrome_groups.items() if v > 0])
-                self.logger.info(f"🔍 \033[34mChrome 内存分布: {group_info}\033[0m")
+                # self.logger.info(f"🔍 \033[34mChrome 内存分布: {group_info}\033[0m,\033[0m ➡️ 总计: \033[31m{total_mb:.1f}MB ({total_gb:.2f}GB)\033[0m")
 
             # --- 内存阈值检测 ---
             if total_gb > self.memory_threshold:
