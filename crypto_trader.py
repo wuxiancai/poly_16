@@ -826,11 +826,11 @@ class CryptoTrader:
         self.is_restarting = False  # 重启状态标志
 
         # 初始化本金
-        self.initial_amount = 0.4
-        self.first_rebound = 127
-        self.n_rebound = 127
-        self.profit_rate = 1
-        self.doubling_weeks = 60
+        self.initial_amount = 0.65
+        self.first_rebound = 190
+        self.n_rebound = 122
+        self.profit_rate = 1.4
+        self.doubling_weeks = 48
 
         # 交易次数
         self.trade_count = 22
