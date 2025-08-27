@@ -1433,10 +1433,10 @@ class CryptoTrader:
 
         # 设置金额配置
         settings_items = [
-            ("Initial", "initial_amount_entry", self.initial_amount, 3),
+            ("Initial", "initial_amount_entry", self.initial_amount, 4),
             ("Turn-1", "first_rebound_entry", self.first_rebound, 3),
             ("Turn-N", "n_rebound_entry", self.n_rebound, 3),
-            ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 3)
+            ("Margin", "profit_rate_entry", f"{self.profit_rate}%", 4)
         ]
         
         for i, (label_text, entry_attr, default_value, width) in enumerate(settings_items):
