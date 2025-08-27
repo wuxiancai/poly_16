@@ -2817,11 +2817,9 @@ class CryptoTrader:
                         self.use_x_y_click_google_login_button()
                     
                     # 不再固定等待15秒,而是循环检测CASH值
-                    max_attempts = 20 # 最多检测20次
-                    check_interval = 1 # 每1秒检测一次
                     cash_value = None
                     
-                    for attempt in range(max_attempts):
+                    for attempt in range(20):
                         try:
                             # 获取CASH值
                             try:
@@ -2834,21 +2832,15 @@ class CryptoTrader:
                                 self.logger.info(f"✅ 已找到CASH值: {cash_value}, 登录成功.")
                                 self.driver.get(self.url_entry.get().strip())
                                 time.sleep(2)
-                                break
+                                self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
+                                self.refresh_page_timer = self.root.after(120000, self.refresh_page)  # 优化为2分钟
+                                self.logger.info("✅ \033[34m已重新启用URL监控和页面刷新\033[0m")
+                                return True
                             
                         except NoSuchElementException:
                             self.logger.info(f"⏳ 第{attempt+1}次尝试: 等待登录完成...")                       
                         # 等待指定时间后再次检测
-                        time.sleep(check_interval)
-
-                    self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
-                    self.refresh_page_timer = self.root.after(120000, self.refresh_page)  # 优化为2分钟
-                    self.logger.info("✅ \033[34m已重新启用URL监控和页面刷新\033[0m")
-                    return True
-
-        except NoSuchElementException as e:
-            # 未找到登录按钮,可能已经登录
-            self.logger.debug(f"未找到登录按钮,可能已经登录: {str(e)}")
+                        time.sleep(1)
         except Exception as e:
             # 处理其他所有异常
             self.logger.error(f"登录监控过程中发生错误: {str(e)}")
@@ -3892,7 +3884,8 @@ class CryptoTrader:
 
             # 计时
             start_time = time.perf_counter()
-            # 点击确认按钮
+
+            # 点击买入确认按钮
             try:
                 buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
                 buy_confirm_button.click()
@@ -3909,6 +3902,7 @@ class CryptoTrader:
 
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
+            
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
             self.click_buy_up_button()
 
