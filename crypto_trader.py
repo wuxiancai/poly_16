@@ -2502,7 +2502,7 @@ class CryptoTrader:
                 if prices['down'] is None:
                     missing_info.append("Down价格")
                     
-                self.logger.warning(f"数据获取不完整,缺失: {', '.join(missing_info)}")
+              
 
                 self.yes_price_label.config(text="Up: N/A")
                 self.no_price_label.config(text="Down: N/A")
@@ -4108,7 +4108,7 @@ class CryptoTrader:
         now = datetime.now()
 
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=0, minute=10, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=2, second=0, microsecond=0)
 
         if now >= next_run:
             next_run += timedelta(days=1)
@@ -4125,7 +4125,7 @@ class CryptoTrader:
         try:
             # 第一步:先点击 CRYPTO 按钮
             try:
-                crypto_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
+                crypto_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
                 crypto_button.click()
                 self.logger.info(f"✅ 成功点击CRYPTO按钮")
 
@@ -4139,7 +4139,7 @@ class CryptoTrader:
 
             # 第二步:点击 DAILY 按钮
             try:
-                daily_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.DAILY_BUTTON[0])))
+                daily_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.DAILY_BUTTON[0])))
                 daily_button.click()
                 self.logger.info(f"✅ 成功点击DAILY按钮")
 
@@ -4295,7 +4295,7 @@ class CryptoTrader:
         now = datetime.now()
         self.logger.info(f"当前时间: {now}")
         # 计算下一个指定时间的时间点
-        next_run = now.replace(hour=0, minute=15, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=10, second=0, microsecond=0)
         self.logger.info(f"获取 0 点 CASH 值下次执行时间: {next_run}")
         if now >= next_run:
             next_run += timedelta(days=1)
