@@ -2835,14 +2835,16 @@ class CryptoTrader:
                                 self.driver.get(self.url_entry.get().strip())
                                 time.sleep(2)
                                 break
+                            
                         except NoSuchElementException:
                             self.logger.info(f"⏳ 第{attempt+1}次尝试: 等待登录完成...")                       
                         # 等待指定时间后再次检测
                         time.sleep(check_interval)
 
                     self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
-                    self.refresh_page_timer = self.root.after(360000, self.refresh_page)  # 优化为6分钟
-                    self.logger.info("✅ 已重新启用URL监控和页面刷新")
+                    self.refresh_page_timer = self.root.after(120000, self.refresh_page)  # 优化为2分钟
+                    self.logger.info("✅ \033[34m已重新启用URL监控和页面刷新\033[0m")
+                    return True
 
         except NoSuchElementException as e:
             # 未找到登录按钮,可能已经登录
@@ -3719,7 +3721,8 @@ class CryptoTrader:
             self.click_buy_sell_confirm_button()
 
             # 点击I Accept按钮
-            self.click_i_accept_button()
+            if self.start_login_monitoring():
+                self.click_i_accept_button()
 
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
             self.click_buy_button()
@@ -3763,7 +3766,8 @@ class CryptoTrader:
             self.click_buy_sell_confirm_button()
 
             # 点击I Accept按钮
-            self.click_i_accept_button()
+            if self.start_login_monitoring():
+                self.click_i_accept_button()
 
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
             self.click_buy_up_button()
@@ -3900,14 +3904,9 @@ class CryptoTrader:
             self.logger.info(f"✅ \033[34m点击买入确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 处理可能的ACCEPT弹窗
-            try:
-                accept_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
-                )
-                accept_button.click()
-                self.logger.info("✅ \033[34mACCEPT弹窗点击完成\033[0m")
-            except TimeoutException:
-                pass
+            if self.start_login_monitoring():
+                self.click_i_accept_button()
+
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
@@ -3947,17 +3946,9 @@ class CryptoTrader:
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ \033[34m点击卖出确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
-            # 等待ACCEPT弹窗出现
-            try:
-                accept_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.ACCEPT_BUTTON[0]))
-                )
-
-                if accept_button:
-                    accept_button.click()    
-            except TimeoutException:
-                self.logger.info("❌ 没有ACCEPT弹窗出现,跳过")
-                pass  # 弹窗没出现,不用处理
+            # 处理 I ACCEPT弹窗
+            if self.start_login_monitoring():
+                self.click_i_accept_button()
 
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
@@ -4066,7 +4057,7 @@ class CryptoTrader:
         
         # 价格设置完成后,重新安排下一次的价格设置定时任务
         # 使用schedule_price_setting确保与GUI时间选择保持一致
-        self.logger.info("🔄 价格设置完成,重新安排下一次定时任务")
+        self.logger.info("✅ \033[34m价格设置完成,重新安排下一次定时任务\033[0m")
         self.schedule_price_setting()
         
     def get_selected_time(self):
@@ -4670,8 +4661,6 @@ class CryptoTrader:
                 
                 # 检查交易次数是否小于等于14
                 if self.trade_count <= 14:
-                    self.logger.info(f"✅ 交易次数 {self.trade_count} <= 14,执行夜间自动卖出仓位")
-                    
                     # 执行卖出仓位操作
                     self.sell_up_down_operation()
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
@@ -5285,7 +5274,6 @@ class CryptoTrader:
                 self.logger.info("✅ 点击了ACCEPT按钮")
                 
         except TimeoutException:
-            
             pass  # 弹窗没出现,不用处理
 
     def click_buy_button(self):
