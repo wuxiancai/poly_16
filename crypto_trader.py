@@ -804,7 +804,7 @@ class CryptoTrader:
 
         # 添加登录状态监控定时器
         self.login_check_timer = None
-        
+        self.no_i_accept_button = False
         self.get_zero_time_cash_timer = None
         self.get_binance_zero_time_price_timer = None
         self.get_binance_price_websocket_timer = None
@@ -2835,6 +2835,7 @@ class CryptoTrader:
                                 self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
                                 self.refresh_page_timer = self.root.after(120000, self.refresh_page)  # 优化为2分钟
                                 self.logger.info("✅ \033[34m已重新启用URL监控和页面刷新\033[0m")
+                                self.no_i_accept_button = True
                                 return True
                             
                         except NoSuchElementException:
@@ -3713,7 +3714,7 @@ class CryptoTrader:
             self.click_buy_sell_confirm_button()
 
             # 点击I Accept按钮
-            if self.start_login_monitoring():
+            if self.no_i_accept_button:
                 self.click_i_accept_button()
 
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
@@ -3758,15 +3759,15 @@ class CryptoTrader:
             self.click_buy_sell_confirm_button()
 
             # 点击I Accept按钮
-            if self.start_login_monitoring():
+            if self.no_i_accept_button:
                 self.click_i_accept_button()
 
             # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
             self.click_buy_up_button()
             self.click_buy_button()
+
             # 计时结束
             elapsed = time.perf_counter() - start_time
-
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
             if self.verify_trade('Sold', 'Down')[0]:
@@ -3897,7 +3898,7 @@ class CryptoTrader:
             self.logger.info(f"✅ \033[34m点击买入确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 处理可能的ACCEPT弹窗
-            if self.start_login_monitoring():
+            if self.no_i_accept_button:
                 self.click_i_accept_button()
 
             # 计时结束
@@ -3941,7 +3942,7 @@ class CryptoTrader:
             self.logger.info(f"✅ \033[34m点击卖出确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
 
             # 处理 I ACCEPT弹窗
-            if self.start_login_monitoring():
+            if self.no_i_accept_button:
                 self.click_i_accept_button()
 
             # 计时结束
@@ -5178,9 +5179,13 @@ class CryptoTrader:
     def click_buy_confirm_button(self):
         """点击买入确认按钮 """
         try:
+            start_time = time.perf_counter()
+
             buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
             buy_confirm_button.click()
-            self.logger.info("✅ 点击了buy_confirm_button按钮")
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(f"✅ 点击了buy_confirm_button按钮\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+
         except Exception as e:
             self.logger.error(f"❌ 点击buy_confirm_button按钮失败: {str(e)}")
     
@@ -5206,7 +5211,6 @@ class CryptoTrader:
             positions_sell_up_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_UP_BUTTON[0])
             positions_sell_up_button.click()
 
-            self.logger.info("✅ 点击了position_sell_up按钮")
         except Exception as e:
             try:
                 positions_sell_up_button = self._find_element_with_retry(
@@ -5231,7 +5235,7 @@ class CryptoTrader:
 
             sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
             sell_confirm_button.click()
-            self.logger.info("✅ 点击了sell_confirm按钮")
+            
         except Exception as e:
             try:
                 sell_confirm_button = self._find_element_with_retry(
