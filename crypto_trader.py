@@ -4217,7 +4217,7 @@ class CryptoTrader:
                 elif coin == 'SOL':
                     card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
                 
-            except NoSuchElementException:
+            except (NoSuchElementException, StaleElementReferenceException):
                 try:
                     if coin == 'BTC':
                         card = self._find_element_with_retry(XPathConfig.SEARCH_BTC_BUTTON,timeout=3,silent=True)
