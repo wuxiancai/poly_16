@@ -879,7 +879,7 @@ class CryptoTrader:
 
         # 添加交易次数计数器
         self.buy_count = 0
-        self.sell_count = 0 
+        self.sell_count = 0
         self.reset_trade_count = 0
 
         # 买入价格冗余
@@ -1788,9 +1788,6 @@ class CryptoTrader:
             
         # 将"开始监控"文字变为红色
         self.start_button.configure(style='Red.TButton')
-        
-        # 重置交易次数计数器
-        self.buy_count = 0
 
         # 启动浏览器作线程
         threading.Thread(target=self._start_browser_monitoring, args=(target_url,), daemon=True).start()
@@ -2636,6 +2633,16 @@ class CryptoTrader:
             self.no4_amount_entry.delete(0, tk.END)
             self.no4_amount_entry.insert(0, f"{self.yes4_amount:.2f}")
 
+            # 先定义 up1-4 金额
+            self.up1_amount = float(self.yes1_amount_entry.get())
+            self.up2_amount = float(self.yes2_amount_entry.get())
+            self.up3_amount = float(self.yes3_amount_entry.get())
+            self.up4_amount = float(self.yes4_amount_entry.get())
+            self.down1_amount = float(self.no1_amount_entry.get())
+            self.down2_amount = float(self.no2_amount_entry.get())
+            self.down3_amount = float(self.no3_amount_entry.get())
+            self.down4_amount = float(self.no4_amount_entry.get())
+
             self._update_status_async('positions', 'up_positions', [
                 {'price': f"{float(self.yes1_price_entry.get()):.0f}", 'amount': f"{float(self.yes1_amount_entry.get()):.2f}"},  # UP1
                 {'price': f"{float(self.yes2_price_entry.get()):.0f}", 'amount': f"{float(self.yes2_amount_entry.get()):.2f}"},  # UP2
@@ -2686,6 +2693,16 @@ class CryptoTrader:
         self.yes4_amount_entry.insert(0, f"{yes4_amount:.2f}")
         self.no4_amount_entry.delete(0, tk.END)
         self.no4_amount_entry.insert(0, f"{yes4_amount:.2f}")
+        
+        # 定义 up1-4 金额
+        self.up1_amount = float(self.yes1_amount_entry.get())
+        self.up2_amount = float(self.yes2_amount_entry.get())
+        self.up3_amount = float(self.yes3_amount_entry.get())
+        self.up4_amount = float(self.yes4_amount_entry.get())
+        self.down1_amount = float(self.no1_amount_entry.get())
+        self.down2_amount = float(self.no2_amount_entry.get())
+        self.down3_amount = float(self.no3_amount_entry.get())
+        self.down4_amount = float(self.no4_amount_entry.get())
         
         # 异步同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         self._update_status_async('positions', 'up_positions', [
@@ -3032,35 +3049,34 @@ class CryptoTrader:
             if (up_price is not None and up_price > 10) and (down_price is not None and down_price > 10):
                 yes1_price = float(self.yes1_price_entry.get())
                 no1_price = float(self.no1_price_entry.get())
-                self.trading = True
 
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
+                    self.trading = True
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[34m{self.buy_count+1}\033[0m次买入\033[0m")
                 
                         # 计时开始
                         start_time = time.perf_counter()
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
                         # 买入 UP1
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes1_amount_entry
-                        self.buy_operation(self.yes1_amount_entry.get())
+                        self.buy_operation(self.up1_amount)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
 
-                            # 重置Up1和Down1价格为0
+                            # 重置Up1和Down1价格为0,参数为价格编号
                             self.reset_up_down_price_0(1)
                             
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
-                                # 因为不会双持仓,所以不用判断卖 UP 还是卖 DOWN,直接卖点击 SELL 卖出仓位
                                 self.only_sell_down()
 
                             # 设置No2价格为str(self.default_target_price)
@@ -3116,7 +3132,7 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count+1}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
@@ -3126,7 +3142,7 @@ class CryptoTrader:
                         self.click_buy_down_button()
 
                         # 传 Tkinter 的 AmountEntry 对象,比如 self.no1_amount_entry
-                        self.buy_operation(self.no1_amount_entry.get())
+                        self.buy_operation(self.down1_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             # 计时结束
@@ -3138,7 +3154,6 @@ class CryptoTrader:
                             
                             # 第一次买 UP1,不用卖出 DOWN
                             if self.trade_count < 22:
-                                # 因为不会双持仓,所以不用判断卖 UP 还是卖 DOWN,直接卖点击 SELL 卖出仓位
                                 self.only_sell_up()
 
                             # 设置Yes2价格为str(self.default_target_price)
@@ -3201,10 +3216,11 @@ class CryptoTrader:
                 # 获Yes2和No2的价格输入框
                 yes2_price = float(self.yes2_price_entry.get())
                 no2_price = float(self.no2_price_entry.get())
-                self.trading = True
-
+                
                 # 检查Yes2价格匹配
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
+                    self.trading = True
+
                     for retry in range(3):
                         # 计时开始
                         start_time = time.perf_counter()
@@ -3215,8 +3231,8 @@ class CryptoTrader:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes2_amount_entry
-                        self.buy_operation(self.yes2_amount_entry.get())
+                        # 执行买入 UP2 操作
+                        self.buy_operation(self.up2_amount)
                         
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 计时结束
@@ -3290,8 +3306,8 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_down_button()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no2_amount_entry
-                        self.buy_operation(self.no2_amount_entry.get())
+                        # 执行买入 DOWN2 操作
+                        self.buy_operation(self.down2_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             # 计时结束
@@ -3366,10 +3382,11 @@ class CryptoTrader:
                 # 获取Yes3和No3的价格输入框
                 yes3_price = float(self.yes3_price_entry.get())
                 no3_price = float(self.no3_price_entry.get())
-                self.trading = True  # 开始交易
-            
+                
                 # 检查Yes3价格匹配
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
+                    self.trading = True  # 开始交易
+            
                     for retry in range(3):
                         # 计时开始
                         start_time = time.perf_counter()
@@ -3380,8 +3397,8 @@ class CryptoTrader:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes3_amount_entry
-                        self.buy_operation(self.yes3_amount_entry.get())
+                        # 执行买入 UP3 操作
+                        self.buy_operation(self.up3_amount)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
@@ -3459,8 +3476,8 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_down_button()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no3_amount_entry
-                        self.buy_operation(self.no3_amount_entry.get())
+                        # 执行买入 DOWN3 操作
+                        self.buy_operation(self.down3_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
                             # 计时结束
@@ -3537,10 +3554,11 @@ class CryptoTrader:
                 # 获取Yes4和No4的价格输入框
                 yes4_price = float(self.yes4_price_entry.get())
                 no4_price = float(self.no4_price_entry.get())
-                self.trading = True  # 开始交易
-            
+                
                 # 检查Yes4价格匹配
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
+                    self.trading = True  # 开始交易
+            
                     for retry in range(3):
                         # 计时开始
                         start_time = time.perf_counter()
@@ -3551,8 +3569,8 @@ class CryptoTrader:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.yes4_amount_entry
-                        self.buy_operation(self.yes4_amount_entry.get())
+                        # 执行买入 UP4 操作
+                        self.buy_operation(self.up4_amount)
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 计时结束
@@ -3629,8 +3647,8 @@ class CryptoTrader:
                         # 执行交易操作
                         self.click_buy_down_button()
 
-                        # 传 Tkinter 的 AmountEntry 对象,比如 self.no4_amount_entry
-                        self.buy_operation(self.no4_amount_entry.get())
+                        # 执行买入 DOWN4 操作
+                        self.buy_operation(self.down4_amount)
  
                         if self.verify_trade('Bought', 'Down')[0]:
                             # 计时结束
@@ -3842,13 +3860,14 @@ class CryptoTrader:
                                 elapsed = time.perf_counter() - start_time_count
                                 self.logger.info(f"\033[34m交易验证耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
-                                # 同步交易验证信息到StatusDataManager
-                                self.status_data.update_data('trading', 'trade_verification', {
-                                    'direction': direction,
-                                    'shares': self.shares,
-                                    'price': self.price,
-                                    'amount': self.amount
-                                })
+                                # 如果是买入(Bought),同步交易验证信息到StatusDataManager
+                                if action_type == 'Bought':
+                                    self.status_data.update_data('trading', 'trade_verification', {
+                                        'direction': direction,
+                                        'shares': self.shares,
+                                        'price': self.price,
+                                        'amount': self.amount
+                                    })
                                 
                                 return True, self.price, self.amount, self.shares  
 
@@ -3867,7 +3886,7 @@ class CryptoTrader:
     def buy_operation(self, amount):
         """买入操作"""
         try:
-            # 计时
+            # 计时开始
             start_time = time.perf_counter()
             start_time_count = time.perf_counter()
             # 查找并设置金额输入框
@@ -3879,13 +3898,13 @@ class CryptoTrader:
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法操作 amount_input按钮: {str(e)}")
 
-            # 计时
+            # 计时结束
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"\033[34m✅ 买入金额{amount},点击amount和输入金额共耗时\033[0m\033[31m {elapsed:.3f} 秒\033[0m")
 
-            # 计时
+            # 计时开始
             start_time = time.perf_counter()
-
+            time.sleep(0.2)
             # 点击买入确认按钮
             try:
                 buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
@@ -3903,8 +3922,8 @@ class CryptoTrader:
 
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
-            
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
+
             self.click_buy_up_button()
 
         except Exception as e:
@@ -3915,22 +3934,25 @@ class CryptoTrader:
     def sell_up_down_operation(self):
         """卖出操作的回退方法,仅仅night_auto_sell_check调用"""
         try:
-            # 点击position_sell按钮
-            # 计时
+            # 计时开始
             start_time = time.perf_counter()
             start_time_count = time.perf_counter()
+
+            # 点击position_sell按钮
             try:
                 positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
                 positions_sell_button.click()
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法点击positions_sell_button按钮: {str(e)}")
             
+            # 计时结束
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"✅ \033[34m点击position_sell按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-
-            # 点击卖出确认按钮
-            # 计时
+ 
+            # 计时开始
             start_time = time.perf_counter()
+            time.sleep(0.2)
+            # 点击卖出确认按钮
             try:
                 sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
                 sell_confirm_button.click()
@@ -5277,7 +5299,7 @@ class CryptoTrader:
             self.logger.info("✅ 点击了Buy按钮")
         except (NoSuchElementException, StaleElementReferenceException):
             try:
-                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=2, silent=True)
+                button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=1, silent=True)
                 if button:
                     button.click()
                 
