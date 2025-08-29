@@ -4144,7 +4144,7 @@ class CryptoTrader:
             try:
                 current_url = self.driver.current_url
 
-                crypto_button = self.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
+                crypto_button = self.driver.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
                 crypto_button.click()
                 self.logger.info(f"✅ 成功点击CRYPTO按钮")
 
@@ -4160,7 +4160,7 @@ class CryptoTrader:
             try:
                 current_url = self.driver.current_url
 
-                daily_button = self.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
+                daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
                 daily_button.click()
                 self.logger.info(f"✅ 成功点击DAILY按钮")
 
@@ -4169,7 +4169,7 @@ class CryptoTrader:
                     lambda d: d.current_url != current_url
                 )
                 self.logger.info("✅ DAILY按钮点击后的页面加载完成")
-                
+
             except (TimeoutException):
                 self.logger.error(f"❌ 定位DAILY按钮超时")
             
