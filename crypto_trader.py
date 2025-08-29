@@ -4130,6 +4130,15 @@ class CryptoTrader:
         self.logger.info(f"✅ \033[34m{round(wait_time_hours,2)}\033[0m小时后,开始自动找币")
     
     def find_54_coin(self):
+        """自动找币"""
+        self.logger.info("✅ 开始自动找币,先检查是否有持仓")
+        # 找币之前先查看是否有持仓
+        if self.find_position_label_down():
+            self.only_sell_down()
+        
+        if self.find_position_label_up():
+            self.only_sell_up()
+
         try:
             # 第一步:先点击 CRYPTO 按钮
             try:
@@ -4318,15 +4327,6 @@ class CryptoTrader:
 
     def get_zero_time_cash(self):
         """获取币安BTC实时价格,并在中国时区00:00触发"""
-        # 找币之前先查看是否有持仓
-        if self.find_position_label_down():
-            self.logger.info("✅ 有DOWN持仓,卖出 DOWN 持仓")
-            self.only_sell_down()
-        
-        if self.find_position_label_up():
-            self.logger.info("✅ 有UP持仓,卖出 UP 持仓")
-            self.only_sell_up()
-
         try:
             # 获取零点CASH值
             try:
@@ -4711,9 +4711,6 @@ class CryptoTrader:
                     self.trade_count = 22
                     self.trade_count_label.config(text=str(self.trade_count))
                     self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
-                        
-                else:
-                    self.logger.info(f"ℹ️ 交易次数 {self.trade_count} > 14,不执行夜间自动卖出")
                 
         except Exception as e:
             self.logger.error(f"❌ 夜间自动卖出检查失败: {str(e)}")
@@ -5533,7 +5530,6 @@ class CryptoTrader:
         
         for attempt in range(max_retries):
             try:
-                
                 # 尝试获取Up标签
                 try:
                     position_label_up = None
@@ -5548,7 +5544,7 @@ class CryptoTrader:
                     else:
                         self.logger.info("❌ find_element,未找到Up持仓标签")
                         return False
-                except NoSuchElementException:
+                except (NoSuchElementException, StaleElementReferenceException):
                     position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
                     if position_label_up is not None and position_label_up:
                         self.logger.info(f"✅ with-retry,找到了Up持仓标签: {position_label_up.text}")
@@ -5572,8 +5568,7 @@ class CryptoTrader:
         retry_delay = 0.3
         
         for attempt in range(max_retries):
-            try:
-                
+            try: 
                 # 尝试获取Down标签
                 try:
                     position_label_down = None
@@ -5588,7 +5583,7 @@ class CryptoTrader:
                     else:
                         self.logger.info("❌ find-element,未找到Down持仓标签")
                         return False
-                except NoSuchElementException:
+                except (NoSuchElementException, StaleElementReferenceException):
                     position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
                     if position_label_down is not None and position_label_down:
                         self.logger.info(f"✅ with-retry,找到了Down持仓标签: {position_label_down.text}")
