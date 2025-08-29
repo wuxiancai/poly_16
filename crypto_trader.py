@@ -3068,10 +3068,6 @@ class CryptoTrader:
                         self.buy_operation(self.up1_amount)
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
-
                             # 重置Up1和Down1价格为0,参数为价格编号
                             self.reset_up_down_price_0(1)
                             
@@ -3109,6 +3105,10 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+                            
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
 
                             break
                         else:
@@ -3145,10 +3145,6 @@ class CryptoTrader:
                         self.buy_operation(self.down1_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
-
                             # 重置Up1和Down1价格为0
                             self.reset_up_down_price_0(1)
                             
@@ -3186,6 +3182,10 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
 
                             break
                         else:
@@ -3235,9 +3235,6 @@ class CryptoTrader:
                         self.buy_operation(self.up2_amount)
                         
                         if self.verify_trade('Bought', 'Up')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
@@ -3276,6 +3273,10 @@ class CryptoTrader:
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
 
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3310,9 +3311,6 @@ class CryptoTrader:
                         self.buy_operation(self.down2_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
@@ -3352,6 +3350,10 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
                             
                             break
                         else:
@@ -3402,9 +3404,6 @@ class CryptoTrader:
 
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 获取 YES3 的金额
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
@@ -3444,6 +3443,10 @@ class CryptoTrader:
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
 
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
@@ -3480,9 +3483,6 @@ class CryptoTrader:
                         self.buy_operation(self.down3_amount)
 
                         if self.verify_trade('Bought', 'Down')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
@@ -3521,6 +3521,10 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
 
                             break
                         else:
@@ -3573,9 +3577,6 @@ class CryptoTrader:
                         self.buy_operation(self.up4_amount)
 
                         if self.verify_trade('Bought', 'Up')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
@@ -3615,6 +3616,10 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
                            
                             break
                         else:
@@ -3651,9 +3656,6 @@ class CryptoTrader:
                         self.buy_operation(self.down4_amount)
  
                         if self.verify_trade('Bought', 'Down')[0]:
-                            # 计时结束
-                            elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易完成耗时{elapsed:.2f}秒\033[0m")
                             
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
@@ -3693,6 +3695,11 @@ class CryptoTrader:
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
+
+                            # 计时结束
+                            elapsed = time.perf_counter() - start_time
+                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
