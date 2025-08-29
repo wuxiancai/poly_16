@@ -3054,7 +3054,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[34m{self.buy_count+1}\033[0m次买入\033[0m")
+                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[34m{self.buy_count}\033[0m次买入\033[0m")
                 
                         # 计时开始
                         start_time = time.perf_counter()
@@ -3132,7 +3132,7 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count+1}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅ \033[31mDown 1: {down_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
