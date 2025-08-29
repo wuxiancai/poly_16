@@ -4142,29 +4142,34 @@ class CryptoTrader:
         try:
             # 第一步:先点击 CRYPTO 按钮
             try:
-                crypto_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])))
+                current_url = self.driver.current_url
+
+                crypto_button = self.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
                 crypto_button.click()
                 self.logger.info(f"✅ 成功点击CRYPTO按钮")
 
                 # 等待CRYPTO按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 10).until(
-                    lambda d: d.execute_script("return document.readyState") == "complete"
-                )
+                WebDriverWait(self.driver, 20).until(
+                    lambda d: d.current_url != current_url
+                )   
                 self.logger.info("✅ CRYPTO按钮点击后的页面加载完成")
             except TimeoutException:
                 self.logger.error(f"❌ 定位CRYPTO按钮超时")
 
             # 第二步:点击 DAILY 按钮
             try:
-                daily_button = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.XPATH, XPathConfig.DAILY_BUTTON[0])))
+                current_url = self.driver.current_url
+
+                daily_button = self.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
                 daily_button.click()
                 self.logger.info(f"✅ 成功点击DAILY按钮")
 
                 # 等待DAILY按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 10).until(
-                    lambda d: d.execute_script("return document.readyState") == "complete"
+                WebDriverWait(self.driver, 20).until(
+                    lambda d: d.current_url != current_url
                 )
                 self.logger.info("✅ DAILY按钮点击后的页面加载完成")
+                
             except (TimeoutException):
                 self.logger.error(f"❌ 定位DAILY按钮超时")
             
