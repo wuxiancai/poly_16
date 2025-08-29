@@ -186,7 +186,7 @@ token.txt
 data/
 *.csv
 *.xlsx
-*.json
+
 
 # Cache
 
