@@ -3901,6 +3901,7 @@ class CryptoTrader:
                 break
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
+                self.driver.refresh()
                 time.sleep(1)
                 
     def only_sell_down(self):
@@ -3948,6 +3949,7 @@ class CryptoTrader:
                 break
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
+                self.driver.refresh()
                 time.sleep(1)
     
     def verify_trade(self, action_type, direction):
