@@ -5420,7 +5420,7 @@ class CryptoTrader:
                 accept_button.click()
                 # 计时结束
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34m点击ACCEPT按钮耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ 点击ACCEPT按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
  
         except TimeoutException:
             pass  # 弹窗没出现,不用处理
@@ -5436,7 +5436,7 @@ class CryptoTrader:
             if button:
                 button.click()
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34m点击Buy按钮耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ 点击Buy按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
 
         except (NoSuchElementException, StaleElementReferenceException):
             
@@ -5465,7 +5465,7 @@ class CryptoTrader:
             )
             button.click()
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"✅ 点击Buy-UP按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
             
         except (NoSuchElementException, StaleElementReferenceException):
             
@@ -5477,11 +5477,11 @@ class CryptoTrader:
                     button.click()
                     # 计时结束
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
                 else:
                     self.logger.info("❌ 第二次也找不到BUY_UP按钮")
             except Exception as e:
-                self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败: {str(e)}\033[0m")
+                self.logger.warning(f"❌ \033[31m第二次点击 Buy-UP 按钮失败: {str(e)}\033[0m")
         
     def click_buy_down_button(self):
         """点击 Buy-DOWN 按钮"""
@@ -5495,7 +5495,7 @@ class CryptoTrader:
             if button:
                 button.click()
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34m点击Buy-DOWN按钮耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ 点击Buy-DOWN按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
             
         except (NoSuchElementException, StaleElementReferenceException):
             
