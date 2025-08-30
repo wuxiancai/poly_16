@@ -477,9 +477,11 @@ class SMTPConnectionManager:
         self.active_connections = 0
         self.persistent_connection = None
         self.connection_lock = threading.Lock()
+        self.connection_created_time = None
+        self.max_connection_age = 300  # 连接最大存活时间5分钟
         
-        # 在初始化时建立持久连接
-        self._establish_persistent_connection()
+        # 延迟建立连接，避免初始化时的网络问题
+        # self._establish_persistent_connection()
         
     def _create_connection(self):
         """创建新的SMTP连接"""
@@ -494,15 +496,27 @@ class SMTPConnectionManager:
         """建立持久SMTP连接"""
         try:
             self.persistent_connection = self._create_connection()
+            self.connection_created_time = time.time()
+            print("✅ SMTP持久连接已建立")
             
         except Exception as e:
             print(f"❌ 建立SMTP持久连接失败: {str(e)}")
             self.persistent_connection = None
+            self.connection_created_time = None
     
     def _ensure_connection_alive(self):
         """确保连接存活，如果断开则重新连接"""
         with self.connection_lock:
+            # 检查连接是否存在
             if self.persistent_connection is None:
+                self._establish_persistent_connection()
+                return self.persistent_connection
+            
+            # 检查连接年龄，超过最大存活时间则重新建立
+            if (self.connection_created_time and 
+                time.time() - self.connection_created_time > self.max_connection_age):
+                print("🔄 SMTP连接已超时，重新建立连接")
+                self._close_connection()
                 self._establish_persistent_connection()
                 return self.persistent_connection
             
@@ -510,12 +524,10 @@ class SMTPConnectionManager:
                 # 测试连接是否存活
                 self.persistent_connection.noop()
                 return self.persistent_connection
-            except Exception:
+            except Exception as e:
+                print(f"🔄 SMTP连接已断开，重新建立连接: {str(e)}")
                 # 连接已断开，重新建立
-                try:
-                    self.persistent_connection.quit()
-                except:
-                    pass
+                self._close_connection()
                 self._establish_persistent_connection()
                 return self.persistent_connection
     
@@ -534,6 +546,17 @@ class SMTPConnectionManager:
                 self.persistent_connection = None
             raise e
     
+    def _close_connection(self):
+        """关闭当前连接（内部方法）"""
+        if self.persistent_connection:
+            try:
+                self.persistent_connection.quit()
+            except:
+                pass
+            finally:
+                self.persistent_connection = None
+                self.connection_created_time = None
+    
     def close_all_connections(self):
         """关闭持久连接"""
         with self.connection_lock:
@@ -545,6 +568,7 @@ class SMTPConnectionManager:
                     print(f"❌ 关闭SMTP连接时出错: {str(e)}")
                 finally:
                     self.persistent_connection = None
+                    self.connection_created_time = None
 
 
 class AsyncEmailSender:
@@ -561,6 +585,17 @@ class AsyncEmailSender:
         self.sender = 'huacaihuijin@126.com'
         self.app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
         
+        # 邮件发送统计
+        self.email_stats = {
+            'total_sent': 0,
+            'total_failed': 0,
+            'last_success_time': None,
+            'last_failure_time': None,
+            'last_error_message': None,
+            'recent_emails': []  # 保存最近10封邮件的状态
+        }
+        self.stats_lock = threading.Lock()
+        
     def set_logger(self, logger):
         """设置日志记录器"""
         self.logger = logger
@@ -575,13 +610,19 @@ class AsyncEmailSender:
         
     def _send_email_sync(self, sender, app_password, receivers, subject, content, trade_type=""):
         """同步发送邮件的内部方法"""
-        max_retries = 2
-        retry_delay = 0.5
+        max_retries = 3  # 增加重试次数
+        retry_delay = 1.0  # 增加重试间隔
         
         for attempt in range(max_retries):
             try:
+                if self.logger:
+                    self.logger.info(f"📧 开始发送邮件 (尝试 {attempt + 1}/{max_retries}): {subject}")
+                
                 with self.smtp_manager.get_connection() as server:
                     try:
+                        # 登录SMTP服务器
+                        if self.logger:
+                            self.logger.debug(f"🔐 正在登录SMTP服务器: {sender}")
                         server.login(sender, app_password)
                         
                         # 构建邮件
@@ -592,28 +633,122 @@ class AsyncEmailSender:
                         msg.attach(MIMEText(content, 'plain', 'utf-8'))
                         
                         # 发送邮件
+                        if self.logger:
+                            self.logger.debug(f"📤 正在发送邮件到: {', '.join(receivers)}")
                         server.sendmail(sender, receivers, msg.as_string())
                         
+                        if self.logger:
+                            self.logger.info(f"✅ 邮件发送成功: {subject}")
+                        
+                        # 更新统计信息
+                        self._update_stats(True, subject, None)
+                        
+                        # 触发前端邮件状态更新
+                        self._trigger_email_status_update()
                         return True
                         
-                    except Exception as e:
+                    except smtplib.SMTPAuthenticationError as e:
+                        error_msg = f"SMTP认证失败: {str(e)}"
                         if self.logger:
-                            print(f"❌ SMTP操作失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
                         if attempt < max_retries - 1:
-                            print(f"等待 {retry_delay} 秒后重试...")
+                            if self.logger:
+                                self.logger.info(f"⏳ 等待 {retry_delay} 秒后重试...")
                             time.sleep(retry_delay)
                         else:
-                            raise e
+                            raise Exception(error_msg)
+                    
+                    except smtplib.SMTPServerDisconnected as e:
+                        error_msg = f"SMTP服务器连接断开: {str(e)}"
+                        if self.logger:
+                            self.logger.warning(f"⚠️ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                        else:
+                            raise Exception(error_msg)
+                    
+                    except smtplib.SMTPException as e:
+                        error_msg = f"SMTP操作失败: {str(e)}"
+                        if self.logger:
+                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                        else:
+                            raise Exception(error_msg)
+                    
+                    except Exception as e:
+                        error_msg = f"邮件发送过程中出现未知错误: {str(e)}"
+                        if self.logger:
+                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            time.sleep(retry_delay)
+                        else:
+                            raise Exception(error_msg)
                             
             except Exception as e:
                 if self.logger:
-                    print(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                    self.logger.error(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
+                    # 指数退避重试
+                    backoff_delay = retry_delay * (2 ** attempt)
+                    if self.logger:
+                        self.logger.info(f"⏳ 等待 {backoff_delay:.1f} 秒后重试...")
+                    time.sleep(backoff_delay)
                 else:
-                    return False
+                    if self.logger:
+                        self.logger.error(f"❌ 邮件发送最终失败，已达到最大重试次数: {str(e)}")
+                
+                # 更新统计信息
+                self._update_stats(False, subject, str(e))
+                
+                # 触发前端邮件状态更新
+                self._trigger_email_status_update()
+                return False
+    
+    def _update_stats(self, success, subject, error_message=None):
+        """更新邮件发送统计信息"""
+        with self.stats_lock:
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            if success:
+                self.email_stats['total_sent'] += 1
+                self.email_stats['last_success_time'] = current_time
+                # 记录成功日志
+                if self.logger:
+                    self.logger.info(f"📧 邮件发送成功: {subject}")
+            else:
+                self.email_stats['total_failed'] += 1
+                self.email_stats['last_failure_time'] = current_time
+                self.email_stats['last_error_message'] = error_message
+                # 记录失败日志
+                if self.logger:
+                    self.logger.error(f"📧 邮件发送失败: {subject} - {error_message}")
+            
+            # 添加到最近邮件记录
+            email_record = {
+                'time': current_time,
+                'subject': subject,
+                'success': success,
+                'error': error_message if not success else None
+            }
+            
+            self.email_stats['recent_emails'].append(email_record)
+            # 只保留最近10条记录
+            if len(self.email_stats['recent_emails']) > 10:
+                self.email_stats['recent_emails'].pop(0)
+    
+    def get_email_stats(self):
+        """获取邮件发送统计信息"""
+        with self.stats_lock:
+            return self.email_stats.copy()
         
         return False
+    
+    def _trigger_email_status_update(self):
+        """触发前端邮件状态更新"""
+        # 这里可以通过WebSocket或其他方式通知前端更新
+        # 目前暂时不实现，因为前端会在交易完成后自动检查状态
+        pass
         
     def shutdown(self):
         """关闭邮件发送器"""
@@ -832,9 +967,6 @@ class CryptoTrader:
         self.profit_rate = 1.4
         self.doubling_weeks = 48
 
-        # 交易次数
-        self.trade_count = 22
-        
         # 初始化交易统计管理器
         try:
             self.trade_stats = TradeStatsManager()
@@ -881,7 +1013,9 @@ class CryptoTrader:
         self.buy_count = 0
         self.sell_count = 0
         self.reset_trade_count = 0
-
+        # 交易次数
+        self.trade_count = 22
+        
         # 买入价格冗余
         self.price_premium = 4 # 不修改
         
@@ -5471,73 +5605,122 @@ class CryptoTrader:
                 receivers=receivers
             )
             
+            # 触发前端邮件状态更新
+            self._trigger_frontend_email_update()
+            
         except Exception as e:
              self.logger.error(f"❌ 提交邮件到异步发送队列失败: {str(e)}")
              # 如果异步发送失败，可以考虑降级到同步发送（可选）
              # self._send_email_sync_fallback(trade_type, price, amount, shares, trade_count, cash_value, portfolio_value)
+    
+    def _trigger_frontend_email_update(self):
+        """触发前端邮件状态更新"""
+        try:
+            # 通过JavaScript执行前端更新
+            if hasattr(self, 'driver') and self.driver:
+                self.driver.execute_script("if (typeof updateEmailStatus === 'function') { updateEmailStatus(); }")
+        except Exception as e:
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.debug(f"触发前端邮件状态更新失败: {str(e)}")
 
     def _send_chrome_alert_email(self):
         """发送Chrome异常警报邮件"""
-        try:
-            hostname = socket.gethostname()
-            sender = 'huacaihuijin@126.com'
-            receiver = '2049330@qq.com'
-            app_password = 'PUaRF5FKeKJDrYH7'
-            
-            # 获取交易币对信息
-            full_pair = self.trading_pair_label.cget("text")
-            trading_pair = full_pair.split('-')[0] if full_pair and '-' in full_pair else "未知交易币对"
-            
-            msg = MIMEMultipart()
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            subject = f'🚨{hostname}-Chrome异常-{trading_pair}-需要手动介入'
-            msg['Subject'] = Header(subject, 'utf-8')
-            msg['From'] = sender
-            msg['To'] = receiver
-            
-            # 获取当前状态信息
+        max_retries = 3
+        retry_delay = 1.0
+        
+        for attempt in range(max_retries):
             try:
-                cash_value = self.cash_label.cget("text")
-                portfolio_value = self.portfolio_label.cget("text")
-            except:
-                cash_value = "无法获取"
-                portfolio_value = "无法获取"
-            
-            content = f"""
-            🚨 Chrome浏览器异常警报 🚨
-
-            异常时间: {current_time}
-            主机名称: {hostname}
-            交易币对: {trading_pair}
-            当前买入次数: {self.buy_count}
-            当前卖出次数: {self.sell_count}
-            重启次数: {self.reset_trade_count}
-            当前 CASH 值: {cash_value}
-            当前 PORTFOLIO 值: {portfolio_value}
-
-            ⚠️  请立即手动检查并介入处理！
-            """
-            
-            msg.attach(MIMEText(content, 'plain', 'utf-8'))
-            
-            # 发送邮件
-            server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=5)
-            server.set_debuglevel(0)
-            
-            try:
-                server.login(sender, app_password)
-                server.sendmail(sender, receiver, msg.as_string())
+                hostname = socket.gethostname()
+                sender = 'huacaihuijin@126.com'
+                receiver = '2049330@qq.com'
+                app_password = 'PUaRF5FKeKJDrYH7'
                 
-            except Exception as e:
-                print(f"❌ Chrome异常警报邮件发送失败: {str(e)}")
-            finally:
+                # 获取交易币对信息
+                full_pair = self.trading_pair_label.cget("text")
+                trading_pair = full_pair.split('-')[0] if full_pair and '-' in full_pair else "未知交易币对"
+                
+                msg = MIMEMultipart()
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                subject = f'🚨{hostname}-Chrome异常-{trading_pair}-需要手动介入'
+                msg['Subject'] = Header(subject, 'utf-8')
+                msg['From'] = sender
+                msg['To'] = receiver
+                
+                # 获取当前状态信息
                 try:
-                    server.quit()
-                except Exception:
-                    pass
+                    cash_value = self.cash_label.cget("text")
+                    portfolio_value = self.portfolio_label.cget("text")
+                except:
+                    cash_value = "无法获取"
+                    portfolio_value = "无法获取"
+                
+                content = f"""
+                🚨 Chrome浏览器异常警报 🚨
+
+                异常时间: {current_time}
+                主机名称: {hostname}
+                交易币对: {trading_pair}
+                当前买入次数: {self.buy_count}
+                当前卖出次数: {self.sell_count}
+                重启次数: {self.reset_trade_count}
+                当前 CASH 值: {cash_value}
+                当前 PORTFOLIO 值: {portfolio_value}
+
+                ⚠️  请立即手动检查并介入处理！
+                """
+                
+                msg.attach(MIMEText(content, 'plain', 'utf-8'))
+                
+                # 发送邮件
+                server = None
+                try:
+                    self.logger.info(f"🚨 发送Chrome异常警报邮件 (尝试 {attempt + 1}/{max_retries})")
+                    server = smtplib.SMTP_SSL('smtp.126.com', 465, timeout=10)  # 增加超时时间
+                    server.set_debuglevel(0)
                     
-        except Exception as e:
-            self.logger.error(f"发送Chrome异常警报邮件时出错: {str(e)}")
+                    server.login(sender, app_password)
+                    server.sendmail(sender, receiver, msg.as_string())
+                    
+                    self.logger.info("✅ Chrome异常警报邮件发送成功")
+                    return  # 发送成功，退出函数
+                    
+                except smtplib.SMTPAuthenticationError as e:
+                    error_msg = f"Chrome警报邮件SMTP认证失败: {str(e)}"
+                    self.logger.error(error_msg)
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                    else:
+                        self.logger.error("❌ Chrome异常警报邮件发送最终失败：认证错误")
+                        
+                except smtplib.SMTPException as e:
+                    error_msg = f"Chrome警报邮件SMTP操作失败: {str(e)}"
+                    self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (2 ** attempt))  # 指数退避
+                    else:
+                        self.logger.error("❌ Chrome异常警报邮件发送最终失败：SMTP错误")
+                        
+                except Exception as e:
+                    error_msg = f"Chrome警报邮件发送失败: {str(e)}"
+                    self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay * (2 ** attempt))
+                    else:
+                        self.logger.error("❌ Chrome异常警报邮件发送最终失败：未知错误")
+                        
+                finally:
+                    if server:
+                        try:
+                            server.quit()
+                        except Exception:
+                            pass
+                            
+            except Exception as e:
+                self.logger.error(f"发送Chrome异常警报邮件时出错 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (2 ** attempt))
+                else:
+                    self.logger.error("❌ Chrome异常警报邮件发送彻底失败")
 
     def retry_operation(self, operation, *args, **kwargs):
         """通用重试机制"""
@@ -7000,6 +7183,7 @@ class CryptoTrader:
                                     <input type="text" id="urlInput" placeholder="请输入Polymarket交易URL" value="{{ data.url or '' }}">
                                     <span class="system-info" id="systemInfo">CPU:{{ data.system_info.cpu_cores }} Cores {{ data.system_info.cpu_threads }} Threads Used:{{ "%.0f" | format(data.system_info.cpu_percent) }}% | MEM:{{ "%.0f" | format(data.system_info.memory_percent) }}%Total:{{ data.system_info.memory_total_gb }}G Used:{{ data.system_info.memory_used_gb }}G Free:{{ data.system_info.memory_free_mb }}M</span>
                                 </div>
+
                                 <div class="status-message" id="statusMessage"></div>
                             </div>
                         </div>
@@ -7252,14 +7436,58 @@ class CryptoTrader:
                         });
                     }
                     
+                    // 更新邮件状态的函数
+                    function updateEmailStatus() {
+                        fetch('/api/email/stats')
+                        .then(response => response.json())
+                        .then(data => {
+                            const emailStatusElement = document.getElementById('emailStatus');
+                            if (emailStatusElement && data.success) {
+                                const stats = data.stats;
+                                const successRate = stats.total_sent + stats.total_failed > 0 ? 
+                                    ((stats.total_sent / (stats.total_sent + stats.total_failed)) * 100).toFixed(1) : '0';
+                                
+                                let statusText = `邮件: 成功${stats.total_sent} 失败${stats.total_failed} 成功率${successRate}%`;
+                                
+                                if (stats.last_success_time) {
+                                    statusText += ` | 最近成功: ${stats.last_success_time}`;
+                                }
+                                
+                                if (stats.last_failure_time && stats.last_error_message) {
+                                    statusText += ` | 最近失败: ${stats.last_failure_time.substring(11, 19)}`;
+                                }
+                                
+                                emailStatusElement.textContent = statusText;
+                                
+                                // 根据最近状态设置颜色
+                                if (stats.total_failed === 0 || 
+                                    (stats.last_success_time && stats.last_failure_time && 
+                                     stats.last_success_time > stats.last_failure_time)) {
+                                    emailStatusElement.style.color = '#28a745'; // 绿色
+                                } else {
+                                    emailStatusElement.style.color = '#dc3545'; // 红色
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('获取邮件状态失败:', error);
+                            const emailStatusElement = document.getElementById('emailStatus');
+                            if (emailStatusElement) {
+                                emailStatusElement.textContent = '邮件状态: 获取失败';
+                                emailStatusElement.style.color = '#dc3545';
+                            }
+                        });
+                    }
+                    
                     // 启动价格更新检查
                     setInterval(checkPriceUpdates, 2000);
                     
                     // 启动系统信息更新检查（每5秒更新一次）
                     setInterval(updateSystemInfo, 5000);
                     
-                    // 页面加载完成后立即更新一次系统信息
+                    // 页面加载完成后立即更新一次系统信息和邮件状态
                     updateSystemInfo();
+                    updateEmailStatus();
                     </script>
                     <style>
                     .table-header th {
@@ -7334,7 +7562,8 @@ class CryptoTrader:
                         <div class="table-footer" style="text-align: center; margin-top: 15px;  font-size: 14px;">
                             显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
                             <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">查看完整记录</a> | 
-                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a>
+                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a> | 
+                            <span id="emailStatus" style="color: #666; font-size: 12px;">邮件状态: 加载中...</span>
                         </div>
                         {% else %}
                         <div style="text-align: center; padding: 40px; color: white;">
@@ -7660,6 +7889,22 @@ class CryptoTrader:
             except Exception as e:
                 self.logger.error(f"检查持仓更新失败: {str(e)}")
                 return jsonify({'updated': False, 'error': str(e)}), 500
+        
+        @app.route("/api/email/stats")
+        def get_email_stats():
+            """获取邮件发送统计信息"""
+            try:
+                stats = self.async_email_sender.get_email_stats()
+                return jsonify({
+                    'success': True,
+                    'stats': stats
+                })
+            except Exception as e:
+                self.logger.error(f"获取邮件统计失败: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
          
         @app.route("/history")
         def history():
