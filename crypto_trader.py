@@ -5381,13 +5381,14 @@ class CryptoTrader:
                 )
                 if positions_sell_up_button:
                     positions_sell_up_button.click()
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
                 else:
                     self.logger.warning("❌ 找不到position_sell_up按钮")
             except Exception as retry_e:
-                self.logger.warning(f"❌ 点击position_sell_up按钮失败: {str(retry_e)}")
+                self.logger.error(f"❌ 点击position_sell_up按钮失败: {str(retry_e)}")
 
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+        
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
@@ -5406,14 +5407,12 @@ class CryptoTrader:
                 )
                 if sell_confirm_button:
                     sell_confirm_button.click()
-                    
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
                 else:
                     self.logger.warning("❌ 找不到sell_confirm按钮")
             except Exception as retry_e:
-                self.logger.warning(f"❌ 点击sell_confirm按钮失败: {str(retry_e)}")
-
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.error(f"❌ 点击sell_confirm按钮失败: {str(retry_e)}")
 
     def click_i_accept_button(self):
         """点击I Accept按钮"""
@@ -5427,13 +5426,12 @@ class CryptoTrader:
 
             if accept_button:
                 accept_button.click()
-                
+                # 计时结束
+                elapsed = time.perf_counter() - start_time
+                self.logger.info(f"✅ \033[34m点击ACCEPT按钮耗时 {elapsed:.3f} 秒\033[0m")
+ 
         except TimeoutException:
             pass  # 弹窗没出现,不用处理
-
-        # 计时结束
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ \033[34m点击ACCEPT按钮耗时 {elapsed:.3f} 秒\033[0m")
 
     def click_buy_button(self):
         """点击Buy按钮"""
@@ -5448,13 +5446,13 @@ class CryptoTrader:
                 button = self._find_element_with_retry(XPathConfig.BUY_BUTTON, timeout=1, silent=True)
                 if button:
                     button.click()
+                    # 计时结束
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34m点击Buy按钮耗时 {elapsed:.3f} 秒\033[0m")
                 
             except Exception as e:
                 self.logger.warning(f"❌ \033[31m点击 Buy 按钮失败: {str(e)}\033[0m")
-        # 计时结束
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ \033[34m点击Buy按钮耗时 {elapsed:.3f} 秒\033[0m")
-    
+        
     def click_buy_up_button(self):
         """点击 Buy-UP 按钮"""     
         # 查找buy_up按钮
@@ -5469,13 +5467,13 @@ class CryptoTrader:
                 button = self._find_element_with_retry(XPathConfig.BUY_UP_BUTTON, timeout=1, silent=True)
                 if button:
                     button.click()
-                
+                    # 计时结束
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
+    
             except Exception as e:
                 self.logger.warning(f"❌ \033[31m点击 Buy-UP 按钮失败: {str(e)}\033[0m")
-        # 计时结束
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
-    
+        
     def click_buy_down_button(self):
         """点击 Buy-DOWN 按钮"""
         # 查找buy_down按钮
@@ -5490,14 +5488,14 @@ class CryptoTrader:
                 button = self._find_element_with_retry(XPathConfig.BUY_DOWN_BUTTON, timeout=1, silent=True)
                 if button:
                     button.click()
+                    # 计时结束
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34m点击Buy-DOWN按钮耗时 {elapsed:.3f} 秒\033[0m")
                 else:
                     self.logger.info("❌ 使用self._find_element_with_retry也找不到BUY_DOWN按钮")
             except Exception as e:
                 self.logger.warning(f"❌ \033[31m点击 Buy-DOWN 按钮失败: {str(e)}\033[0m")
-        # 计时结束
-        elapsed = time.perf_counter() - start_time
-        self.logger.info(f"✅ \033[34m点击Buy-DOWN按钮耗时 {elapsed:.3f} 秒\033[0m")
-    
+        
     def close_windows(self):
         """关闭多余窗口"""
         try:
