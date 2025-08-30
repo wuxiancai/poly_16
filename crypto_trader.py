@@ -528,8 +528,7 @@ class SimpleEmailSender:
             self.server.noop()
             return True
         except Exception as e:
-            if self.logger:
-                self.logger.warning(f"🔍 连接检测失败，连接已断开: {str(e)}")
+            
             return False
     
     def _reconnect(self):
@@ -2805,7 +2804,7 @@ class CryptoTrader:
             {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
         ])
         
-        self.logger.info("✅ \033[32m设置 YES1-4/NO1-4金额成功\033[0m")
+        self.logger.info("✅ \033[35m设置 YES1-4/NO1-4金额成功\033[0m")
 
     def schedule_retry_update_amount(self):
         """安排重试更新金额"""
@@ -3141,7 +3140,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
                     for retry in range(3):
-                        self.logger.info(f"✅ \033[32mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[34m{self.buy_count}\033[0m次买入\033[0m")
+                        self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[34m{self.buy_count}\033[0m次买入\033[0m")
                 
                         # 计时开始
                         start_time = time.perf_counter()
@@ -3195,7 +3194,7 @@ class CryptoTrader:
                             
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
 
                             break
                         else:
@@ -3272,7 +3271,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
 
                             break
                         else:
@@ -3312,7 +3311,7 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        self.logger.info(f"✅  \033[32mUp 2: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3362,7 +3361,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
                             
                             break
                         else:
@@ -3440,7 +3439,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
                             
                             break
                         else:
@@ -3480,7 +3479,7 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[32mUp 3: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3532,7 +3531,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
 
                             break
                         else:
@@ -3611,7 +3610,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
 
                             break
                         else:
@@ -3654,7 +3653,7 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[32mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
+                        self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[34m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
                         # 如果买入次数大于 14 次,那么先卖出,后买入
                         if self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
@@ -3706,7 +3705,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
                            
                             break
                         else:
@@ -3785,7 +3784,7 @@ class CryptoTrader:
 
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
-                            self.logger.info(f" \033[34m交易全部完成耗时{elapsed:.2f}秒\033[0m")
+                            self.logger.info(f" \033[34m交易全部完成耗时\033[35m{elapsed:.2f}\033[0m秒\033[0m")
 
                             break
                         else:
@@ -3815,7 +3814,7 @@ class CryptoTrader:
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3):
-            self.logger.info("\033[32m✅ 执行only_sell_up\033[0m")
+            self.logger.info("\033[35m✅ 执行only_sell_up\033[0m")
             # 计时
             start_time = time.perf_counter()
 
@@ -3916,7 +3915,6 @@ class CryptoTrader:
             tuple: (是否成功, 价格, 金额, 份额)
         """
         try:
-            self.logger.info("\033[34m✅ 开始验证交易\033[0m")
             # 智能等待逻辑：最多重试2次,每次等待3秒
             for attempt in range(2):
                 # 计时
@@ -3950,7 +3948,7 @@ class CryptoTrader:
                                 self.price = float(price_match.group(1)) if price_match else 0
                                 self.amount = float(amount_match.group(1)) if amount_match else 0
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
-                                self.logger.info(f"✅ \033[32m交易验证成功: {action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}")
+                                self.logger.info(f"✅ \033[35m交易验证成功: {action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}")
                                 
                                 # 计时结束
                                 elapsed = time.perf_counter() - start_time_count
@@ -5331,7 +5329,7 @@ class CryptoTrader:
                 positions_sell_button.click()
 
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击position_sell_down按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击position_sell_down按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
         
         except Exception as e:
             try:
@@ -5341,7 +5339,7 @@ class CryptoTrader:
                 if positions_sell_button:
                     positions_sell_button.click()
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ 第二次点击position_sell_down按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击position_sell_down按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 else:
                     self.logger.warning("❌ 第二次找不到position_sell_down按钮")
             except Exception as retry_e:
@@ -5359,7 +5357,7 @@ class CryptoTrader:
                 positions_sell_up_button.click()
 
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击position_sell_up按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
 
         except Exception as e:
             try:
@@ -5371,9 +5369,9 @@ class CryptoTrader:
                 if positions_sell_up_button:
                     positions_sell_up_button.click()
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ 点击position_sell_up按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击position_sell_up按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 else:
-                    self.logger.warning("❌ 找不到position_sell_up按钮")
+                    self.logger.warning("❌ 第二次找不到position_sell_up按钮")
             except Exception as retry_e:
                 self.logger.error(f"❌ 点击position_sell_up按钮失败: {str(retry_e)}")    
 
@@ -5389,7 +5387,7 @@ class CryptoTrader:
                 sell_confirm_button.click()
 
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击sell_confirm按钮成功\033[34m耗时 {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击sell_confirm按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 
         except Exception as e:
             try:
@@ -5400,9 +5398,10 @@ class CryptoTrader:
                 )
                 if sell_confirm_button:
                     sell_confirm_button.click()
-                    
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34m第二次点击sell_confirm按钮成功\033[32m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 else:
-                    self.logger.warning("❌ 找不到sell_confirm按钮")
+                    self.logger.warning("❌ 第二次找不到sell_confirm按钮")
             except Exception as retry_e:
                 self.logger.error(f"❌ 点击sell_confirm按钮失败: {str(retry_e)}")
 
@@ -5420,7 +5419,7 @@ class CryptoTrader:
                 accept_button.click()
                 # 计时结束
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击ACCEPT按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击ACCEPT按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
  
         except TimeoutException:
             pass  # 弹窗没出现,不用处理
@@ -5436,7 +5435,7 @@ class CryptoTrader:
             if button:
                 button.click()
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击Buy按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击Buy按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
 
         except (NoSuchElementException, StaleElementReferenceException):
             
@@ -5448,7 +5447,7 @@ class CryptoTrader:
                     button.click()
                     # 计时结束
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m第二次点击Buy按钮耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击Buy按钮耗时 \033[32m{elapsed:.3f}\033[0m 秒\033[0m")
                 else:
                     self.logger.info("❌ 第二次也找不到BUY按钮")
             except Exception as e:
@@ -5465,7 +5464,7 @@ class CryptoTrader:
             )
             button.click()
             elapsed = time.perf_counter() - start_time
-            self.logger.info(f"✅ 点击Buy-UP按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
+            self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
             
         except (NoSuchElementException, StaleElementReferenceException):
             
@@ -5477,9 +5476,9 @@ class CryptoTrader:
                     button.click()
                     # 计时结束
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m第二次点击Buy-UP按钮耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击Buy-UP按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
                 else:
-                    self.logger.info("❌ 第二次也找不到BUY_UP按钮")
+                    self.logger.info("❌ \033[31m第二次也找不到BUY_UP按钮\033[0m")
             except Exception as e:
                 self.logger.warning(f"❌ \033[31m第二次点击 Buy-UP 按钮失败: {str(e)}\033[0m")
         
@@ -5495,7 +5494,7 @@ class CryptoTrader:
             if button:
                 button.click()
                 elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击Buy-DOWN按钮耗时\033[34m {elapsed:.3f} 秒\033[0m")
+                self.logger.info(f"✅ \033[34m点击Buy-DOWN按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
             
         except (NoSuchElementException, StaleElementReferenceException):
             
@@ -5506,9 +5505,9 @@ class CryptoTrader:
                 if button:
                     button.click()
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m第二次点击Buy-DOWN按钮耗时 {elapsed:.3f} 秒\033[0m")
+                    self.logger.info(f"✅ \033[34m第二次点击Buy-DOWN按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
                 else:
-                    self.logger.info("❌ 第二次也找不到BUY_DOWN按钮")
+                    self.logger.info("❌ \033[31m第二次也找不到BUY_DOWN按钮\033[0m")
             except Exception as e:
                 self.logger.warning(f"❌ \033[31m第二次点击 Buy-DOWN 按钮失败: {str(e)}\033[0m")
         
