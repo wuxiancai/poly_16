@@ -465,125 +465,24 @@ class StatusDataManager:
             }
 
 
-class SMTPConnectionManager:
-    """SMTP连接管理器，实现连接复用和连接池管理"""
+class SimpleEmailSender:
+    """简化的邮件发送器 - 程序启动时建立连接，异步发送邮件"""
     
-    def __init__(self, smtp_server='smtp.126.com', smtp_port=465, max_connections=3):
-        self.smtp_server = smtp_server
-        self.smtp_port = smtp_port
-        self.max_connections = max_connections
-        self.connection_pool = queue.Queue(maxsize=max_connections)
-        self.pool_lock = threading.Lock()
-        self.active_connections = 0
-        self.persistent_connection = None
-        self.connection_lock = threading.Lock()
-        self.connection_created_time = None
-        self.max_connection_age = 300  # 连接最大存活时间5分钟
-        
-        # 延迟建立连接，避免初始化时的网络问题
-        # self._establish_persistent_connection()
-        
-    def _create_connection(self):
-        """创建新的SMTP连接"""
-        try:
-            server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10)
-            server.set_debuglevel(0)
-            return server
-        except Exception as e:
-            raise Exception(f"创建SMTP连接失败: {str(e)}")
-    
-    def _establish_persistent_connection(self):
-        """建立持久SMTP连接"""
-        try:
-            self.persistent_connection = self._create_connection()
-            self.connection_created_time = time.time()
-            print("✅ SMTP持久连接已建立")
-            
-        except Exception as e:
-            print(f"❌ 建立SMTP持久连接失败: {str(e)}")
-            self.persistent_connection = None
-            self.connection_created_time = None
-    
-    def _ensure_connection_alive(self):
-        """确保连接存活，如果断开则重新连接"""
-        with self.connection_lock:
-            # 检查连接是否存在
-            if self.persistent_connection is None:
-                self._establish_persistent_connection()
-                return self.persistent_connection
-            
-            # 检查连接年龄，超过最大存活时间则重新建立
-            if (self.connection_created_time and 
-                time.time() - self.connection_created_time > self.max_connection_age):
-                print("🔄 SMTP连接已超时，重新建立连接")
-                self._close_connection()
-                self._establish_persistent_connection()
-                return self.persistent_connection
-            
-            try:
-                # 测试连接是否存活
-                self.persistent_connection.noop()
-                return self.persistent_connection
-            except Exception as e:
-                print(f"🔄 SMTP连接已断开，重新建立连接: {str(e)}")
-                # 连接已断开，重新建立
-                self._close_connection()
-                self._establish_persistent_connection()
-                return self.persistent_connection
-    
-    @contextmanager
-    def get_connection(self):
-        """获取SMTP连接的上下文管理器 - 使用持久连接"""
-        connection = self._ensure_connection_alive()
-        if connection is None:
-            raise Exception("无法建立SMTP连接")
-        
-        try:
-            yield connection
-        except Exception as e:
-            # 连接出错时，标记连接为无效，下次使用时会重新建立
-            with self.connection_lock:
-                self.persistent_connection = None
-            raise e
-    
-    def _close_connection(self):
-        """关闭当前连接（内部方法）"""
-        if self.persistent_connection:
-            try:
-                self.persistent_connection.quit()
-            except:
-                pass
-            finally:
-                self.persistent_connection = None
-                self.connection_created_time = None
-    
-    def close_all_connections(self):
-        """关闭持久连接"""
-        with self.connection_lock:
-            if self.persistent_connection:
-                try:
-                    self.persistent_connection.quit()
-                    print("✅ SMTP持久连接已关闭")
-                except Exception as e:
-                    print(f"❌ 关闭SMTP连接时出错: {str(e)}")
-                finally:
-                    self.persistent_connection = None
-                    self.connection_created_time = None
-
-
-class AsyncEmailSender:
-    """异步邮件发送器"""
-    
-    def __init__(self, max_workers=2, logger=None):
-        self.smtp_manager = SMTPConnectionManager()
-        self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="EmailSender")
-        self.email_queue = queue.Queue()
-        self.is_running = True
+    def __init__(self, logger=None):
         self.logger = logger
         
         # 邮件配置
+        self.smtp_server = 'smtp.126.com'
+        self.smtp_port = 465
         self.sender = 'huacaihuijin@126.com'
         self.app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
+        
+        # SMTP连接
+        self.smtp_connection = None
+        self.connection_lock = threading.Lock()
+        
+        # 异步执行器
+        self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SimpleEmailSender")
         
         # 邮件发送统计
         self.email_stats = {
@@ -591,23 +490,203 @@ class AsyncEmailSender:
             'total_failed': 0,
             'last_success_time': None,
             'last_failure_time': None,
-            'last_error_message': None,
-            'recent_emails': []  # 保存最近10封邮件的状态
+            'last_error_message': None
         }
         self.stats_lock = threading.Lock()
+        
+        # 程序启动时建立连接
+        self._establish_connection()
+    
+    def _establish_connection(self):
+        """建立SMTP连接"""
+        try:
+            if self.logger:
+                self.logger.info("🔗 正在建立SMTP连接...")
+            
+            self.smtp_connection = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10)
+            self.smtp_connection.set_debuglevel(0)
+            self.smtp_connection.login(self.sender, self.app_password)
+            
+            if self.logger:
+                self.logger.info("✅ SMTP连接建立成功")
+            return True
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"❌ SMTP连接建立失败: {str(e)}")
+            self.smtp_connection = None
+            return False
+    
+    def _reconnect(self):
+        """重新建立连接"""
+        if self.logger:
+            self.logger.info("🔄 重新建立SMTP连接...")
+        
+        # 关闭旧连接
+        if self.smtp_connection:
+            try:
+                self.smtp_connection.quit()
+            except:
+                pass
+            self.smtp_connection = None
+        
+        # 建立新连接
+        return self._establish_connection()
+    
+    def send_email_async(self, to_email, subject, body):
+        """异步发送邮件 - 不占用主线程"""
+        future = self.executor.submit(self._send_email_sync, to_email, subject, body)
+        return future
+    
+    def send_email(self, to_email, subject, body):
+        """同步发送邮件 - 失败时自动重连并重试"""
+        return self._send_email_sync(to_email, subject, body)
+    
+    def _send_email_sync(self, to_email, subject, body):
+        """同步发送邮件的内部实现"""
+        with self.connection_lock:
+            # 第一次尝试发送
+            if self._try_send_email(to_email, subject, body):
+                return True
+            
+            # 发送失败，重新建立连接后再次尝试
+            if self.logger:
+                self.logger.warning("📧 邮件发送失败，重新建立连接后重试...")
+            
+            if self._reconnect():
+                return self._try_send_email(to_email, subject, body)
+            else:
+                if self.logger:
+                    self.logger.error("❌ 重连失败，邮件发送彻底失败")
+                return False
+    
+    def _try_send_email(self, to_email, subject, body):
+        """尝试发送邮件"""
+        if not self.smtp_connection:
+            return False
+        
+        try:
+            # 创建邮件
+            msg = MIMEText(body, 'html', 'utf-8')
+            msg['From'] = self.sender
+            msg['To'] = to_email
+            msg['Subject'] = Header(subject, 'utf-8')
+            
+            # 发送邮件
+            self.smtp_connection.sendmail(self.sender, [to_email], msg.as_string())
+            
+            # 更新统计
+            with self.stats_lock:
+                self.email_stats['total_sent'] += 1
+                self.email_stats['last_success_time'] = datetime.now()
+            
+            if self.logger:
+                self.logger.info(f"✅ 邮件发送成功: {subject}")
+            return True
+            
+        except Exception as e:
+            # 更新统计
+            with self.stats_lock:
+                self.email_stats['total_failed'] += 1
+                self.email_stats['last_failure_time'] = datetime.now()
+                self.email_stats['last_error_message'] = str(e)
+            
+            if self.logger:
+                self.logger.error(f"❌ 邮件发送失败: {str(e)}")
+            
+            # 连接可能已断开，标记为无效
+            self.smtp_connection = None
+            return False
+    
+    def close_connection(self):
+        """关闭SMTP连接和异步执行器"""
+        # 关闭异步执行器
+        if hasattr(self, 'executor'):
+            try:
+                self.executor.shutdown(wait=True)
+                if self.logger:
+                    self.logger.info("✅ 邮件异步执行器已关闭")
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"❌ 关闭邮件异步执行器时出错: {str(e)}")
+        
+        # 关闭SMTP连接
+        with self.connection_lock:
+            if self.smtp_connection:
+                try:
+                    self.smtp_connection.quit()
+                    if self.logger:
+                        self.logger.info("✅ SMTP连接已关闭")
+                except Exception as e:
+                    if self.logger:
+                        self.logger.error(f"❌ 关闭SMTP连接时出错: {str(e)}")
+                finally:
+                    self.smtp_connection = None
+    
+    def get_stats(self):
+        """获取邮件发送统计"""
+        with self.stats_lock:
+            return self.email_stats.copy()
+
+
+class AsyncEmailSender:
+    """异步邮件发送器 - 保留兼容性"""
+    
+    def __init__(self, max_workers=2, logger=None):
+        # 使用简化的邮件发送器
+        self.simple_sender = SimpleEmailSender(logger)
+        self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="EmailSender")
+        self.email_queue = queue.Queue()
+        self.is_running = True
+        self.logger = logger
+        
+        # 邮件配置 - 兼容性
+        self.sender = self.simple_sender.sender
+        self.app_password = self.simple_sender.app_password
+        
+        # 邮件发送统计 - 兼容性
+        self.email_stats = self.simple_sender.email_stats
+        self.stats_lock = self.simple_sender.stats_lock
         
     def set_logger(self, logger):
         """设置日志记录器"""
         self.logger = logger
+        self.simple_sender.logger = logger
         
     def send_email_async(self, subject, content, receivers, trade_type=""):
-        """异步发送邮件 - 简化接口"""
+        """异步发送邮件 - 使用简化发送器"""
         future = self.executor.submit(
-            self._send_email_sync, 
-            self.sender, self.app_password, receivers, subject, content, trade_type
+            self._send_email_sync_simple, 
+            receivers, subject, content, trade_type
         )
         return future
         
+    def _send_email_sync_simple(self, receivers, subject, content, trade_type=""):
+        """使用简化邮件发送器的同步发送方法"""
+        try:
+            # 确保receivers是列表
+            if isinstance(receivers, str):
+                receivers = [receivers]
+            
+            # 使用简化发送器发送邮件
+            success = False
+            for receiver in receivers:
+                if self.simple_sender.send_email(receiver, subject, content):
+                    success = True
+                else:
+                    if self.logger:
+                        self.logger.error(f"❌ 发送邮件到 {receiver} 失败")
+            
+            # 触发前端邮件状态更新
+            self._trigger_email_status_update()
+            return success
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"❌ 邮件发送异常: {str(e)}")
+            self._trigger_email_status_update()
+            return False
+    
     def _send_email_sync(self, sender, app_password, receivers, subject, content, trade_type=""):
         """同步发送邮件的内部方法"""
         max_retries = 3  # 增加重试次数
@@ -615,14 +694,10 @@ class AsyncEmailSender:
         
         for attempt in range(max_retries):
             try:
-                if self.logger:
-                    self.logger.info(f"📧 开始发送邮件 (尝试 {attempt + 1}/{max_retries}): {subject}")
                 
                 with self.smtp_manager.get_connection() as server:
                     try:
                         # 登录SMTP服务器
-                        if self.logger:
-                            self.logger.debug(f"🔐 正在登录SMTP服务器: {sender}")
                         server.login(sender, app_password)
                         
                         # 构建邮件
@@ -633,8 +708,6 @@ class AsyncEmailSender:
                         msg.attach(MIMEText(content, 'plain', 'utf-8'))
                         
                         # 发送邮件
-                        if self.logger:
-                            self.logger.debug(f"📤 正在发送邮件到: {', '.join(receivers)}")
                         server.sendmail(sender, receivers, msg.as_string())
                         
                         if self.logger:
@@ -713,9 +786,7 @@ class AsyncEmailSender:
             if success:
                 self.email_stats['total_sent'] += 1
                 self.email_stats['last_success_time'] = current_time
-                # 记录成功日志
-                if self.logger:
-                    self.logger.info(f"📧 邮件发送成功: {subject}")
+                
             else:
                 self.email_stats['total_failed'] += 1
                 self.email_stats['last_failure_time'] = current_time
@@ -984,12 +1055,14 @@ class CryptoTrader:
             except Exception as e:
                 self.logger.error(f"❌ \033[31m日志监听系统启动失败:\033[0m {e}")
         
-        # 初始化异步邮件发送器
+        # 初始化简化邮件发送器
         try:
-            self.async_email_sender = AsyncEmailSender(logger=self.logger)
-            self.logger.info("✅ \033[34m异步邮件发送器初始化成功\033[0m")
+            self.email_sender = SimpleEmailSender(logger=self.logger)
+            self.async_email_sender = AsyncEmailSender(logger=self.logger)  # 保留兼容性
+            self.logger.info("✅ \033[34m邮件发送器初始化成功\033[0m")
         except Exception as e:
-            self.logger.error(f"❌ \033[31m异步邮件发送器初始化失败:\033[0m {e}")
+            self.logger.error(f"❌ \033[31m邮件发送器初始化失败:\033[0m {e}")
+            self.email_sender = None
             self.async_email_sender = None
         
         # 初始化状态数据管理器（必须在AsyncDataUpdater之前）
@@ -5620,9 +5693,9 @@ class CryptoTrader:
                          cash_value, portfolio_value):
         """发送交易邮件 - 使用异步发送器"""
         try:
-            # 检查异步邮件发送器是否可用
-            if not self.async_email_sender:
-                self.logger.error("异步邮件发送器未初始化，无法发送邮件")
+            # 检查邮件发送器是否可用
+            if not self.email_sender and not self.async_email_sender:
+                self.logger.error("邮件发送器未初始化，无法发送邮件")
                 return
             
             hostname = socket.gethostname()
@@ -5659,12 +5732,17 @@ class CryptoTrader:
             交易时间: {current_time}
             """
             
-            # 使用异步邮件发送器发送邮件
-            self.async_email_sender.send_email_async(
-                subject=subject,
-                content=content,
-                receivers=receivers
-            )
+            # 使用简化邮件发送器异步发送邮件
+            if self.email_sender:
+                for receiver in receivers:
+                    self.email_sender.send_email_async(receiver, subject, content)
+            else:
+                # 降级到异步发送器（兼容性）
+                self.async_email_sender.send_email_async(
+                    subject=subject,
+                    content=content,
+                    receivers=receivers
+                )
             
             # 触发前端邮件状态更新
             self._trigger_frontend_email_update()
@@ -7955,7 +8033,11 @@ class CryptoTrader:
         def get_email_stats():
             """获取邮件发送统计信息"""
             try:
-                stats = self.async_email_sender.get_email_stats()
+                # 优先使用简化邮件发送器的统计
+                if self.email_sender:
+                    stats = self.email_sender.get_stats()
+                else:
+                    stats = self.async_email_sender.get_email_stats()
                 return jsonify({
                     'success': True,
                     'stats': stats
@@ -9147,12 +9229,22 @@ if __name__ == "__main__":
         sys.exit(1)
     finally:
         # 程序退出时的清理工作
-        if app and hasattr(app, 'async_email_sender'):
-            try:
-                app.async_email_sender.shutdown()
-                print("✅ \033[34m邮件发送器已关闭\033[0m")
-            except Exception as e:
-                print(f"❌ \033[31m邮件发送器关闭时出错: {str(e)}\033[0m")
+        if app:
+            # 关闭简化邮件发送器
+            if hasattr(app, 'email_sender') and app.email_sender:
+                try:
+                    app.email_sender.close_connection()
+                    print("✅ \033[34m简化邮件发送器已关闭\033[0m")
+                except Exception as e:
+                    print(f"❌ \033[31m简化邮件发送器关闭时出错: {str(e)}\033[0m")
+            
+            # 关闭异步邮件发送器（兼容性）
+            if hasattr(app, 'async_email_sender') and app.async_email_sender:
+                try:
+                    app.async_email_sender.shutdown()
+                    print("✅ \033[34m异步邮件发送器已关闭\033[0m")
+                except Exception as e:
+                    print(f"❌ \033[31m异步邮件发送器关闭时出错: {str(e)}\033[0m")
         
         # 关闭异步数据更新器
         if app and hasattr(app, 'async_data_updater'):
