@@ -5499,13 +5499,14 @@ class CryptoTrader:
                     # 计时结束
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34m点击ACCEPT按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
+                    self.no_i_accept_button = False
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ ACCEPT按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", accept_button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击ACCEPT按钮耗时\033[32m {elapsed:.3f} \033[0m秒\033[0m")
- 
+                    self.no_i_accept_button = False
         except TimeoutException:
             pass  # 弹窗没出现,不用处理
         except Exception as e:
