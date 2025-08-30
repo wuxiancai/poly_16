@@ -466,7 +466,7 @@ class StatusDataManager:
 
 
 class SimpleEmailSender:
-    """简化的邮件发送器 - 程序启动时建立连接，异步发送邮件"""
+    """简化的邮件发送器 - 启动时建立连接保存server对象，直接调用sendmail"""
     
     def __init__(self, logger=None):
         self.logger = logger
@@ -477,8 +477,8 @@ class SimpleEmailSender:
         self.sender = 'huacaihuijin@126.com'
         self.app_password = 'PUaRF5FKeKJDrYH7'  # 有效期 180 天,请及时更新,下次到期日 2025-11-29
         
-        # SMTP连接
-        self.smtp_connection = None
+        # SMTP服务器对象 - 核心简化：保存server对象
+        self.server = None
         self.connection_lock = threading.Lock()
         
         # 异步执行器
@@ -494,18 +494,19 @@ class SimpleEmailSender:
         }
         self.stats_lock = threading.Lock()
         
-        # 程序启动时建立连接
-        self._establish_connection()
+        # 程序启动时建立连接并登录
+        self._connect_and_login()
     
-    def _establish_connection(self):
-        """建立SMTP连接"""
+    def _connect_and_login(self):
+        """建立SMTP连接并登录，保存server对象"""
         try:
             if self.logger:
-                self.logger.info("🔗 正在建立SMTP连接...")
+                self.logger.info("🔗 正在建立SMTP连接并登录...")
             
-            self.smtp_connection = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=10)
-            self.smtp_connection.set_debuglevel(0)
-            self.smtp_connection.login(self.sender, self.app_password)
+            # 建立连接并登录，保存server对象
+            self.server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=15)
+            self.server.set_debuglevel(0)
+            self.server.login(self.sender, self.app_password)
             
             if self.logger:
                 self.logger.info("✅ SMTP连接建立成功")
@@ -514,24 +515,35 @@ class SimpleEmailSender:
         except Exception as e:
             if self.logger:
                 self.logger.error(f"❌ SMTP连接建立失败: {str(e)}")
-            self.smtp_connection = None
+            self.server = None
+            return False
+    
+    def _is_connection_alive(self):
+        """检测连接是否还存活"""
+        if not self.server:
+            return False
+        
+        # 发送NOOP命令检测连接存活
+        try:
+            self.server.noop()
+            return True
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"🔍 连接检测失败，连接已断开: {str(e)}")
             return False
     
     def _reconnect(self):
         """重新建立连接"""
-        if self.logger:
-            self.logger.info("🔄 重新建立SMTP连接...")
-        
         # 关闭旧连接
-        if self.smtp_connection:
+        if self.server:
             try:
-                self.smtp_connection.quit()
+                self.server.quit()
             except:
                 pass
-            self.smtp_connection = None
+            self.server = None
         
         # 建立新连接
-        return self._establish_connection()
+        return self._connect_and_login()
     
     def send_email_async(self, to_email, subject, body):
         """异步发送邮件 - 不占用主线程"""
@@ -543,26 +555,21 @@ class SimpleEmailSender:
         return self._send_email_sync(to_email, subject, body)
     
     def _send_email_sync(self, to_email, subject, body):
-        """同步发送邮件的内部实现"""
+        """同步发送邮件的内部实现 - 核心简化逻辑"""
         with self.connection_lock:
-            # 第一次尝试发送
-            if self._try_send_email(to_email, subject, body):
-                return True
+            # 检测连接是否还存活，如果断开则重连
+            if not self._is_connection_alive():
+                if not self._reconnect():
+                    if self.logger:
+                        self.logger.error("❌ 重连失败，无法发送邮件")
+                    return False
             
-            # 发送失败，重新建立连接后再次尝试
-            if self.logger:
-                self.logger.warning("📧 邮件发送失败，重新建立连接后重试...")
-            
-            if self._reconnect():
-                return self._try_send_email(to_email, subject, body)
-            else:
-                if self.logger:
-                    self.logger.error("❌ 重连失败，邮件发送彻底失败")
-                return False
+            # 直接调用server.sendmail发送邮件
+            return self._direct_send_email(to_email, subject, body)
     
-    def _try_send_email(self, to_email, subject, body):
-        """尝试发送邮件"""
-        if not self.smtp_connection:
+    def _direct_send_email(self, to_email, subject, body):
+        """直接发送邮件 - 核心简化：直接调用server.sendmail"""
+        if not self.server:
             return False
         
         try:
@@ -572,8 +579,8 @@ class SimpleEmailSender:
             msg['To'] = to_email
             msg['Subject'] = Header(subject, 'utf-8')
             
-            # 发送邮件
-            self.smtp_connection.sendmail(self.sender, [to_email], msg.as_string())
+            # 直接调用server.sendmail发送邮件
+            self.server.sendmail(self.sender, [to_email], msg.as_string())
             
             # 更新统计
             with self.stats_lock:
@@ -595,7 +602,7 @@ class SimpleEmailSender:
                 self.logger.error(f"❌ 邮件发送失败: {str(e)}")
             
             # 连接可能已断开，标记为无效
-            self.smtp_connection = None
+            self.server = None
             return False
     
     def close_connection(self):
@@ -612,16 +619,16 @@ class SimpleEmailSender:
         
         # 关闭SMTP连接
         with self.connection_lock:
-            if self.smtp_connection:
+            if self.server:
                 try:
-                    self.smtp_connection.quit()
+                    self.server.quit()
                     if self.logger:
                         self.logger.info("✅ SMTP连接已关闭")
                 except Exception as e:
                     if self.logger:
                         self.logger.error(f"❌ 关闭SMTP连接时出错: {str(e)}")
                 finally:
-                    self.smtp_connection = None
+                    self.server = None
     
     def get_stats(self):
         """获取邮件发送统计"""
@@ -725,16 +732,14 @@ class AsyncEmailSender:
                         if self.logger:
                             self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
                         if attempt < max_retries - 1:
-                            if self.logger:
-                                self.logger.info(f"⏳ 等待 {retry_delay} 秒后重试...")
+                            
                             time.sleep(retry_delay)
                         else:
                             raise Exception(error_msg)
                     
                     except smtplib.SMTPServerDisconnected as e:
                         error_msg = f"SMTP服务器连接断开: {str(e)}"
-                        if self.logger:
-                            self.logger.warning(f"⚠️ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                        
                         if attempt < max_retries - 1:
                             time.sleep(retry_delay)
                         else:
@@ -742,8 +747,7 @@ class AsyncEmailSender:
                     
                     except smtplib.SMTPException as e:
                         error_msg = f"SMTP操作失败: {str(e)}"
-                        if self.logger:
-                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
+                        
                         if attempt < max_retries - 1:
                             time.sleep(retry_delay)
                         else:
@@ -759,13 +763,11 @@ class AsyncEmailSender:
                             raise Exception(error_msg)
                             
             except Exception as e:
-                if self.logger:
-                    self.logger.error(f"❌ 邮件发送失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                
                 if attempt < max_retries - 1:
                     # 指数退避重试
                     backoff_delay = retry_delay * (2 ** attempt)
-                    if self.logger:
-                        self.logger.info(f"⏳ 等待 {backoff_delay:.1f} 秒后重试...")
+                    
                     time.sleep(backoff_delay)
                 else:
                     if self.logger:
@@ -872,12 +874,9 @@ class AsyncDataUpdater:
                 return True
                 
             except Exception as e:
-                if self.logger:
-                    self.logger.error(f"❌ 数据更新失败 (尝试 {attempt + 1}/{max_retries}): {category}.{key} = {value}, 错误: {str(e)}")
                 
                 if attempt < max_retries - 1:
-                    if self.logger:
-                        self.logger.info(f"等待 {retry_delay} 秒后重试...")
+                    
                     time.sleep(retry_delay)
                     retry_delay *= 2  # 指数退避
                 else:
@@ -7575,48 +7574,7 @@ class CryptoTrader:
                         });
                     }
                     
-                    // 更新邮件状态的函数
-                    function updateEmailStatus() {
-                        fetch('/api/email/stats')
-                        .then(response => response.json())
-                        .then(data => {
-                            const emailStatusElement = document.getElementById('emailStatus');
-                            if (emailStatusElement && data.success) {
-                                const stats = data.stats;
-                                const successRate = stats.total_sent + stats.total_failed > 0 ? 
-                                    ((stats.total_sent / (stats.total_sent + stats.total_failed)) * 100).toFixed(1) : '0';
-                                
-                                let statusText = `邮件: 成功${stats.total_sent} 失败${stats.total_failed} 成功率${successRate}%`;
-                                
-                                if (stats.last_success_time) {
-                                    statusText += ` | 最近成功: ${stats.last_success_time}`;
-                                }
-                                
-                                if (stats.last_failure_time && stats.last_error_message) {
-                                    statusText += ` | 最近失败: ${stats.last_failure_time.substring(11, 19)}`;
-                                }
-                                
-                                emailStatusElement.textContent = statusText;
-                                
-                                // 根据最近状态设置颜色
-                                if (stats.total_failed === 0 || 
-                                    (stats.last_success_time && stats.last_failure_time && 
-                                     stats.last_success_time > stats.last_failure_time)) {
-                                    emailStatusElement.style.color = '#28a745'; // 绿色
-                                } else {
-                                    emailStatusElement.style.color = '#dc3545'; // 红色
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('获取邮件状态失败:', error);
-                            const emailStatusElement = document.getElementById('emailStatus');
-                            if (emailStatusElement) {
-                                emailStatusElement.textContent = '邮件状态: 获取失败';
-                                emailStatusElement.style.color = '#dc3545';
-                            }
-                        });
-                    }
+
                     
                     // 启动价格更新检查
                     setInterval(checkPriceUpdates, 2000);
@@ -7624,9 +7582,8 @@ class CryptoTrader:
                     // 启动系统信息更新检查（每5秒更新一次）
                     setInterval(updateSystemInfo, 5000);
                     
-                    // 页面加载完成后立即更新一次系统信息和邮件状态
+                    // 页面加载完成后立即更新一次系统信息
                     updateSystemInfo();
-                    updateEmailStatus();
                     </script>
                     <style>
                     .table-header th {
@@ -7701,8 +7658,7 @@ class CryptoTrader:
                         <div class="table-footer" style="text-align: center; margin-top: 15px;  font-size: 14px;">
                             显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
                             <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">查看完整记录</a> | 
-                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a> | 
-                            <span id="emailStatus" style="color: #666; font-size: 12px;">邮件状态: 加载中...</span>
+                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a>
                         </div>
                         {% else %}
                         <div style="text-align: center; padding: 40px; color: white;">
