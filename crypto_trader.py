@@ -694,128 +694,9 @@ class AsyncEmailSender:
             self._trigger_email_status_update()
             return False
     
-    def _send_email_sync(self, sender, app_password, receivers, subject, content, trade_type=""):
-        """同步发送邮件的内部方法"""
-        max_retries = 3  # 增加重试次数
-        retry_delay = 1.0  # 增加重试间隔
-        
-        for attempt in range(max_retries):
-            try:
-                
-                with self.smtp_manager.get_connection() as server:
-                    try:
-                        # 登录SMTP服务器
-                        server.login(sender, app_password)
-                        
-                        # 构建邮件
-                        msg = MIMEMultipart()
-                        msg['Subject'] = Header(subject, 'utf-8')
-                        msg['From'] = sender
-                        msg['To'] = ', '.join(receivers)
-                        msg.attach(MIMEText(content, 'plain', 'utf-8'))
-                        
-                        # 发送邮件
-                        server.sendmail(sender, receivers, msg.as_string())
-                        
-                        if self.logger:
-                            self.logger.info(f"✅ 邮件发送成功: {subject}")
-                        
-                        # 更新统计信息
-                        self._update_stats(True, subject, None)
-                        
-                        # 触发前端邮件状态更新
-                        self._trigger_email_status_update()
-                        return True
-                        
-                    except smtplib.SMTPAuthenticationError as e:
-                        error_msg = f"SMTP认证失败: {str(e)}"
-                        if self.logger:
-                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
-                        if attempt < max_retries - 1:
-                            
-                            time.sleep(retry_delay)
-                        else:
-                            raise Exception(error_msg)
-                    
-                    except smtplib.SMTPServerDisconnected as e:
-                        error_msg = f"SMTP服务器连接断开: {str(e)}"
-                        
-                        if attempt < max_retries - 1:
-                            time.sleep(retry_delay)
-                        else:
-                            raise Exception(error_msg)
-                    
-                    except smtplib.SMTPException as e:
-                        error_msg = f"SMTP操作失败: {str(e)}"
-                        
-                        if attempt < max_retries - 1:
-                            time.sleep(retry_delay)
-                        else:
-                            raise Exception(error_msg)
-                    
-                    except Exception as e:
-                        error_msg = f"邮件发送过程中出现未知错误: {str(e)}"
-                        if self.logger:
-                            self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
-                        if attempt < max_retries - 1:
-                            time.sleep(retry_delay)
-                        else:
-                            raise Exception(error_msg)
-                            
-            except Exception as e:
-                
-                if attempt < max_retries - 1:
-                    # 指数退避重试
-                    backoff_delay = retry_delay * (2 ** attempt)
-                    
-                    time.sleep(backoff_delay)
-                else:
-                    if self.logger:
-                        self.logger.error(f"❌ 邮件发送最终失败，已达到最大重试次数: {str(e)}")
-                
-                # 更新统计信息
-                self._update_stats(False, subject, str(e))
-                
-                # 触发前端邮件状态更新
-                self._trigger_email_status_update()
-                return False
-    
-    def _update_stats(self, success, subject, error_message=None):
-        """更新邮件发送统计信息"""
-        with self.stats_lock:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            if success:
-                self.email_stats['total_sent'] += 1
-                self.email_stats['last_success_time'] = current_time
-                
-            else:
-                self.email_stats['total_failed'] += 1
-                self.email_stats['last_failure_time'] = current_time
-                self.email_stats['last_error_message'] = error_message
-                # 记录失败日志
-                if self.logger:
-                    self.logger.error(f"📧 邮件发送失败: {subject} - {error_message}")
-            
-            # 添加到最近邮件记录
-            email_record = {
-                'time': current_time,
-                'subject': subject,
-                'success': success,
-                'error': error_message if not success else None
-            }
-            
-            self.email_stats['recent_emails'].append(email_record)
-            # 只保留最近10条记录
-            if len(self.email_stats['recent_emails']) > 10:
-                self.email_stats['recent_emails'].pop(0)
-    
     def get_email_stats(self):
         """获取邮件发送统计信息"""
-        with self.stats_lock:
-            return self.email_stats.copy()
-        
-        return False
+        return self.simple_sender.get_stats()
     
     def _trigger_email_status_update(self):
         """触发前端邮件状态更新"""
@@ -827,7 +708,7 @@ class AsyncEmailSender:
         """关闭邮件发送器"""
         self.is_running = False
         self.executor.shutdown(wait=True)
-        self.smtp_manager.close_all_connections()
+        self.simple_sender.close_connection()
 
 
 class AsyncDataUpdater:
