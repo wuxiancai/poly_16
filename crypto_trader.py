@@ -1400,7 +1400,7 @@ class CryptoTrader:
     def setup_gui(self):
         """优化后的GUI界面设置"""
         self.root = tk.Tk()
-        self.root.title("Polymarket Automatic Trading System Power by @wuxiancai")
+        self.root.title("Automatic Trading System Power by @无为")
         
         # 创建主滚动框架
         main_canvas = tk.Canvas(self.root, bg='#f8f9fa', highlightthickness=0)
@@ -7174,7 +7174,7 @@ class CryptoTrader:
                     <div class="container">
                         <div class="header">
                             <h1>兑复量化交易系统
-                                <span class="subtitle">Power by 正庭</span>
+                                <span class="subtitle">Power by 无为</span>
                             </h1>
                         </div>
 
@@ -7780,6 +7780,27 @@ class CryptoTrader:
                             </table>
                             
                             <script>
+                                // 保存数据到本地存储
+                                function saveCompoundData() {
+                                    const principal = document.getElementById('table-principal').value;
+                                    const rate = document.getElementById('table-rate').value;
+                                    localStorage.setItem('compound_principal', principal);
+                                    localStorage.setItem('compound_rate', rate);
+                                }
+                                
+                                // 从本地存储加载数据
+                                function loadCompoundData() {
+                                    const savedPrincipal = localStorage.getItem('compound_principal');
+                                    const savedRate = localStorage.getItem('compound_rate');
+                                    
+                                    if (savedPrincipal !== null) {
+                                        document.getElementById('table-principal').value = savedPrincipal;
+                                    }
+                                    if (savedRate !== null) {
+                                        document.getElementById('table-rate').value = savedRate;
+                                    }
+                                }
+                                
                                 function calculateCompound() {
                                     const principal = parseFloat(document.getElementById('table-principal').value) || 0;
                                     const rateValue = document.getElementById('table-rate').value;
@@ -7797,22 +7818,30 @@ class CryptoTrader:
                                 }
                                 
                                 // 监听输入变化
-                                document.getElementById('table-principal').addEventListener('input', calculateCompound);
+                                document.getElementById('table-principal').addEventListener('input', function() {
+                                    calculateCompound();
+                                    saveCompoundData(); // 保存数据
+                                });
                                 document.getElementById('table-rate').addEventListener('input', function() {
                                     let value = this.value.replace('%', '');
                                     if (value && !isNaN(value)) {
                                         this.value = value + '%';
                                     }
                                     calculateCompound();
+                                    saveCompoundData(); // 保存数据
                                 });
                                 
-                                // 页面加载时计算一次
+                                // 页面加载时先加载保存的数据，然后计算
                                 document.addEventListener('DOMContentLoaded', function() {
+                                    loadCompoundData();
                                     calculateCompound();
                                 });
                                 
-                                // 立即执行一次计算
-                                setTimeout(calculateCompound, 100);
+                                // 立即执行一次加载和计算
+                                setTimeout(function() {
+                                    loadCompoundData();
+                                    calculateCompound();
+                                }, 100);
                             </script>
                         </div>
                     </div>
