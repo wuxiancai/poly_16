@@ -3143,7 +3143,7 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
-                    for retry in range(3):
+                    for retry in range(5):
                         self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
                 
                         # 计时开始
@@ -3218,7 +3218,8 @@ class CryptoTrader:
                         )
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
-                    for retry in range(3):
+                    self.trading = True  # 开始交易
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3311,7 +3312,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
 
-                    for retry in range(3):
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3384,7 +3385,9 @@ class CryptoTrader:
                         )
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
-                    for retry in range(3):
+                    self.trading = True  # 开始交易
+
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3479,7 +3482,7 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True  # 开始交易
             
-                    for retry in range(3):
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3556,7 +3559,9 @@ class CryptoTrader:
 
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
-                    for retry in range(3):
+                    self.trading = True  # 开始交易
+
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3652,8 +3657,8 @@ class CryptoTrader:
                 # 检查Yes4价格匹配
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True  # 开始交易
-            
-                    for retry in range(3):
+
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3729,7 +3734,8 @@ class CryptoTrader:
                         )
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
-                    for retry in range(3):
+                    self.trading = True  # 开始交易
+                    for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -4245,13 +4251,6 @@ class CryptoTrader:
     def find_54_coin(self):
         """自动找币"""
         self.logger.info("✅ 开始自动找币,先检查是否有持仓")
-        # 找币之前先查看是否有持仓
-        if self.find_position_label_down():
-            self.only_sell_down()
-        
-        if self.find_position_label_up():
-            self.only_sell_up()
-
         try:
             # 第一步:先点击 CRYPTO 按钮
             try:
@@ -4488,27 +4487,6 @@ class CryptoTrader:
             self.root.after(5000, self.schedule_update_amount)
             self.logger.info("✅ \033[34m零点 10 分设置 YES/NO 金额成功!\033[0m")
 
-            # 设置 YES1/NO1价格为 0
-            self.yes1_price_entry.delete(0, tk.END)
-            self.yes1_price_entry.insert(0, "0")
-            self.no1_price_entry.delete(0, tk.END)
-            self.no1_price_entry.insert(0, "0")
-            self.logger.info("✅ \033[34m零点 5 分设置 YES/NO 价格为 0 成功!\033[0m")
-
-            # 同步UP1/DOWN1价格重置到StatusDataManager
-            self._update_status_async('positions', 'up_positions', [
-                {"price": 0},  # UP1重置为0
-                {"price": float(self.yes2_price_entry.get())},
-                {"price": float(self.yes3_price_entry.get())},
-                {"price": float(self.yes4_price_entry.get())}
-            ])
-            self._update_status_async('positions', 'down_positions', [
-                {"price": 0},  # DOWN1重置为0
-                {"price": float(self.no2_price_entry.get())},
-                {"price": float(self.no3_price_entry.get())},
-                {"price": float(self.no4_price_entry.get())}
-            ])
-
             # 读取 GUI 上的交易次数
             trade_count = self.trade_count_label.cget("text")
             self.logger.info(f"最后一次交易次数: {trade_count}")
@@ -4545,7 +4523,7 @@ class CryptoTrader:
     def get_binance_zero_time_price(self):
         """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""   
         # 先把所有 YES/NO 价格设置为 0
-        for i in range(1,6):  # 1-5
+        for i in range(1,5):  # 1-4
             yes_entry = getattr(self, f'yes{i}_price_entry', None)
             no_entry = getattr(self, f'no{i}_price_entry', None)
 
@@ -4553,14 +4531,25 @@ class CryptoTrader:
                 yes_entry.delete(0, tk.END)
                 yes_entry.insert(0, "0")
                 yes_entry.configure(foreground='black')
-                # 同步YES价格到StatusDataManager
-                self._update_status_async('positions', f'yes{i}_price', "0")
+                
             if no_entry:
                 no_entry.delete(0, tk.END)
                 no_entry.insert(0, "0")
                 no_entry.configure(foreground='black')
-                # 同步NO价格到StatusDataManager
-                self._update_status_async('positions', f'no{i}_price', "0")
+
+        # 同步UP1/DOWN1价格重置到StatusDataManager
+        self._update_status_async('positions', 'up_positions', [
+            {"price": float(self.yes1_price_entry.get())},  # UP1重置为0
+            {"price": float(self.yes2_price_entry.get())},
+            {"price": float(self.yes3_price_entry.get())},
+            {"price": float(self.yes4_price_entry.get())}
+        ])
+        self._update_status_async('positions', 'down_positions', [
+            {"price": float(self.no1_price_entry.get())},  # DOWN1重置为0
+            {"price": float(self.no2_price_entry.get())},
+            {"price": float(self.no3_price_entry.get())},
+            {"price": float(self.no4_price_entry.get())}
+        ])
 
         api_data = None
         coin_form_websocket = ""
@@ -4633,6 +4622,13 @@ class CryptoTrader:
                     self.logger.debug(f"❌ 更新零点价格GUI时出错: {e_gui}")
             
             self.root.after(0, update_gui)
+        
+        # 查看是否有持仓
+        if self.find_position_label_down():
+            self.only_sell_down()
+        
+        if self.find_position_label_up():
+            self.only_sell_up()
 
         # 设置定时器,每天00:00获取一次币安价格
         now = datetime.now()
