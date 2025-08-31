@@ -5707,7 +5707,7 @@ class CryptoTrader:
             # 根据HOSTNAME决定邮件接收者
             receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
             if 'ZZY' in hostname:
-                receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱
+                receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱272763832@qq.com
             
             # 获取交易币对信息
             full_pair = self.trading_pair_label.cget("text")
