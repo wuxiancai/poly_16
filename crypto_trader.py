@@ -3952,7 +3952,7 @@ class CryptoTrader:
                                 self.price = float(price_match.group(1)) if price_match else 0
                                 self.amount = float(amount_match.group(1)) if amount_match else 0
                                 self.shares = float(shares_match.group(1)) if shares_match else 0
-                                self.logger.info(f"✅ \033[31m交易验证成功: {action_type} {direction} 价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
+                                self.logger.info(f"✅ \033[31m交易验证成功: \033[32m{action_type} {direction} \033[0m价格: {self.price} 金额: {self.amount} Shares: {self.shares}\033[0m")
                                 
                                 # 计时结束
                                 elapsed = time.perf_counter() - start_time_count
