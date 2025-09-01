@@ -162,7 +162,9 @@ class TradeStatsManager:
             
             return {
                 'date': date_str,
-                'counts': counts,
+                'hourly_data': counts,  # API端点期望的字段名
+                'total_trades': total,  # API端点期望的字段名
+                'counts': counts,       # 保持向后兼容
                 'percentages': percentages,
                 'total': total
             }
@@ -200,7 +202,9 @@ class TradeStatsManager:
             return {
                 'week_start': monday.strftime('%Y-%m-%d'),
                 'dates': dates,
-                'counts': weekly_counts,
+                'hourly_data': weekly_counts,  # API端点期望的字段名
+                'total_trades': total,         # API端点期望的字段名
+                'counts': weekly_counts,       # 保持向后兼容
                 'percentages': percentages,
                 'total': total
             }
@@ -246,7 +250,9 @@ class TradeStatsManager:
             return {
                 'month': target_date.strftime('%Y-%m'),
                 'dates': dates,
-                'counts': monthly_counts,
+                'hourly_data': monthly_counts,  # API端点期望的字段名
+                'total_trades': total,          # API端点期望的字段名
+                'counts': monthly_counts,       # 保持向后兼容
                 'percentages': percentages,
                 'total': total
             }
