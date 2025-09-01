@@ -3210,7 +3210,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)
+                            time.sleep(2)
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3288,7 +3288,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)
+                            time.sleep(2)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -3378,7 +3378,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)
+                            time.sleep(2)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -3458,7 +3458,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)
+                            time.sleep(2)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -3550,7 +3550,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3631,7 +3631,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3726,7 +3726,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3806,7 +3806,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 3次失败后发邮件
                         self.send_trade_email(
@@ -3870,7 +3870,7 @@ class CryptoTrader:
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
                 self.driver.refresh()
-                time.sleep(1)
+                time.sleep(2)
                 
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
@@ -3918,7 +3918,7 @@ class CryptoTrader:
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
                 self.driver.refresh()
-                time.sleep(1)
+                time.sleep(2)
     
     def verify_trade(self, action_type, direction):
         """
@@ -3936,7 +3936,7 @@ class CryptoTrader:
                 # 计时
                 start_time = time.time()
 
-                max_wait_time = 4  # 每次智能等待3秒
+                max_wait_time = 3  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
 
                 # 智能等待循环
@@ -3985,12 +3985,14 @@ class CryptoTrader:
                         pass
                     
                     time.sleep(check_interval)
-                self.logger.info("\033[34m❌ 智能等待3秒后,没有交易记录,第 2 次重试\033[0m")  
+                self.logger.info(f"\033[34m❌ 没有交易记录,第{attempt}次验证失败,开始第{attempt+1}次重试\033[0m")
+
             # 两次智能等待都失败
-            self.logger.warning(f"❌ \033[31m交易验证失败\033[0m")
+            self.logger.warning(f"❌ \033[31m{action_type} {direction} 第 2 次重试也失败,交易验证失败\033[0m")
             return False, 0, 0, 0
+
         except Exception as e:
-            self.logger.error(f"交易验证失败: {str(e)}")
+            self.logger.error(f"\033[31m{action_type} {direction} 交易验证失败: {str(e)}\033[0m")
             return False, 0, 0, 0
 
     def buy_operation(self, amount):
@@ -4256,7 +4258,7 @@ class CryptoTrader:
     
     def find_54_coin(self):
         """自动找币"""
-        self.logger.info("✅ 开始自动找币,先检查是否有持仓")
+        self.logger.info("✅ \033[34m开始自动找币\033[0m")
         try:
             # 第一步:先点击 CRYPTO 按钮
             try:
@@ -4267,13 +4269,13 @@ class CryptoTrader:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ CRYPTO按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", crypto_button)
-                self.logger.info(f"✅ 成功点击CRYPTO按钮")
+                self.logger.info(f"✅ \033[34m成功点击CRYPTO按钮\033[0m")
 
                 # 等待CRYPTO按钮点击后的页面加载完成
                 WebDriverWait(self.driver, 20).until(
                     EC.presence_of_element_located((By.XPATH, XPathConfig.DAILY_BUTTON[0]))
                 )   
-                self.logger.info("✅ CRYPTO按钮点击后的页面加载完成")
+                self.logger.info("✅ \033[34mCRYPTO按钮点击后DAILY_BUTTON 按钮加载完成\033[0m")
             except TimeoutException:
                 self.logger.error(f"❌ 定位CRYPTO按钮超时")
 
@@ -4282,28 +4284,29 @@ class CryptoTrader:
                 daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
                 try:
                     daily_button.click()
+                    self.logger.info(f"✅ \033[34m成功点击DAILY按钮\033[0m")
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ DAILY按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", daily_button)
-                self.logger.info(f"✅ 成功点击DAILY按钮")
+                    self.logger.info(f"✅ \033[34m使用 JavaScript 成功点击DAILY按钮\033[0m")
 
-                # 等待页面加载完成
+                # 等待DAILY按钮点击后的页面加载完成
                 WebDriverWait(self.driver, 20).until(
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
-                self.logger.info("✅ DAILY按钮点击后的页面加载完成")
+                self.logger.info("✅ \033[34mDAILY按钮点击后的页面加载完成\033[0m")
 
             except (TimeoutException):
                 self.logger.error(f"❌ 定位DAILY按钮超时")
             
             # 第三步:点击目标 URL 按钮,在当前页面打开 URL
             if self.click_today_card():
-                self.logger.info(f"✅ 成功点击目标URL按钮")
+                self.logger.info(f"✅ \033[34m成功点击了目标URL按钮\033[0m")
             
                 # 第四步:获取当前 URL并保存到 GUI 和配置文件中
                 new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
-                self.logger.info(f"✅ 成功获取到当前URL: {new_url}")
+                self.logger.info(f"✅ \033[34m成功获取到当前URL: {new_url}\033[0m")
                 time.sleep(8)
                 
                 # 保存当前 URL 到 config
@@ -4319,7 +4322,7 @@ class CryptoTrader:
                 # 把保存到config的url放到self.trading_pair_label中  
                 pair = re.search(r'event/([^?]+)', new_url)
                 self.trading_pair_label.config(text=pair.group(1))
-                self.logger.info(f"✅ {new_url}:已插入到主界面上并保存到配置文件")
+                self.logger.info(f"✅ \033[34m\033[31m{new_url}:\033[0m已插入到主界面上并保存到配置文件\033[0m")
             else:
                 self.logger.error(f"❌ 未成功点击目标URL按钮")
                 # 继续点击目标 URL 按钮
@@ -4339,10 +4342,11 @@ class CryptoTrader:
                 today_str = datetime.now().strftime("%B %-d")  # macOS格式
             else:  # Linux (Ubuntu)
                 today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式,去掉前导零
-            self.logger.info(f"🔍 当前日期是 {today_str}")
 
+            self.logger.info(f"🔍 当前日期是 \033[31m{today_str}\033[0m")
+            
             coin = self.coin_combobox.get()
-            self.logger.info(f"🔍 选择的币种是 {coin}")
+            self.logger.info(f"🔍 选择的币种是 \033[31m{coin}\033[0m")
 
             card = None
 
@@ -4366,17 +4370,10 @@ class CryptoTrader:
                 except NoSuchElementException:
                     card = None
 
-            self.logger.info(f"🔍 找到的卡片文本: {card.text}")
+            self.logger.info(f"🔍 找到的卡片文本: \033[31m{card.text}\033[0m")
 
             if today_str in card.text:
                 self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card.text}\033[0m")
-
-                # Command 键（macOS）或 Control 键（Windows/Linux）
-                #modifier_key = Keys.COMMAND if sys.platform == 'darwin' else Keys.CONTROL
-
-                # 使用 ActionChains 执行 Command/Ctrl + Click
-                #actions = ActionChains(self.driver)
-                #actions.key_down(modifier_key).click(card).key_up(modifier_key).perform()
 
                 # 直接点击元素
                 try:
