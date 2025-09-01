@@ -7541,7 +7541,7 @@ SHARES: {shares}
                                 <thead class="table-header">
                                     <tr style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">日期</th>
-                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">Cash</th>
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">金额</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">利润</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">利润率</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">总利润</th>
@@ -7550,7 +7550,7 @@ SHARES: {shares}
                                     </tr>
                                 </thead>
                                 <tbody class="table-body">
-                                    {% for record in data.cash_history[:91] %}
+                                    {% for record in data.cash_history[:4] %}
                                     <tr style="{% if loop.index % 2 == 0 %}background-color: #f8f9fa;{% endif %}">
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd;">{{ record[0] }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ record[1] }}</td>
@@ -7572,7 +7572,7 @@ SHARES: {shares}
                         }
                         </style>
                         <div class="table-footer" style="text-align: center; margin-top: 15px;  font-size: 14px;">
-                            显示最近 91 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
+                            显示最近 4 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
                             <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">查看完整记录</a> | 
                             <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a>
                         </div>
@@ -8017,7 +8017,7 @@ SHARES: {shares}
                     <table>
                         <tr>
                             <th>日期</th>
-                            <th>资金</th>
+                            <th>金额</th>
                             <th>利润</th>
                             <th>利润率</th>
                             <th>总利润</th>
@@ -8026,9 +8026,9 @@ SHARES: {shares}
                         </tr>
                         {% for row in history_page %}
                         {% set profit = (row[2] | float) %}
-                        {% set profit_rate = (row[3] | float) %}
+                        {% set profit_rate = (row[3] | replace('%', '') | float) %}
                         {% set total_profit = (row[4] | float) if row|length > 4 else 0 %}
-                        {% set total_profit_rate = (row[5] | float) if row|length > 5 else 0 %}
+                        {% set total_profit_rate = (row[5] | replace('%', '') | float) if row|length > 5 else 0 %}
                         {% set trade_times = row[6] if row|length > 6 else '' %}
                         <tr>
                             <td>{{ row[0] }}</td>
@@ -8036,14 +8036,14 @@ SHARES: {shares}
                             <td class=\"{{ 'positive' if profit > 0 else ('negative' if profit < 0 else 'zero') }}\">
                                 {{ row[2] }}
                             </td>
-                            <td class=\"{{ 'positive' if profit_rate > 0 else ('negative' if profit_rate < 0 else 'zero') }}\">
-                                {{ '%.2f%%' % (profit_rate * 100) }}
+                            <td class="{{ 'positive' if profit_rate > 0 else ('negative' if profit_rate < 0 else 'zero') }}">
+                                {{ '%.2f%%' % profit_rate }}
                             </td>
                             <td class=\"{{ 'positive' if total_profit > 0 else ('negative' if total_profit < 0 else 'zero') }}\">
                                 {{ row[4] }}
                             </td>
-                            <td class=\"{{ 'positive' if total_profit_rate > 0 else ('negative' if total_profit_rate < 0 else 'zero') }}\">
-                                {{ '%.2f%%' % (total_profit_rate * 100) }}
+                            <td class="{{ 'positive' if total_profit_rate > 0 else ('negative' if total_profit_rate < 0 else 'zero') }}">
+                                {{ '%.2f%%' % total_profit_rate }}
                             </td>
                             <td>{{ trade_times }}</td>
                         </tr>
