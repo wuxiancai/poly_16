@@ -4137,81 +4137,80 @@ class CryptoTrader:
     
     def find_54_coin(self):
         """自动找币"""
-        self.logger.info("✅ \033[34m开始自动找币\033[0m")
-        try:
-            # 第一步:先点击 CRYPTO 按钮
+        # 增加一个for循环 3 次
+        for attempt in range(3):
             try:
-                crypto_button = self.driver.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
+                self.logger.info(f"✅ \033[34m第{attempt+1}次开始自动找币\033[0m")
+                # 第一步:先点击 CRYPTO 按钮
                 try:
-                    crypto_button.click()
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ CRYPTO按钮被遮挡，使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", crypto_button)
-                self.logger.info(f"✅ \033[34m成功点击CRYPTO按钮\033[0m")
+                    crypto_button = self.driver.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
+                    try:
+                        crypto_button.click()
+                    except ElementClickInterceptedException:
+                        # 如果元素被遮挡，使用JavaScript点击
+                        self.logger.info("⚠️ CRYPTO按钮被遮挡，使用JavaScript点击")
+                        self.driver.execute_script("arguments[0].click();", crypto_button)
+                    self.logger.info(f"✅ \033[34m成功点击CRYPTO按钮\033[0m")
 
-                # 等待CRYPTO按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, XPathConfig.DAILY_BUTTON[0]))
-                )   
-                self.logger.info("✅ \033[34mCRYPTO按钮点击后DAILY_BUTTON 按钮加载完成\033[0m")
-            except TimeoutException:
-                self.logger.error(f"❌ 定位CRYPTO按钮超时")
+                    # 等待CRYPTO按钮点击后的页面加载完成
+                    WebDriverWait(self.driver, 20).until(
+                        EC.presence_of_element_located((By.XPATH, XPathConfig.DAILY_BUTTON[0]))
+                    )   
+                    self.logger.info("✅ \033[34mCRYPTO按钮点击后DAILY_BUTTON 按钮加载完成\033[0m")
+                except TimeoutException:
+                    self.logger.error(f"❌ 定位CRYPTO按钮超时")
 
-            # 第二步:点击 DAILY 按钮
-            try:
-                daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
+                # 第二步:点击 DAILY 按钮
                 try:
-                    daily_button.click()
-                    self.logger.info(f"✅ \033[34m成功点击DAILY按钮\033[0m")
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ DAILY按钮被遮挡，使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", daily_button)
-                    self.logger.info(f"✅ \033[34m使用 JavaScript 成功点击DAILY按钮\033[0m")
+                    daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
+                    try:
+                        daily_button.click()
+                        self.logger.info(f"✅ \033[34m成功点击DAILY按钮\033[0m")
+                    except ElementClickInterceptedException:
+                        # 如果元素被遮挡，使用JavaScript点击
+                        self.logger.info("⚠️ DAILY按钮被遮挡，使用JavaScript点击")
+                        self.driver.execute_script("arguments[0].click();", daily_button)
+                        self.logger.info(f"✅ \033[34m使用 JavaScript 成功点击DAILY按钮\033[0m")
 
-                # 等待DAILY按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 20).until(
-                    lambda d: d.execute_script("return document.readyState") == "complete"
-                )
-                self.logger.info("✅ \033[34mDAILY按钮点击后的页面加载完成\033[0m")
+                    # 等待DAILY按钮点击后的页面加载完成
+                    WebDriverWait(self.driver, 20).until(
+                        lambda d: d.execute_script("return document.readyState") == "complete"
+                    )
+                    self.logger.info("✅ \033[34mDAILY按钮点击后的页面加载完成\033[0m")
 
-            except (TimeoutException):
-                self.logger.error(f"❌ 定位DAILY按钮超时")
-            
-            # 第三步:点击目标 URL 按钮,在当前页面打开 URL
-            if self.click_today_card():
-                self.logger.info(f"✅ \033[34m成功点击了目标URL按钮\033[0m")
-            
-                # 第四步:获取当前 URL并保存到 GUI 和配置文件中
-                new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
-                self.logger.info(f"✅ \033[34m成功获取到当前URL: {new_url}\033[0m")
-                time.sleep(8)
+                except (TimeoutException):
+                    self.logger.error(f"❌ 定位DAILY按钮超时")
                 
-                # 保存当前 URL 到 config
-                self.config['website']['url'] = new_url
-                self.save_config()
-                
-                # 保存前,先删除现有的url
-                self.url_entry.delete(0, tk.END)
-                
-                # 把保存到config的url放到self.url_entry中
-                self.url_entry.insert(0, new_url)
-                
-                # 把保存到config的url放到self.trading_pair_label中  
-                pair = re.search(r'event/([^?]+)', new_url)
-                self.trading_pair_label.config(text=pair.group(1))
-                self.logger.info(f"✅ \033[34m\033[31m{new_url}:\033[0m已插入到主界面上并保存到配置文件\033[0m")
-            else:
-                self.logger.error(f"❌ 未成功点击目标URL按钮")
-                # 继续点击目标 URL 按钮
+                # 第三步:点击目标 URL 按钮,在当前页面打开 URL
                 if self.click_today_card():
-                    self.logger.info(f"✅ 成功点击目标URL按钮")
+                    self.logger.info(f"✅ \033[34m成功点击了目标URL按钮\033[0m")
+                
+                    # 第四步:获取当前 URL并保存到 GUI 和配置文件中
+                    new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
+                    self.logger.info(f"✅ \033[34m成功获取到当前URL: {new_url}\033[0m")
+                    time.sleep(8)
+                    
+                    # 保存当前 URL 到 config
+                    self.config['website']['url'] = new_url
+                    self.save_config()
+                    
+                    # 保存前,先删除现有的url
+                    self.url_entry.delete(0, tk.END)
+                    
+                    # 把保存到config的url放到self.url_entry中
+                    self.url_entry.insert(0, new_url)
+                    
+                    # 把保存到config的url放到self.trading_pair_label中  
+                    pair = re.search(r'event/([^?]+)', new_url)
+                    self.trading_pair_label.config(text=pair.group(1))
+                    self.logger.info(f"✅ \033[34m\033[31m{new_url}:\033[0m已插入到主界面上并保存到配置文件\033[0m")
+                    break
                 else:
                     self.logger.error(f"❌ 未成功点击目标URL按钮")
-
-        except Exception as e:
-            self.logger.error(f"自动找币失败.错误信息:{e}")
+            except Exception as e:
+                self.logger.error(f"第{attempt+1}次自动找币失败.错误信息:{e}")
+        else:
+            self.logger.error("❌ 重试3次自动找币都失败")
             
     def click_today_card(self):
         """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
