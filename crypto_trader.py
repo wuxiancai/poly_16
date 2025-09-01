@@ -3871,6 +3871,15 @@ class CryptoTrader:
                                 elapsed = time.perf_counter() - start_time_count
                                 self.logger.info(f" \033[34m交易验证耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
+                                # 如果是买入(Bought),同步交易验证信息到StatusDataManager
+                                if action_type == 'Bought':
+                                    self.status_data.update_data('trading', 'trade_verification', {
+                                        'direction': direction,
+                                        'shares': self.shares,
+                                        'price': self.price,
+                                        'amount': self.amount
+                                    })
+                                
                                 # 发送交易邮件
                                 self.send_trade_email(
                                     trade_type=f"{action_type} {direction}",
@@ -3881,15 +3890,6 @@ class CryptoTrader:
                                     cash_value=self.cash_value,
                                     portfolio_value=self.portfolio_value
                                 )
-                                
-                                # 如果是买入(Bought),同步交易验证信息到StatusDataManager
-                                if action_type == 'Bought':
-                                    self.status_data.update_data('trading', 'trade_verification', {
-                                        'direction': direction,
-                                        'shares': self.shares,
-                                        'price': self.price,
-                                        'amount': self.amount
-                                    })
                                 
                                 return True, self.price, self.amount, self.shares  
 
