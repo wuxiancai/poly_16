@@ -6002,7 +6002,7 @@ SHARES: {shares}
                     .header { text-align: center; margin-bottom: 5px; }
                     .header h1 { 
                         color: #2c3e50; margin: 0; font-size: 36px; font-weight: 700;
-                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        background: linear-gradient(135deg, #ff00ff, #00ffcc);
                         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
                     }
@@ -8483,7 +8483,7 @@ SHARES: {shares}
         .header h1 {
             font-size: 1.8em;
             margin: 0;
-            background: linear-gradient(135deg, #007bff, #00ffcc); /* 渐变色 */
+            background: linear-gradient(135deg, #ff00ff, #00ffcc); /* 渐变色 */
             -webkit-background-clip: text;  /* 让背景裁剪到文字 */
             -webkit-text-fill-color: transparent; /* 文字填充透明，让背景显示出来 */
         }
