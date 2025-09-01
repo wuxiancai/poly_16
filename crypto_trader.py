@@ -3180,16 +3180,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Up1",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
                             
                             # 记录交易统计
@@ -3258,16 +3248,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Down1",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
                             
                             # 记录交易统计
@@ -3348,16 +3328,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
                             
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Up2",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
 
                             # 记录交易统计
@@ -3428,16 +3398,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
                             
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Down2",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             
                             # 记录交易统计
@@ -3519,17 +3479,7 @@ class CryptoTrader:
 
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
-
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Up3",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )   
+  
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             
                             # 记录交易统计
@@ -3601,16 +3551,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Down3",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             
                             # 记录交易统计
@@ -3696,16 +3636,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Up4",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             
                             # 记录交易统计
@@ -3776,16 +3706,6 @@ class CryptoTrader:
                             # 自动改变交易次数
                             self.change_buy_and_trade_count()
 
-                            # 发送交易邮件
-                            self.send_trade_email(
-                                trade_type="Buy Down4",
-                                price=self.price,
-                                amount=self.amount,
-                                shares=self.shares,
-                                trade_count=self.buy_count,
-                                cash_value=self.cash_value,
-                                portfolio_value=self.portfolio_value
-                            )
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
                             # 记录交易统计
@@ -3854,16 +3774,7 @@ class CryptoTrader:
             if self.verify_trade('Sold', 'Up')[0]:
                 # 增加卖出计数
                 self.sell_count += 1
-                # 发送交易邮件 - 卖出YES
-                self.send_trade_email(
-                    trade_type="Sell Up",
-                    price=self.price,
-                    amount=self.amount,
-                    shares=self.shares,
-                    trade_count=self.sell_count,
-                    cash_value=self.cash_value,
-                    portfolio_value=self.portfolio_value
-                )
+                
                 self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
 
                 break
@@ -3902,16 +3813,6 @@ class CryptoTrader:
                 # 增加卖出计数
                 self.sell_count += 1
                 
-                # 发送交易邮件 - 卖出NO
-                self.send_trade_email(
-                    trade_type="Sell Down",
-                    price=self.price,
-                    amount=self.amount,
-                    shares=self.shares,
-                    trade_count=self.sell_count,
-                    cash_value=self.cash_value,
-                    portfolio_value=self.portfolio_value
-                )
                 self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
 
                 break
@@ -3970,6 +3871,17 @@ class CryptoTrader:
                                 elapsed = time.perf_counter() - start_time_count
                                 self.logger.info(f" \033[34m交易验证耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
+                                # 发送交易邮件
+                                self.send_trade_email(
+                                    trade_type=f"{action_type} {direction}",
+                                    price=self.price,
+                                    amount=self.amount,
+                                    shares=self.shares,
+                                    trade_count=self.buy_count if action_type == 'Bought' else self.sell_count,
+                                    cash_value=self.cash_value,
+                                    portfolio_value=self.portfolio_value
+                                )
+                                
                                 # 如果是买入(Bought),同步交易验证信息到StatusDataManager
                                 if action_type == 'Bought':
                                     self.status_data.update_data('trading', 'trade_verification', {
