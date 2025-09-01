@@ -3100,6 +3100,13 @@ class CryptoTrader:
         self.trade_count -= 1
         self.trade_count_label.config(text=str(self.trade_count))
         
+        # 记录交易统计（只在buy_count变化时记录一次）
+        if self.trade_stats:
+            try:
+                self.trade_stats.record_trade("BUY", 0)  # 价格参数在统计中不重要
+            except Exception as e:
+                self.logger.error(f"记录交易统计失败: {e}")
+        
         # 同步剩余交易次数到StatusDataManager
         self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
 
@@ -3182,12 +3189,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("UP1", up_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3250,12 +3252,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("DOWN1", down_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3330,12 +3327,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
 
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("UP2", up_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3400,12 +3392,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("DOWN2", down_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3482,12 +3469,7 @@ class CryptoTrader:
   
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("UP3", up_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3553,12 +3535,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("DOWN3", down_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3638,12 +3615,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("UP4", up_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3708,12 +3680,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
-                            # 记录交易统计
-                            if self.trade_stats:
-                                try:
-                                    self.trade_stats.record_trade("DOWN4", down_price)
-                                except Exception as e:
-                                    self.logger.error(f"记录交易统计失败: {e}")
+                            # 交易统计已在change_buy_and_trade_count中记录
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
