@@ -3713,6 +3713,20 @@ class CryptoTrader:
         finally:
             self.trading = False
 
+    def check_emergency_close(self):
+        """
+        检查 23:00 - 23:59 是否触发紧急平仓
+        """
+        now = datetime.datetime.now()
+        if now.hour == 23:
+            # 0.2% 阈值，可按需调整
+            if abs(self.binance_rate) >= 0.002:
+                self.logger.info(f"\033[31m[触发紧急平仓] binance_rate={self.binance_rate:.4%}\033[0m")
+                self.sell_up_down()        # 平仓
+            self.set_up_down_price_0() # 禁止开仓
+            return True
+        return False
+
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
@@ -4404,19 +4418,7 @@ class CryptoTrader:
     def get_binance_zero_time_price(self):
         """获取币安BTC实时价格,并在中国时区00:00触发。此方法在threading.Timer的线程中执行。"""   
         # 先把所有 YES/NO 价格设置为 0
-        for i in range(1,5):  # 1-4
-            yes_entry = getattr(self, f'yes{i}_price_entry', None)
-            no_entry = getattr(self, f'no{i}_price_entry', None)
-
-            if yes_entry:
-                yes_entry.delete(0, tk.END)
-                yes_entry.insert(0, "0")
-                yes_entry.configure(foreground='black')
-                
-            if no_entry:
-                no_entry.delete(0, tk.END)
-                no_entry.insert(0, "0")
-                no_entry.configure(foreground='black')
+        self.set_up_down_price_0()
 
         # 同步UP1/DOWN1价格重置到StatusDataManager
         self._update_status_async('positions', 'up_positions', [
@@ -4689,18 +4691,7 @@ class CryptoTrader:
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
 
                     # 设置 YES1-4/NO1-4 价格为 0
-                    for i in range(1,6):  # 1-5
-                        yes_entry = getattr(self, f'yes{i}_price_entry', None)
-                        no_entry = getattr(self, f'no{i}_price_entry', None)
-
-                        if yes_entry:
-                            yes_entry.delete(0, tk.END)
-                            yes_entry.insert(0, "0")
-                            yes_entry.configure(foreground='black')
-                        if no_entry:
-                            no_entry.delete(0, tk.END)
-                            no_entry.insert(0, "0")
-                            no_entry.configure(foreground='black')
+                    self.set_up_down_price_0()
 
                     # 设置 YES1/NO1 价格为默认值
                     self.no1_price_entry.delete(0, tk.END)
@@ -5200,6 +5191,24 @@ class CryptoTrader:
         # 更新内存中的历史记录
         new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)]
         self.cash_history.append(new_record)
+
+    def set_up_down_price_0(self):
+        """设置YES1-4/NO1-4价格为0"""
+        for i in range(1,5):  # 1-4
+            yes_entry = getattr(self, f'yes{i}_price_entry', None)
+            no_entry = getattr(self, f'no{i}_price_entry', None)
+
+            if yes_entry:
+                yes_entry.delete(0, tk.END)
+                yes_entry.insert(0, "0")
+                yes_entry.configure(foreground='black')
+                
+            if no_entry:
+                no_entry.delete(0, tk.END)
+                no_entry.insert(0, "0")
+                no_entry.configure(foreground='black')
+        
+        self.logger.info(f"✅ \033[34m设置YES1-4/NO1-4价格为0成功\033[0m")
 
     def click_buy_confirm_button(self):
         """点击买入确认按钮 """
