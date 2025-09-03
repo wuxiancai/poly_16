@@ -3168,6 +3168,18 @@ class CryptoTrader:
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
 
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy up1",
+                                price=up_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
+                                
+
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3230,6 +3242,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy down1",
+                                price=down_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
 
                             break
                         else:
@@ -3305,6 +3328,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy up2",
+                                price=up_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
                             
                             break
                         else:
@@ -3370,6 +3404,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy down2",
+                                price=down_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
                             
                             break
                         else:
@@ -3448,6 +3493,17 @@ class CryptoTrader:
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
 
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy up3",
+                                price=up_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
+
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
@@ -3513,6 +3569,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy down3",
+                                price=down_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
 
                             break
                         else:
@@ -3593,6 +3660,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy up4",
+                                price=up_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
                            
                             break
                         else:
@@ -3658,6 +3736,17 @@ class CryptoTrader:
                             # 计时结束
                             elapsed = time.perf_counter() - start_time
                             self.logger.info(f" \033[34m交易全部完成耗时\033[31m{elapsed:.2f}\033[0m秒\033[0m")
+
+                            # 发送交易邮件
+                            self.send_trade_email(
+                                trade_type="buy down4",
+                                price=down_price,
+                                amount=self.amount,
+                                shares=self.shares,
+                                trade_count=self.buy_count,
+                                cash_value=self.cash_value,
+                                portfolio_value=self.portfolio_value
+                            )
 
                             break
                         else:
@@ -3728,6 +3817,17 @@ class CryptoTrader:
                 
                 self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
 
+                # 发送交易邮件
+                self.send_trade_email(
+                    trade_type="sell up",
+                    price=self.price,
+                    amount=self.amount,
+                    shares=self.shares,
+                    trade_count=self.buy_count,
+                    cash_value=self.cash_value,
+                    portfolio_value=self.portfolio_value
+                )
+
                 break
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
@@ -3765,6 +3865,17 @@ class CryptoTrader:
                 self.sell_count += 1
                 
                 self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
+
+                # 发送交易邮件
+                self.send_trade_email(
+                    trade_type="sell down",
+                    price=self.price,
+                    amount=self.amount,
+                    shares=self.shares,
+                    trade_count=self.buy_count,
+                    cash_value=self.cash_value,
+                    portfolio_value=self.portfolio_value
+                )
 
                 break
             else:
@@ -3830,17 +3941,6 @@ class CryptoTrader:
                                         'price': self.price,
                                         'amount': self.amount
                                     })
-                                
-                                # 发送交易邮件
-                                self.send_trade_email(
-                                    trade_type=f"{action_type} {direction}",
-                                    price=self.price,
-                                    amount=self.amount,
-                                    shares=self.shares,
-                                    trade_count=self.buy_count if action_type == 'Bought' else self.sell_count,
-                                    cash_value=self.cash_value,
-                                    portfolio_value=self.portfolio_value
-                                )
                                 
                                 return True, self.price, self.amount, self.shares  
 
