@@ -8667,7 +8667,7 @@ SHARES: {shares}
                         }
                         
                         .up-down-prices-container {
-                            flex-direction: column;
+                            flex-direction: row;
                             gap: 15px;
                             margin-top: 15px;
                         }
