@@ -1301,6 +1301,8 @@ class CryptoTrader:
                     self._update_status_async('trading', 'yes_amount', value)
                 elif 'no' in key.lower():
                     self._update_status_async('trading', 'no_amount', value)
+            elif 'trade_count' in key.lower():
+                self._update_status_async('trading', 'trade_count', value)
             
             # 系统状态
             elif 'monitoring' in key.lower():
@@ -1391,6 +1393,8 @@ class CryptoTrader:
                         new_trade_count = self.calculate_default_trade_count()
                         self.trade_count = new_trade_count
                         self.trade_count_label.config(text=str(new_trade_count))
+                        # 同步到web界面
+                        self.set_web_value('trade_count_label', str(new_trade_count))
                         self.logger.info(f"根据初始金额 {value} 动态更新交易次数为: {new_trade_count}")
                     
                     break
@@ -1550,8 +1554,11 @@ class CryptoTrader:
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(trade_count_frame, text="CNT:", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
-        self.trade_count_label = ttk.Label(trade_count_frame, text=str(self.calculate_default_trade_count()), style='Red_bold.TLabel')
+        initial_trade_count = self.calculate_default_trade_count()
+        self.trade_count_label = ttk.Label(trade_count_frame, text=str(initial_trade_count), style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
+        # 同步初始值到web界面
+        self.set_web_value('trade_count_label', str(initial_trade_count))
 
         # 监控网站配置
         url_frame = ttk.LabelFrame(scrollable_frame, text="Website Monitoring", padding=(8, 5))
@@ -3100,6 +3107,8 @@ class CryptoTrader:
         self.buy_count += 1
         self.trade_count -= 1
         self.trade_count_label.config(text=str(self.trade_count))
+        # 同步到web界面
+        self.set_web_value('trade_count_label', str(self.trade_count))
         
         # 记录交易统计
         if self.trade_stats:
@@ -4502,6 +4511,8 @@ class CryptoTrader:
             
             # 设置self.trade_count为默认值
             self.trade_count_label.config(text=str(default_trade_count))
+            # 同步到web界面
+            self.set_web_value('trade_count_label', str(default_trade_count))
 
         except Exception as e:
             self.logger.error(f"获取零点CASH值时发生错误: {str(e)}")
@@ -4810,6 +4821,8 @@ class CryptoTrader:
                     # 交易次数恢复到初始值
                     self.trade_count = self.calculate_default_trade_count()
                     self.trade_count_label.config(text=str(self.trade_count))
+                    # 同步到web界面
+                    self.set_web_value('trade_count_label', str(self.trade_count))
                     self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
                 
         except Exception as e:
