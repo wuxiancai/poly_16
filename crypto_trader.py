@@ -6198,6 +6198,22 @@ SHARES: {shares}
                             padding: 0;
                             margin: 0;
                         }
+                        .left-panel, .right-panel {
+                            min-width: 0 !important;
+                            flex: 1 1 100%;
+                        }
+                        .main-layout {
+                            flex-direction: column !important;
+                            gap: 10px !important;
+                        }
+                        .info-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 5px !important;
+                        }
+                        .monitor-controls-section {
+                            flex-direction: column !important;
+                            gap: 10px !important;
+                        }
                     }
                     .header { text-align: center; margin-bottom: 5px; }
                     .header h1 { 
