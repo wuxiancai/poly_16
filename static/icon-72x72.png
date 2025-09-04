@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="72" height="72" rx="12" ry="12" fill="url(#bgGradient)"/>
+  <g transform="translate(8, 8)">
+    <rect x="0" y="12" width="56" height="32" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <path d="M 8 36 Q 20 28 32 32 T 48 24" stroke="#00ff88" stroke-width="2" fill="none"/>
+    <text x="28" y="10" text-anchor="middle" fill="white" font-family="Arial" font-size="8" font-weight="bold">交易</text>
+    <rect x="8" y="48" width="16" height="6" rx="3" fill="#00ff88"/>
+    <rect x="32" y="48" width="16" height="6" rx="3" fill="#ff4444"/>
+  </g>
+</svg>

@@ -34,7 +34,7 @@ import websocket
 import subprocess
 import shutil
 import csv
-from flask import Flask, render_template_string, request, url_for, jsonify
+from flask import Flask, render_template_string, request, url_for, jsonify, send_file
 import psutil
 import socket
 import requests
@@ -6153,6 +6153,29 @@ SHARES: {shares}
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>兑复量化交易系统</title>
+                
+                <!-- PWA Meta Tags -->
+                <meta name="application-name" content="量化交易监控系统">
+                <meta name="apple-mobile-web-app-capable" content="yes">
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+                <meta name="apple-mobile-web-app-title" content="交易监控">
+                <meta name="description" content="实时监控量化交易策略和持仓状态">
+                <meta name="format-detection" content="telephone=no">
+                <meta name="mobile-web-app-capable" content="yes">
+                <meta name="msapplication-config" content="/browserconfig.xml">
+                <meta name="msapplication-TileColor" content="#1a1a2e">
+                <meta name="msapplication-tap-highlight" content="no">
+                <meta name="theme-color" content="#16213e">
+                
+                <!-- PWA Icons -->
+                <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-180x180.png">
+                <link rel="icon" type="image/png" sizes="32x32" href="/static/icon-32x32.png">
+                <link rel="icon" type="image/png" sizes="16x16" href="/static/icon-16x16.png">
+                <link rel="mask-icon" href="/static/safari-pinned-tab.svg" color="#16213e">
+                <link rel="shortcut icon" href="/static/favicon.ico">
+                
+                <!-- PWA Manifest -->
+                <link rel="manifest" href="/manifest.json">
                 <style>
                     body { 
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -7889,6 +7912,110 @@ SHARES: {shares}
                     </div>
                     </div>
                 </div>
+                
+                <!-- PWA Install Prompt -->
+                <div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <strong>📱 安装应用</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 14px;">将此应用添加到主屏幕，获得更好的使用体验</p>
+                        </div>
+                        <div>
+                            <button id="installBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 5px; margin-right: 10px; cursor: pointer;">安装</button>
+                            <button id="dismissBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 5px; cursor: pointer;">关闭</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                // Service Worker 注册
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('/sw.js')
+                            .then(function(registration) {
+                                console.log('Service Worker 注册成功:', registration.scope);
+                            })
+                            .catch(function(error) {
+                                console.log('Service Worker 注册失败:', error);
+                            });
+                    });
+                }
+                
+                // PWA 安装提示
+                let deferredPrompt;
+                const installPrompt = document.getElementById('installPrompt');
+                const installBtn = document.getElementById('installBtn');
+                const dismissBtn = document.getElementById('dismissBtn');
+                
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    // 阻止默认的安装提示
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    
+                    // 显示自定义安装提示
+                    installPrompt.style.display = 'block';
+                });
+                
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log('用户选择:', outcome);
+                        deferredPrompt = null;
+                    }
+                    installPrompt.style.display = 'none';
+                });
+                
+                dismissBtn.addEventListener('click', () => {
+                    installPrompt.style.display = 'none';
+                    // 24小时后再次显示
+                    localStorage.setItem('installPromptDismissed', Date.now());
+                });
+                
+                // 检查是否应该显示安装提示
+                window.addEventListener('load', () => {
+                    const dismissed = localStorage.getItem('installPromptDismissed');
+                    if (dismissed) {
+                        const dismissedTime = parseInt(dismissed);
+                        const now = Date.now();
+                        // 如果距离上次关闭不到24小时，不显示提示
+                        if (now - dismissedTime < 24 * 60 * 60 * 1000) {
+                            return;
+                        }
+                    }
+                    
+                    // 检查是否已经安装
+                    if (window.matchMedia('(display-mode: standalone)').matches) {
+                        return; // 已经是PWA模式，不显示安装提示
+                    }
+                    
+                    // 对于iOS Safari，显示手动安装提示
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isInStandaloneMode = window.navigator.standalone;
+                    
+                    if (isIOS && !isInStandaloneMode) {
+                        setTimeout(() => {
+                            const iosPrompt = document.createElement('div');
+                            iosPrompt.innerHTML = `
+                                <div style="position: fixed; bottom: 20px; left: 20px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000;">
+                                    <div style="text-align: center;">
+                                        <strong>📱 安装到主屏幕</strong>
+                                        <p style="margin: 10px 0; font-size: 14px;">点击 <span style="font-size: 18px;">⬆️</span> 分享按钮，然后选择"添加到主屏幕"</p>
+                                        <button onclick="this.parentElement.parentElement.remove()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 5px; cursor: pointer;">知道了</button>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(iosPrompt);
+                        }, 3000);
+                    }
+                });
+                
+                // 监听应用安装事件
+                window.addEventListener('appinstalled', (evt) => {
+                    console.log('应用已安装');
+                    installPrompt.style.display = 'none';
+                });
+                </script>
             </body>
             </html>
             """
@@ -8081,6 +8208,16 @@ SHARES: {shares}
                     'error': str(e)
                 }), 500
          
+        @app.route("/manifest.json")
+        def manifest():
+            """PWA Manifest文件"""
+            return app.send_static_file('manifest.json') if os.path.exists('static/manifest.json') else send_file('manifest.json')
+        
+        @app.route("/sw.js")
+        def service_worker():
+            """Service Worker文件"""
+            return app.send_static_file('sw.js') if os.path.exists('static/sw.js') else send_file('sw.js')
+        
         @app.route("/history")
         def history():
             """交易历史记录页面"""
@@ -8136,6 +8273,373 @@ SHARES: {shares}
                     .pagination a:hover { background: #f5f5f5; }
                     .pagination .current { background: #007bff; color: white; border-color: #007bff; }
                     .page-info { margin: 10px 0; text-align: center; color: #666; }
+                    
+                    /* 移动端适配 - 历史记录页面专用 */
+                    @media screen and (max-width: 768px) {
+                        body {
+                            padding: 0;
+                            font-size: 14px;
+                        }
+                        
+                        .container {
+                            max-width: 100%;
+                            margin: 0;
+                            padding: 10px;
+                            border-radius: 0;
+                        }
+                        
+                        h2 {
+                            font-size: 20px;
+                            margin-bottom: 15px;
+                        }
+                        
+                        table {
+                            font-size: 12px;
+                            margin-bottom: 15px;
+                        }
+                        
+                        th, td {
+                            padding: 8px 4px;
+                            font-size: 11px;
+                        }
+                        
+                        th {
+                            font-size: 10px;
+                        }
+                        
+                        .pagination {
+                            margin: 15px 0;
+                        }
+                        
+                        .pagination a, .pagination span {
+                            padding: 10px 12px;
+                            margin: 0 2px;
+                            font-size: 14px;
+                        }
+                        
+                        .page-info {
+                            font-size: 12px;
+                            margin: 8px 0;
+                        }
+                        
+                        .info {
+                            font-size: 12px;
+                            padding: 8px;
+                            margin-top: 10px;
+                        }
+                        
+                        .total {
+                            font-size: 14px;
+                            margin-top: 8px;
+                        }
+                    }
+                    
+                    @media screen and (max-width: 480px) {
+                        h2 {
+                            font-size: 18px;
+                        }
+                        
+                        th, td {
+                            padding: 6px 2px;
+                            font-size: 10px;
+                        }
+                        
+                        th {
+                            font-size: 9px;
+                        }
+                        
+                        .pagination a, .pagination span {
+                            padding: 8px 10px;
+                            font-size: 12px;
+                        }
+                        
+                        .page-info {
+                            font-size: 11px;
+                        }
+                    }
+                    
+                    /* 移动端适配 - WAP响应式设计 */
+                    @media screen and (max-width: 768px) {
+                        body {
+                            padding: 0;
+                            font-size: 14px;
+                        }
+                        
+                        .container {
+                            max-width: 100%;
+                            margin: 0;
+                            padding: 10px;
+                            border-radius: 0;
+                        }
+                        
+                        .header h1 {
+                            font-size: 24px;
+                            margin: 10px 0;
+                        }
+                        
+                        .header p {
+                            font-size: 14px;
+                        }
+                        
+                        .nav {
+                            flex-direction: column;
+                            gap: 10px;
+                            padding: 10px;
+                        }
+                        
+                        .nav a, .nav button {
+                            padding: 15px 20px;
+                            font-size: 16px;
+                            width: 100%;
+                            text-align: center;
+                            box-sizing: border-box;
+                        }
+                        
+                        .main-layout {
+                            flex-direction: column;
+                            gap: 15px;
+                            padding: 10px 5px;
+                        }
+                        
+                        .left-panel, .right-panel {
+                            min-width: auto;
+                            width: 100%;
+                        }
+                        
+                        .monitor-controls-section {
+                            flex-direction: column;
+                            gap: 15px;
+                            padding: 10px 5px;
+                        }
+                        
+                        .info-grid {
+                            grid-template-columns: 1fr;
+                            gap: 10px;
+                        }
+                        
+                        .info-item {
+                            flex-direction: column;
+                            text-align: center;
+                            padding: 15px 10px;
+                            min-width: auto;
+                            max-width: none;
+                            white-space: normal;
+                        }
+                        
+                        .coin-select-item, .time-select-item {
+                            min-width: auto;
+                            max-width: none;
+                            flex-direction: column;
+                            gap: 8px;
+                        }
+                        
+                        .info-item label {
+                            font-size: 16px;
+                            margin-bottom: 5px;
+                        }
+                        
+                        .info-item .value {
+                            font-size: 16px;
+                        }
+                        
+                        .info-item select {
+                            font-size: 16px;
+                            padding: 12px 15px;
+                            width: 100%;
+                        }
+                        
+                        .binance-price-container {
+                            flex-direction: column;
+                            gap: 15px;
+                        }
+                        
+                        .binance-price-item {
+                            flex-direction: column;
+                            gap: 8px;
+                            text-align: center;
+                        }
+                        
+                        .binance-label {
+                            font-size: 16px;
+                        }
+                        
+                        .binance-price-item .value {
+                            font-size: 18px;
+                        }
+                        
+                        .up-down-prices-container {
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-top: 15px;
+                        }
+                        
+                        .up-price-display, .down-price-display {
+                            font-size: 24px;
+                            padding: 15px 10px;
+                            margin: 0;
+                        }
+                        
+                        .positions-grid {
+                            grid-template-columns: 1fr;
+                            gap: 15px;
+                            max-height: none;
+                        }
+                        
+                        .position-section {
+                            padding: 15px;
+                        }
+                        
+                        .position-section h4 {
+                            font-size: 16px;
+                            padding: 12px;
+                        }
+                        
+                        .position-row {
+                            grid-template-columns: 1fr;
+                            gap: 10px;
+                            padding: 15px 10px;
+                            text-align: center;
+                        }
+                        
+                        .position-row.header {
+                            font-size: 14px;
+                            padding: 15px 10px;
+                        }
+                        
+                        .position-label, .position-name {
+                            font-size: 16px;
+                            padding: 10px;
+                        }
+                        
+                        .position-input {
+                            font-size: 16px;
+                            padding: 12px 15px;
+                            margin: 5px 0;
+                        }
+                        
+                        .position-controls {
+                            flex-direction: column;
+                            gap: 15px;
+                            margin-top: 25px;
+                        }
+                        
+                        .save-btn, .reset-btn {
+                            padding: 15px 25px;
+                            font-size: 16px;
+                            width: 100%;
+                        }
+                        
+                        .url-input-group {
+                            flex-direction: column;
+                            gap: 15px;
+                        }
+                        
+                        .url-input-group input {
+                            font-size: 16px;
+                            padding: 15px;
+                        }
+                        
+                        .system-info {
+                            padding: 15px 10px;
+                        }
+                        
+                        .table-container {
+                            width: 100%;
+                            padding: 10px;
+                            margin-top: 15px;
+                        }
+                        
+                        .table-container table {
+                            font-size: 12px;
+                        }
+                        
+                        .table-container th, .table-container td {
+                            padding: 8px 4px;
+                            font-size: 12px;
+                        }
+                        
+                        .table-header th {
+                            font-size: 11px;
+                        }
+                        
+                        .table-body td {
+                            font-size: 11px;
+                        }
+                        
+                        .results-table {
+                            font-size: 12px;
+                        }
+                        
+                        .results-table th {
+                            font-size: 11px;
+                            padding: 8px 2px;
+                        }
+                        
+                        .results-table td {
+                            font-size: 11px;
+                            padding: 6px 2px;
+                        }
+                        
+                        .results-table input {
+                            font-size: 14px;
+                            padding: 8px;
+                        }
+                        
+                        .refresh-info {
+                            font-size: 12px;
+                            padding: 12px 15px;
+                            margin-top: 15px;
+                        }
+                        
+                        .table-footer {
+                            font-size: 12px;
+                            margin-top: 10px;
+                        }
+                        
+                        .control-section {
+                            gap: 15px;
+                        }
+                    }
+                    
+                    /* 超小屏幕适配 (手机竖屏) */
+                    @media screen and (max-width: 480px) {
+                        .header h1 {
+                            font-size: 20px;
+                        }
+                        
+                        .nav a, .nav button {
+                            padding: 12px 15px;
+                            font-size: 14px;
+                        }
+                        
+                        .up-price-display, .down-price-display {
+                            font-size: 20px;
+                            padding: 12px 8px;
+                        }
+                        
+                        .table-container th, .table-container td {
+                            padding: 6px 2px;
+                            font-size: 10px;
+                        }
+                        
+                        .results-table th, .results-table td {
+                            padding: 4px 1px;
+                            font-size: 10px;
+                        }
+                        
+                        .info-item {
+                            padding: 12px 8px;
+                        }
+                        
+                        .position-section {
+                            padding: 12px;
+                        }
+                        
+                        .position-input {
+                            font-size: 14px;
+                            padding: 10px 12px;
+                        }
+                    }
                 </style>
             </head>
             <body>

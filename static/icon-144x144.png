@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" width="144" height="144">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="144" height="144" rx="22" ry="22" fill="url(#bgGradient)"/>
+  <g transform="translate(18, 18)">
+    <rect x="0" y="24" width="108" height="68" rx="8" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <path d="M 14 76 Q 36 54 54 62 T 94 42" stroke="#00ff88" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="14" cy="76" r="3" fill="#00ff88"/>
+    <circle cx="36" cy="58" r="3" fill="#00ff88"/>
+    <circle cx="54" cy="62" r="3" fill="#00ff88"/>
+    <circle cx="72" cy="50" r="3" fill="#00ff88"/>
+    <circle cx="94" cy="42" r="3" fill="#00ff88"/>
+    <text x="54" y="18" text-anchor="middle" fill="white" font-family="Arial" font-size="14" font-weight="bold">量化交易</text>
+    <text x="54" y="104" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="9">监控系统</text>
+    <rect x="14" y="100" width="28" height="12" rx="6" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="1"/>
+    <text x="28" y="108" text-anchor="middle" fill="#00ff88" font-family="Arial" font-size="8" font-weight="bold">UP</text>
+    <rect x="66" y="100" width="28" height="12" rx="6" fill="rgba(255,68,68,0.2)" stroke="#ff4444" stroke-width="1"/>
+    <text x="80" y="108" text-anchor="middle" fill="#ff4444" font-family="Arial" font-size="8" font-weight="bold">DOWN</text>
+  </g>
+</svg>
