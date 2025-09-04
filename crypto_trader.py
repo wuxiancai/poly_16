@@ -7047,11 +7047,207 @@ SHARES: {shares}
                     
 
                     
+                    // 全局定时器变量声明
+                    let dataUpdateInterval;
+                    let positionCheckInterval;
+                    
+                    // 全局AbortController用于取消请求
+                    let currentFetchControllers = new Set();
+                    
+                    // 创建可取消的fetch请求
+                    function createCancellableFetch(url, options = {}) {
+                        const controller = new AbortController();
+                        currentFetchControllers.add(controller);
+                        
+                        const fetchPromise = fetch(url, {
+                            ...options,
+                            signal: controller.signal
+                        }).finally(() => {
+                            currentFetchControllers.delete(controller);
+                        });
+                        
+                        return fetchPromise;
+                    }
+                    
+                    // 取消所有进行中的请求
+                    function cancelAllFetches() {
+                        currentFetchControllers.forEach(controller => {
+                            controller.abort();
+                        });
+                        currentFetchControllers.clear();
+                    }
+                    
+                    // 智能内存监控和清理机制
+                    let memoryCheckInterval;
+                    let lastMemoryUsage = 0;
+                    let systemMemoryInfo = { available: 0, total: 0 };
+                    
+                    // 获取系统内存信息
+                    async function getSystemMemoryInfo() {
+                        try {
+                            // 通过navigator.deviceMemory获取设备内存（GB）
+                            const deviceMemory = navigator.deviceMemory || 4; // 默认4GB
+                            const totalMemory = deviceMemory * 1024; // 转换为MB
+                            
+                            // 估算可用内存（简化计算）
+                            if ('memory' in performance) {
+                                const jsHeapUsed = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
+                                const estimatedAvailable = totalMemory * 0.7 - jsHeapUsed; // 假设70%可用
+                                systemMemoryInfo = {
+                                    available: Math.max(estimatedAvailable, 0),
+                                    total: totalMemory
+                                };
+                            }
+                        } catch (e) {
+                            console.log('获取系统内存信息失败，使用默认值');
+                            systemMemoryInfo = { available: 2048, total: 4096 }; // 默认值
+                        }
+                    }
+                    
+                    function checkMemoryUsage() {
+                        if ('memory' in performance) {
+                            const memInfo = performance.memory;
+                            const currentUsage = memInfo.usedJSHeapSize;
+                            const memoryIncrease = currentUsage - lastMemoryUsage;
+                            
+                            // 更新系统内存信息
+                            getSystemMemoryInfo();
+                            
+                            // 当系统可用内存小于600MB时，触发清理
+                            if (systemMemoryInfo.available < 600) {
+                                console.log(`系统可用内存不足(${systemMemoryInfo.available.toFixed(1)}MB < 600MB)，触发内存优化`);
+                                performMemoryCleanup();
+                            }
+                            // 或者JS堆内存使用过高时也触发清理
+                            else if (currentUsage > 150 * 1024 * 1024 || memoryIncrease > 30 * 1024 * 1024) {
+                                console.log('JS堆内存使用过高，触发安全清理机制');
+                                performMemoryCleanup();
+                            }
+                            
+                            lastMemoryUsage = currentUsage;
+                            
+                            // 更新内存显示（如果存在）
+                            const memoryDisplay = document.getElementById('memoryUsage');
+                            if (memoryDisplay) {
+                                const jsHeapMB = (currentUsage / 1024 / 1024).toFixed(1);
+                                const availableMB = systemMemoryInfo.available.toFixed(1);
+                                memoryDisplay.textContent = `JS堆: ${jsHeapMB}MB | 系统可用: ${availableMB}MB`;
+                            }
+                        }
+                    }
+                    
+                    function performMemoryCleanup() {
+                        // 清理可能的内存泄漏，但保护核心交易功能
+                        
+                        // 1. 只清理临时DOM元素，不影响交易相关元素
+                        const elementsToClean = document.querySelectorAll('[data-temp]:not([data-trading-critical])');
+                        elementsToClean.forEach(el => el.remove());
+                        
+                        // 2. 谨慎取消请求 - 不取消正在进行的交易相关请求
+                        // 只取消非关键的fetch请求
+                        const controllersToCancel = [];
+                        currentFetchControllers.forEach(controller => {
+                            // 这里可以添加逻辑来识别和保护关键请求
+                            // 暂时保守处理，不取消任何请求以确保交易安全
+                        });
+                        
+                        // 3. 强制垃圾回收（如果支持）
+                        if (window.gc) {
+                            window.gc();
+                        }
+                        
+                        // 4. 不清理控制台日志，保留交易相关的重要日志
+                        
+                        console.log('安全内存清理完成 - 核心交易功能未受影响');
+                    }
+                    
+                    // 智能内存清理机制（按需触发）
+                    function performPeriodicCleanup() {
+                        console.log('执行智能内存清理...');
+                        
+                        // 1. 执行内存清理
+                        performMemoryCleanup();
+                        
+                        // 2. 谨慎清理本地存储中的过期数据，保护交易相关数据
+                        try {
+                            const keys = Object.keys(localStorage);
+                            keys.forEach(key => {
+                                // 只清理明确标记为临时的数据，避免清理交易、配置或状态数据
+                                if (key.startsWith('temp_') || key.startsWith('cache_')) {
+                                    // 排除交易相关的关键数据
+                                    if (key.includes('trade') || key.includes('position') || key.includes('price') || key.includes('balance')) {
+                                        return; // 跳过交易相关数据
+                                    }
+                                    
+                                    const item = localStorage.getItem(key);
+                                    try {
+                                        const data = JSON.parse(item);
+                                        if (data.timestamp && Date.now() - data.timestamp > 3600000) { // 1小时过期
+                                            localStorage.removeItem(key);
+                                        }
+                                    } catch (e) {
+                                        // 对于无效数据，也要谨慎处理
+                                        if (!key.includes('trade') && !key.includes('position')) {
+                                            localStorage.removeItem(key);
+                                        }
+                                    }
+                                }
+                            });
+                        } catch (e) {
+                            console.log('清理本地存储失败:', e);
+                        }
+                        
+                        // 3. 重置网络连接池（通过重新创建fetch实例）
+                        cancelAllFetches();
+                        
+                        console.log('智能内存清理完成');
+                    }
+                    
+                    // 页面活跃度检测
+                    let lastActivityTime = Date.now();
+                    let isPageActive = true;
+                    
+                    function setupPageActivityDetection() {
+                        // 监听用户活动
+                        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+                            document.addEventListener(event, () => {
+                                lastActivityTime = Date.now();
+                                if (!isPageActive) {
+                                    isPageActive = true;
+                                    resumeActiveMode();
+                                }
+                            }, true);
+                        });
+                        
+                        // 每分钟检查页面活跃度
+                        setInterval(() => {
+                            const inactiveTime = Date.now() - lastActivityTime;
+                            if (inactiveTime > 300000 && isPageActive) { // 5分钟无活动
+                                isPageActive = false;
+                                enterInactiveMode();
+                            }
+                        }, 60000);
+                    }
+                    
+                    function enterInactiveMode() {
+                        console.log('进入非活跃模式，但保持核心监控频率');
+                        // 注意：不降低核心价格监控和交易相关的更新频率
+                        // 只降低非关键的UI更新频率
+                        // dataUpdateInterval 和 positionCheckInterval 保持原有频率以确保交易功能正常
+                        console.log('核心监控功能保持正常频率运行');
+                    }
+                    
+                    function resumeActiveMode() {
+                        console.log('恢复活跃模式');
+                        // 由于核心监控功能一直保持正常频率，这里无需重新设置定时器
+                        console.log('核心监控功能持续正常运行');
+                    }
+                    
                     // 页面加载时初始化
                     document.addEventListener('DOMContentLoaded', function() {
                         // 开始定期更新数据
                         updateData();
-                        setInterval(updateData, 2000);
+                        window.dataUpdateInterval = setInterval(updateData, 2000);
                         
                         // 初始化时间显示和倒计时
                         initializeTimeDisplay();
@@ -7060,7 +7256,19 @@ SHARES: {shares}
                         updatePositionInfo();
                         
                         // 启动持仓更新检查（每2秒检查一次是否有更新通知）
-                        setInterval(checkPositionUpdate, 2000);
+                        window.positionCheckInterval = setInterval(checkPositionUpdate, 2000);
+                        
+                        // 启动内存监控（每30秒检查一次）
+                        memoryCheckInterval = setInterval(checkMemoryUsage, 30000);
+                        
+                        // 立即检查一次内存使用情况
+                        checkMemoryUsage();
+                        
+                        // 移除定期清理，改为基于系统内存状态的智能清理
+                        // performPeriodicCleanup 现在只在系统内存不足时通过 checkMemoryUsage 触发
+                        
+                        // 启动页面活跃度检测
+                        setupPageActivityDetection();
                         
                         // 添加URL输入框事件监听器
                         const urlInput = document.getElementById('urlInput');
@@ -7259,8 +7467,8 @@ SHARES: {shares}
                             updateCountdown();
                             
                             // 每秒更新时间和倒计时
-                            setInterval(updateCurrentTime, 1000);
-                            setInterval(updateCountdown, 1000);
+                            window.timeUpdateInterval = setInterval(updateCurrentTime, 1000);
+                        window.countdownInterval = setInterval(updateCountdown, 1000);
                         }, 100);
                     }
                     
@@ -7642,7 +7850,7 @@ SHARES: {shares}
                     
                     // 定期检查价格更新
                     function checkPriceUpdates() {
-                        fetch('/api/status')
+                        createCancellableFetch('/api/status')
                             .then(response => response.json())
                             .then(data => {
                                 // 更新UP1价格
@@ -7658,13 +7866,15 @@ SHARES: {shares}
                                 }
                             })
                             .catch(error => {
-                                console.log('价格检查失败:', error);
+                                if (error.name !== 'AbortError') {
+                                    console.log('价格检查失败:', error);
+                                }
                             });
                     }
                     
                     // 更新系统信息的函数
                     function updateSystemInfo() {
-                        fetch('/api/system_info')
+                        createCancellableFetch('/api/system_info')
                         .then(response => response.json())
                         .then(data => {
                             const systemInfoElement = document.getElementById('systemInfo');
@@ -7673,20 +7883,67 @@ SHARES: {shares}
                             }
                         })
                         .catch(error => {
-                            console.error('获取系统信息失败:', error);
+                            if (error.name !== 'AbortError') {
+                                console.error('获取系统信息失败:', error);
+                            }
                         });
                     }
                     
 
                     
+                    // 全局定时器变量
+                    let priceUpdateInterval;
+                    let systemInfoInterval;
+                    
                     // 启动价格更新检查
-                    setInterval(checkPriceUpdates, 2000);
+                    priceUpdateInterval = setInterval(checkPriceUpdates, 2000);
                     
                     // 启动系统信息更新检查（每5秒更新一次）
-                    setInterval(updateSystemInfo, 5000);
+                    systemInfoInterval = setInterval(updateSystemInfo, 5000);
                     
                     // 页面加载完成后立即更新一次系统信息
                     updateSystemInfo();
+                    
+                    // 页面卸载时清理所有定时器和事件监听器
+                    window.addEventListener('beforeunload', function() {
+                        // 取消所有进行中的fetch请求
+                        cancelAllFetches();
+                        
+                        // 清理所有定时器
+                        if (priceUpdateInterval) clearInterval(priceUpdateInterval);
+                        if (systemInfoInterval) clearInterval(systemInfoInterval);
+                        if (logUpdateInterval) clearInterval(logUpdateInterval);
+                        if (memoryCheckInterval) clearInterval(memoryCheckInterval);
+                        if (window.browserStatusInterval) clearInterval(window.browserStatusInterval);
+                        if (window.monitoringStatusInterval) clearInterval(window.monitoringStatusInterval);
+                        if (window.dataUpdateInterval) clearInterval(window.dataUpdateInterval);
+                        if (window.positionCheckInterval) clearInterval(window.positionCheckInterval);
+                        if (window.timeUpdateInterval) clearInterval(window.timeUpdateInterval);
+                        if (window.countdownInterval) clearInterval(window.countdownInterval);
+                    });
+                    
+                    // 页面隐藏时暂停定时器，显示时恢复
+                    document.addEventListener('visibilitychange', function() {
+                        if (document.hidden) {
+                            // 页面隐藏时暂停定时器
+                            if (priceUpdateInterval) {
+                                clearInterval(priceUpdateInterval);
+                                priceUpdateInterval = null;
+                            }
+                            if (systemInfoInterval) {
+                                clearInterval(systemInfoInterval);
+                                systemInfoInterval = null;
+                            }
+                        } else {
+                            // 页面显示时恢复定时器
+                            if (!priceUpdateInterval) {
+                                priceUpdateInterval = setInterval(checkPriceUpdates, 2000);
+                            }
+                            if (!systemInfoInterval) {
+                                systemInfoInterval = setInterval(updateSystemInfo, 5000);
+                            }
+                        }
+                    });
                     </script>
                     <style>
                     .table-header th {
