@@ -3873,12 +3873,16 @@ class CryptoTrader:
                     portfolio_value=self.portfolio_value
                 )
 
-                break
+                return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
                 self.driver.refresh()
                 time.sleep(2)
-                
+            
+            # 3此失败后返回false
+            if retry == 2:
+                return False
+
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
@@ -3922,12 +3926,16 @@ class CryptoTrader:
                     portfolio_value=self.portfolio_value
                 )
 
-                break
+                return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
                 self.driver.refresh()
                 time.sleep(2)
-    
+            
+            # 3此失败后返回false
+            if retry == 2:
+                return False
+
     def verify_trade(self, action_type, direction):
         """
         验证交易是否成功完成
@@ -4266,14 +4274,28 @@ class CryptoTrader:
     
     def find_54_coin(self):
         """自动找币"""
-
-        # 查看是否有持仓
-        if self.find_position_label_down():
-            self.only_sell_down()
+        # 智能持仓管理：检查持仓并尝试卖出，卖出成功或失败5次后才执行找币
+        sell_success = True  # 标记卖出是否成功
         
+        # 检查Down持仓
+        if self.find_position_label_down():
+            self.logger.info("🔍 检测到Down持仓，开始卖出操作")
+            sell_success = self._sell_position_with_retry('down', 5)
+        
+        # 检查Up持仓
         if self.find_position_label_up():
-            self.only_sell_up()
-
+            self.logger.info("🔍 检测到Up持仓，开始卖出操作")
+            up_sell_success = self._sell_position_with_retry('up', 5)
+            sell_success = sell_success and up_sell_success
+        
+        # 如果没有持仓，直接执行找币
+        if not self.find_position_label_down() and not self.find_position_label_up():
+            self.logger.info("✅ 无持仓，直接执行自动找币功能")
+        elif sell_success:
+            self.logger.info("✅ 所有持仓卖出成功，开始执行自动找币功能")
+        else:
+            self.logger.warning("⚠️ 持仓卖出失败，但已达到最大重试次数，继续执行自动找币功能")
+            
         # 增加一个for循环 3 次
         for attempt in range(3):
             try:
@@ -5994,6 +6016,55 @@ SHARES: {shares}
                 self.logger.info(f"等待{retry_delay}秒后重试...")
                 time.sleep(retry_delay)
                 self.driver.refresh()
+        return False
+    
+    def _sell_position_with_retry(self, position_type, max_retries=5):
+        """带重试机制的持仓卖出函数
+        
+        Args:
+            position_type (str): 持仓类型，'up' 或 'down'
+            max_retries (int): 最大重试次数，默认5次
+            
+        Returns:
+            bool: 卖出是否成功
+        """
+        self.logger.info(f"🔄 开始卖出{position_type.upper()}持仓，最大重试{max_retries}次")
+        
+        for retry in range(max_retries):
+            try:
+                self.logger.info(f"📈 第{retry + 1}次尝试卖出{position_type.upper()}持仓")
+                
+                # 根据持仓类型调用相应的卖出函数
+                if position_type.lower() == 'down':
+                    success = self.only_sell_down()
+                elif position_type.lower() == 'up':
+                    success = self.only_sell_up()
+                else:
+                    self.logger.info(f"ℹ️ 持仓类型参数: {position_type}，跳过卖出操作")
+                    return True  # 返回True表示无需卖出，可以继续执行找币
+                
+                if success:
+                    self.logger.info(f"✅ {position_type.upper()}持仓卖出成功（第{retry + 1}次尝试）")
+                    return True
+                else:
+                    self.logger.warning(f"❌ {position_type.upper()}持仓卖出失败（第{retry + 1}次尝试）")
+                    
+                    # 如果不是最后一次重试，等待一段时间后继续
+                    if retry < max_retries - 1:
+                        wait_time = 2 + retry  # 递增等待时间
+                        self.logger.info(f"⏳ 等待{wait_time}秒后进行下一次重试...")
+                        time.sleep(wait_time)
+                        
+            except Exception as e:
+                self.logger.error(f"❌ 卖出{position_type.upper()}持仓时发生异常（第{retry + 1}次尝试）: {str(e)}")
+                
+                # 如果不是最后一次重试，等待一段时间后继续
+                if retry < max_retries - 1:
+                    wait_time = 3 + retry  # 异常情况下等待更长时间
+                    self.logger.info(f"⏳ 异常后等待{wait_time}秒后进行下一次重试...")
+                    time.sleep(wait_time)
+        
+        self.logger.error(f"💥 {position_type.upper()}持仓卖出失败，已达到最大重试次数{max_retries}")
         return False
       
     def _get_cached_element(self, cache_key):
