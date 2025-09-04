@@ -1395,6 +1395,8 @@ class CryptoTrader:
                         self.trade_count_label.config(text=str(new_trade_count))
                         # 同步到web界面
                         self.set_web_value('trade_count_label', str(new_trade_count))
+                        # 同步到status_data
+                        self._update_status_async('trading', 'remaining_trades', str(new_trade_count))
                         self.logger.info(f"根据初始金额 {value} 动态更新交易次数为: {new_trade_count}")
                     
                     break
@@ -1559,6 +1561,8 @@ class CryptoTrader:
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
         # 同步初始值到web界面
         self.set_web_value('trade_count_label', str(initial_trade_count))
+        # 同步到status_data
+        self._update_status_async('trading', 'remaining_trades', str(initial_trade_count))
 
         # 监控网站配置
         url_frame = ttk.LabelFrame(scrollable_frame, text="Website Monitoring", padding=(8, 5))
@@ -4513,6 +4517,8 @@ class CryptoTrader:
             self.trade_count_label.config(text=str(default_trade_count))
             # 同步到web界面
             self.set_web_value('trade_count_label', str(default_trade_count))
+            # 同步到status_data
+            self._update_status_async('trading', 'remaining_trades', str(default_trade_count))
 
         except Exception as e:
             self.logger.error(f"获取零点CASH值时发生错误: {str(e)}")
@@ -4823,6 +4829,8 @@ class CryptoTrader:
                     self.trade_count_label.config(text=str(self.trade_count))
                     # 同步到web界面
                     self.set_web_value('trade_count_label', str(self.trade_count))
+                    # 同步到status_data
+                    self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
                     self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
                 
         except Exception as e:
@@ -6135,7 +6143,8 @@ SHARES: {shares}
                     'memory_total_gb': round(psutil.virtual_memory().total / 1024 / 1024 / 1024, 1),
                     'memory_used_gb': round(psutil.virtual_memory().used / 1024 / 1024 / 1024, 1),
                     'memory_free_mb': round(psutil.virtual_memory().available / 1024 / 1024)
-                }
+                },
+                'remaining_trades': self.status_data.get_value('trading', 'remaining_trades') or self.get_web_value('trade_count_label') or str(self.trade_count)
             }
             
             dashboard_template = """
