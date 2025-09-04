@@ -5019,7 +5019,21 @@ class CryptoTrader:
                                 else:
                                     cumulative_profit += profit
                                     total_profit = cumulative_profit
-                                    total_profit_rate = (total_profit / first_cash) if first_cash else 0.0
+                                    # 确保first_cash有效
+                                    if first_cash <= 0 or abs(first_cash - cash) < 0.01:
+                                        self.logger.warning(f"加载历史记录时检测到first_cash为{first_cash}，可能导致总利润率计算错误")
+                                        # 如果是第一条记录或first_cash无效，使用当前现金值
+                                        if profit == 0:
+                                            total_profit_rate = 0.0
+                                        else:
+                                            total_profit_rate = (total_profit / cash) if cash > 0 else 0.0
+                                    else:
+                                        total_profit_rate = (total_profit / first_cash) if first_cash > 0 else 0.0
+                                    
+                                    # 确保总利润率不为0当有利润时
+                                    if total_profit > 0 and total_profit_rate == 0:
+                                        self.logger.warning(f"加载历史记录时检测到异常：总利润为{total_profit}但总利润率为0，尝试修正")
+                                        total_profit_rate = (total_profit / cash) if cash > 0 else 0.0
                                     
                                 # 第7列：交易次数
                                 if len(row) >= 7:
@@ -5241,7 +5255,23 @@ class CryptoTrader:
             
             # 获取第一天的cash作为基础
             first_cash = float(self.cash_history[0][1])
-            total_profit_rate = (total_profit / first_cash) if first_cash else 0.0
+            # 确保first_cash有效，如果无效则使用当前现金值作为基准
+            if first_cash <= 0 or abs(first_cash - cash_float) < 0.01:
+                self.logger.warning(f"检测到first_cash为{first_cash}，可能导致总利润率计算错误，使用当前现金值作为基准")
+                # 如果是第一条记录或first_cash无效，使用当前现金值
+                first_cash = cash_float
+                # 如果是第一条记录，总利润率应为0
+                if profit == 0:
+                    total_profit_rate = 0.0
+                else:
+                    total_profit_rate = (total_profit / first_cash) if first_cash > 0 else 0.0
+            else:
+                total_profit_rate = (total_profit / first_cash) if first_cash > 0 else 0.0
+            self.logger.info(f"总利润率计算: {total_profit} / {first_cash} = {total_profit_rate}")
+            # 确保总利润率不为0当有利润时
+            if total_profit > 0 and total_profit_rate == 0:
+                self.logger.warning(f"检测到异常：总利润为{total_profit}但总利润率为0，尝试修正")
+                total_profit_rate = (total_profit / cash_float) if cash_float > 0 else 0.0
         else:
             # 第一条记录
             total_profit = 0.0
