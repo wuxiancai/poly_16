@@ -304,8 +304,8 @@ class StatusDataManager:
                 'selected_coin': 'BTC',
                 'auto_find_time': '2:00',
                 'last_trade_time': None,
-                'trade_count': 22,
-                'remaining_trades': 22
+                'trade_count': 22,  # 这里保持22作为初始默认值，实际会在初始化时动态设置
+                'remaining_trades': 22  # 这里保持22作为初始默认值，实际会在初始化时动态设置
             },
             'prices': {
                 'polymarket_up': '--',
@@ -924,7 +924,7 @@ class CryptoTrader:
             self.logger.error(f"❌ \033[31m异步数据更新器初始化失败:\033[0m {e}")
             self.async_data_updater = None
         
-        # 真实交易次数 (22减去已交易次数)
+        # 真实交易次数 (默认交易次数减去已交易次数)
         self.last_trade_count = 0
 
         # 默认买价
@@ -935,7 +935,7 @@ class CryptoTrader:
         self.sell_count = 1
         self.reset_trade_count = 1
         # 交易次数
-        self.trade_count = 22
+        self.trade_count = self.calculate_default_trade_count()
         
         # 买入价格冗余
         self.price_premium = 4 # 不修改
@@ -1021,7 +1021,7 @@ class CryptoTrader:
             'no4_price_entry': '0', 'no4_amount_entry': '0',
             
             # 显示标签
-            'trade_count_label': '22',
+            'trade_count_label': '22',  # 这里保持22作为初始默认值，实际会在初始化时动态设置
             'zero_time_cash_label': '--',
             'trading_pair_label': '--',
             'binance_zero_price_label': '--',
@@ -1082,6 +1082,24 @@ class CryptoTrader:
         
         # 打印启动参数
         self.logger.info(f"✅ 初始化成功: {sys.argv}")
+      
+    def calculate_default_trade_count(self):
+        """根据initial_amount_entry的值计算trade_count的默认值"""
+        try:
+            initial_amount = self.initial_amount_entry.get().strip()
+            if initial_amount == "0.65":
+                return 21
+            elif initial_amount == "0.8":
+                return 20
+            elif initial_amount == "1":
+                return 19
+            elif initial_amount == "1.2":
+                return 18
+            else:
+                return 22
+        except Exception as e:
+            self.logger.warning(f"计算默认trade_count时出错: {e}，使用默认值22")
+            return 22
       
     def load_config(self):
         """加载配置文件,保持默认格式"""
@@ -1518,7 +1536,7 @@ class CryptoTrader:
         trade_count_frame.pack(side=tk.LEFT, padx=5)
         
         ttk.Label(trade_count_frame, text="CNT:", style='Top.TLabel').pack(side=tk.LEFT, padx=(0, 1))
-        self.trade_count_label = ttk.Label(trade_count_frame, text="22", style='Red_bold.TLabel')
+        self.trade_count_label = ttk.Label(trade_count_frame, text=str(self.calculate_default_trade_count()), style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
 
         # 监控网站配置
@@ -3145,7 +3163,8 @@ class CryptoTrader:
                             self.reset_up_down_price_0(1)
                             
                             # 第一次买 UP1,不用卖出 DOWN
-                            if self.trade_count < 22:
+                            default_trade_count = self.calculate_default_trade_count()
+                            if self.trade_count < default_trade_count:
                                 self.only_sell_down()
 
                             # 设置No2价格为str(self.default_target_price)
@@ -3219,7 +3238,8 @@ class CryptoTrader:
                             self.reset_up_down_price_0(1)
                             
                             # 第一次买 UP1,不用卖出 DOWN
-                            if self.trade_count < 22:
+                            default_trade_count = self.calculate_default_trade_count()
+                            if self.trade_count < default_trade_count:
                                 self.only_sell_up()
 
                             # 设置Yes2价格为str(self.default_target_price)
@@ -4462,11 +4482,12 @@ class CryptoTrader:
             self.logger.info(f"最后一次交易次数: {trade_count}")
 
             # 真实交易了的次数
-            self.last_trade_count = 22 - int(trade_count)
+            default_trade_count = self.calculate_default_trade_count()
+            self.last_trade_count = default_trade_count - int(trade_count)
             self.logger.info(f"真实交易了的次数: {self.last_trade_count}")
             
-            # 设置self.trade_count为 22
-            self.trade_count_label.config(text="22")
+            # 设置self.trade_count为默认值
+            self.trade_count_label.config(text=str(default_trade_count))
 
         except Exception as e:
             self.logger.error(f"获取零点CASH值时发生错误: {str(e)}")
@@ -4773,7 +4794,7 @@ class CryptoTrader:
                     self.logger.info(f"\033[34m✅ 设置YES1价格{self.default_target_price}成功\033[0m")
 
                     # 交易次数恢复到初始值
-                    self.trade_count = 22
+                    self.trade_count = self.calculate_default_trade_count()
                     self.trade_count_label.config(text=str(self.trade_count))
                     self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
                 
