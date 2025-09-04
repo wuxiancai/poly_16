@@ -6151,7 +6151,7 @@ SHARES: {shares}
             <html>
             <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <title>兑复量化交易系统</title>
                 
                 <!-- PWA Meta Tags -->
@@ -6185,6 +6185,19 @@ SHARES: {shares}
                     .container { 
                         max-width: 1160px; margin: 2px auto; background: white; 
                         padding: 2px; border-radius: 6px; backdrop-filter: blur(10px);
+                        width: 100%; box-sizing: border-box;
+                    }
+                    @media (max-width: 768px) {
+                        .container {
+                            max-width: 100%;
+                            margin: 0;
+                            padding: 5px;
+                            border-radius: 0;
+                        }
+                        body {
+                            padding: 0;
+                            margin: 0;
+                        }
                     }
                     .header { text-align: center; margin-bottom: 5px; }
                     .header h1 { 
@@ -7674,7 +7687,8 @@ SHARES: {shares}
                     <!-- 交易记录表格 -->
                     <style>
                         .table-container {
-                            width: 1148px;
+                            width: 100%;
+                            max-width: 1148px;
                             border-radius: 6px;
                             flex-direction: row;
                             gap: 8px;
@@ -7685,6 +7699,15 @@ SHARES: {shares}
                             padding: 5px; 
                             margin-bottom: 3px;
                             background-color: white;
+                            box-sizing: border-box;
+                        }
+                        @media (max-width: 768px) {
+                            .table-container {
+                                width: 100%;
+                                margin: 5px 0;
+                                padding: 2px;
+                                border-radius: 4px;
+                            }
                         }
                     </style>
                     <div class="table-container">
