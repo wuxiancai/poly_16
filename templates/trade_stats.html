@@ -188,6 +188,104 @@
                     <div class="stats-value" id="eveningTrades">0</div>
                 </div>
             </div>
+            
+            <!-- 复利计算功能 -->
+            <div style="text-align: center; border-radius: 6px; background: white; margin-top: 20px; padding: 20px; border: 1px solid #ddd;">
+                <h3 style="margin-bottom: 15px; color: #495057;">复利计算器</h3>
+                <style>
+                    .compound-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        background: linear-gradient(135deg, #A8C0FF, #C6FFDD);
+                        border-radius: 6px;
+                        overflow: hidden;
+                        table-layout: fixed; 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    }
+                    .compound-table th {
+                        color: black;
+                        padding: 6px 4px;
+                        text-align: center;
+                        font-weight: 400;
+                        font-size: 13px;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                        border: none;
+                    }
+                    .compound-table td {
+                        padding: 4px 6px;
+                        text-align: center;
+                        border-bottom: 1px solid #f0f2f5;
+                        font-size: 13px;
+                        transition: all 0.3s ease;
+                    }
+                    .compound-table input {
+                        width: 100%;
+                        border: none;
+                        text-align: center;
+                        background: transparent;
+                        font-size: 13px;
+                        font-weight: 400;
+                        padding: 4px 4px;
+                        border-radius: 6px;
+                        transition: all 0.3s ease;
+                    }
+                    .compound-table input:focus {
+                        outline: none;
+                        background: #f0f4ff;
+                        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+                    }
+                    .month-result {
+                        font-weight: 400;
+                        color: #2c3e50;
+                        border-radius: 6px;
+                        padding: 8px 4px;
+                        margin: 2px;
+                        transition: all 0.3s ease;
+                        min-height: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                </style>
+                <table class="compound-table">
+                    <thead>
+                        <tr>
+                            <th>本金</th>
+                            <th>日复利</th>
+                            <th>30 天</th>
+                            <th>60 天</th>
+                            <th>90 天</th>
+                            <th>120 天</th>
+                            <th>150 天</th>
+                            <th>180 天</th>
+                            <th>210 天</th>
+                            <th>240 天</th>
+                            <th>270 天</th>
+                            <th>300 天</th>
+                            <th>330 天</th>
+                            <th>360 天</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="compound-results-row">
+                            <td><input type="number" id="compound-principal" value="500" min="0" step="0.01"></td>
+                            <td><input type="text" id="compound-rate" value="1.5%"></td>
+                            <td><div id="compound-month-1" class="month-result"></div></td>
+                            <td><div id="compound-month-2" class="month-result"></div></td>
+                            <td><div id="compound-month-3" class="month-result"></div></td>
+                            <td><div id="compound-month-4" class="month-result"></div></td>
+                            <td><div id="compound-month-5" class="month-result"></div></td>
+                            <td><div id="compound-month-6" class="month-result"></div></td>
+                            <td><div id="compound-month-7" class="month-result"></div></td>
+                            <td><div id="compound-month-8" class="month-result"></div></td>
+                            <td><div id="compound-month-9" class="month-result"></div></td>
+                            <td><div id="compound-month-10" class="month-result"></div></td>
+                            <td><div id="compound-month-11" class="month-result"></div></td>
+                            <td><div id="compound-month-12" class="month-result"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -204,6 +302,7 @@
             
             initChart();
             updateChart();
+            initCompoundCalculator();
             
             // 每5分钟自动刷新
             setInterval(updateChart, 300000);
@@ -256,6 +355,71 @@
             });
         }
         
+        // 复利计算相关函数
+        function saveCompoundData() {
+            const principal = document.getElementById('compound-principal').value;
+            const rate = document.getElementById('compound-rate').value;
+            localStorage.setItem('compound_principal', principal);
+            localStorage.setItem('compound_rate', rate);
+        }
+        
+        function loadCompoundData() {
+            const savedPrincipal = localStorage.getItem('compound_principal');
+            const savedRate = localStorage.getItem('compound_rate');
+            
+            if (savedPrincipal !== null) {
+                document.getElementById('compound-principal').value = savedPrincipal;
+            }
+            if (savedRate !== null) {
+                document.getElementById('compound-rate').value = savedRate;
+            }
+        }
+        
+        function calculateCompound() {
+            const principal = parseFloat(document.getElementById('compound-principal').value) || 0;
+            const rateValue = document.getElementById('compound-rate').value;
+            const dailyRate = parseFloat(rateValue.replace('%', '')) / 100 || 0;
+            
+            // 计算每个月的复利金额（每月按30天计算）
+            for (let month = 1; month <= 12; month++) {
+                const days = month * 30;
+                const amount = principal * Math.pow(1 + dailyRate, days);
+                const cell = document.getElementById('compound-month-' + month);
+                if (cell) {
+                    cell.textContent = amount.toLocaleString('zh-CN', {maximumFractionDigits: 0});
+                }
+            }
+        }
+        
+        // 初始化复利计算功能
+        function initCompoundCalculator() {
+            // 监听输入变化
+            const principalInput = document.getElementById('compound-principal');
+            const rateInput = document.getElementById('compound-rate');
+            
+            if (principalInput) {
+                principalInput.addEventListener('input', function() {
+                    calculateCompound();
+                    saveCompoundData();
+                });
+            }
+            
+            if (rateInput) {
+                rateInput.addEventListener('input', function() {
+                    let value = this.value.replace('%', '');
+                    if (value && !isNaN(value)) {
+                        this.value = value + '%';
+                    }
+                    calculateCompound();
+                    saveCompoundData();
+                });
+            }
+            
+            // 加载保存的数据并计算
+            loadCompoundData();
+            calculateCompound();
+        }
+
         // 更新图表数据
         async function updateChart() {
             const dateInput = document.getElementById('dateInput').value;

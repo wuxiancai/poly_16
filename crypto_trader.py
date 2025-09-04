@@ -34,7 +34,7 @@ import websocket
 import subprocess
 import shutil
 import csv
-from flask import Flask, render_template_string, request, url_for, jsonify, send_file
+from flask import Flask, render_template, render_template_string, request, url_for, jsonify, send_file
 import psutil
 import socket
 import requests
@@ -3199,9 +3199,6 @@ class CryptoTrader:
                             self.no2_price_entry.delete(0, tk.END)
                             self.no2_price_entry.insert(0, str(self.default_target_price))
                             self.no2_price_entry.configure(foreground='red')
-                            
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
                             
@@ -3224,7 +3221,8 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                                
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()   
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -7588,24 +7586,24 @@ SHARES: {shares}
                                 <div style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD); border-radius: 6px;">
                                     <div class="binance-price-container">
                                         <div class="binance-price-item">
-                                            <span class="binance-label">零点价格:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
+                                            <span class="binance-label">零点:</span> <span class="value" id="binanceZeroPrice">{{ data.prices.binance_zero_price or '--' }}</span>
                                         </div>
                                         <div class="binance-price-item">
-                                            <span class="binance-label">实时价格:</span> <span class="value" id="binancePrice">{{ data.prices.binance_price or '--' }}</span>
+                                            <span class="binance-label">实时:</span> <span class="value" id="binancePrice">{{ data.prices.binance_price or '--' }}</span>
                                         </div>
                                         <div class="binance-price-item">
-                                            <span class="binance-label">涨跌幅:</span> <span class="value" id="binanceRate">{{ data.prices.binance_rate or '--' }}</span>
+                                            <span class="binance-label">涨跌:</span> <span class="value" id="binanceRate">{{ data.prices.binance_rate or '--' }}</span>
                                         </div>
                                     </div>
                                     <div class="binance-price-container">
                                         <div class="binance-price-item">
-                                            <span class="binance-label">预计收益:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
+                                            <span class="binance-label">预期:</span> <span class="value" id="portfolio">{{ data.account.portfolio or '0' }}</span>
                                         </div>
                                         <div class="binance-price-item">
-                                            <span class="binance-label">可用金额:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
+                                            <span class="binance-label">可用:</span> <span class="value" id="cash">{{ data.account.cash or '0' }}</span>
                                         </div>
                                         <div class="binance-price-item">
-                                            <span class="binance-label">当天本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
+                                            <span class="binance-label">本金:</span> <span class="value" id="zeroTimeCash">{{ data.account.zero_time_cash or '--' }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -7645,28 +7643,28 @@ SHARES: {shares}
                                         
                                         <div>
                                             <div class="position-row header" style="padding: 8px 6px;background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <div class="position-label">价格</div>
                                                 <div class="position-label">金额</div>
+                                                <div class="position-label">价格</div>
                                                 <div class="position-label">方向</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down1_amount" name="down1_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down1_price" name="down1_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down1</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down2_amount" name="down2_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down2_price" name="down2_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down2</div>
                                             </div>
                                             <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <input type="number" class="position-input" id="down3_amount" name="down3_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down3_price" name="down3_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down3</div>
                                             </div>
-                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
-                                                <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
+                                            <div class="position-row" style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);"> 
                                                 <input type="number" class="position-input" id="down4_amount" name="down4_amount" value="0" step="0.01" min="0" oninput="autoSavePosition(this)">
+                                                <input type="number" class="position-input" id="down4_price" name="down4_price" value="0" step="0" min="0" oninput="autoSavePosition(this)">
                                                 <div class="position-name">Down4</div>
                                             </div>
 
@@ -8065,6 +8063,7 @@ SHARES: {shares}
                             <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; box-shadow: 0 0 0 rgba(0,0,0,0.1);">
                                 <thead class="table-header">
                                     <tr style="background: linear-gradient(135deg, #A8C0FF, #C6FFDD);">
+                                        <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">序号</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">日期</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">金额</th>
                                         <th style="padding: 8px; text-align: center; border: 0 solid #ddd;">利润</th>
@@ -8075,8 +8074,9 @@ SHARES: {shares}
                                     </tr>
                                 </thead>
                                 <tbody class="table-body">
-                                    {% for record in data.cash_history[:4] %}
+                                    {% for record in data.cash_history[:7] %}
                                     <tr style="{% if loop.index % 2 == 0 %}background-color: #f8f9fa;{% endif %}">
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ loop.index }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd;">{{ record[0] }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ record[1] }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[2]|float > 0 %}#28a745{% elif record[2]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[2] }}</td>
@@ -8097,9 +8097,9 @@ SHARES: {shares}
                         }
                         </style>
                         <div class="table-footer" style="text-align: center; margin-top: 15px;  font-size: 14px;">
-                            显示最近 4 条记录 | 总记录数: {{ data.cash_history|length }} 条 | 
-                            <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">查看完整记录</a> | 
-                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易统计分析</a>
+                            总记录数: {{ data.cash_history|length }} 条 | 
+                            <a href="{{ request.url_root }}history" target="_blank" style="color: black; text-decoration: none;">全部记录</a> | 
+                            <a href="/trade_stats.html" target="_blank" style="color: black; text-decoration: none;">交易分析</a>
                         </div>
                         {% else %}
                         <div style="text-align: center; padding: 40px; color: white;">
@@ -9379,7 +9379,7 @@ SHARES: {shares}
         @app.route('/trade_stats.html')
         def trade_stats_page():
             """交易统计分析页面"""
-            return render_template_string(self._get_trade_stats_html())
+            return render_template('trade_stats.html')
         
         @app.route('/api/stats')
         def get_stats():
