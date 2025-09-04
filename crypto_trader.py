@@ -1385,6 +1385,14 @@ class CryptoTrader:
                     
                     # 同步到web_data
                     self.set_web_value(attr_name, value)
+                    
+                    # 特殊处理：当initial_amount_entry改变时，动态更新trade_count
+                    if attr_name == 'initial_amount_entry':
+                        new_trade_count = self.calculate_default_trade_count()
+                        self.trade_count = new_trade_count
+                        self.trade_count_label.config(text=str(new_trade_count))
+                        self.logger.info(f"根据初始金额 {value} 动态更新交易次数为: {new_trade_count}")
+                    
                     break
         except Exception as e:
             self.logger.error(f"处理GUI输入框修改事件失败: {e}")
@@ -1521,6 +1529,12 @@ class CryptoTrader:
             entry.pack(side=tk.LEFT)
             entry.insert(0, str(default_value))
             setattr(self, entry_attr, entry)
+            
+            # 为initial_amount_entry添加事件监听
+            if entry_attr == 'initial_amount_entry':
+                entry.bind('<FocusOut>', self.on_entry_changed)
+                entry.bind('<Return>', self.on_entry_changed)
+                entry.bind('<KeyRelease>', self.on_entry_changed)
 
         # 翻倍天数设置
         double_frame = ttk.Frame(amount_frame)
