@@ -931,9 +931,9 @@ class CryptoTrader:
         self.default_target_price = 54 # 不修改
 
         # 添加交易次数计数器
-        self.buy_count = 0
-        self.sell_count = 0
-        self.reset_trade_count = 0
+        self.buy_count = 1
+        self.sell_count = 1
+        self.reset_trade_count = 1
         # 交易次数
         self.trade_count = 22
         
@@ -3179,7 +3179,6 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
                                 
-
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3229,9 +3228,6 @@ class CryptoTrader:
                             self.yes2_price_entry.insert(0, str(self.default_target_price))
                             self.yes2_price_entry.configure(foreground='red')
                             
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3254,6 +3250,8 @@ class CryptoTrader:
                                 portfolio_value=self.portfolio_value
                             )
 
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3315,9 +3313,6 @@ class CryptoTrader:
                             self.no3_price_entry.insert(0, str(self.default_target_price))
                             self.no3_price_entry.configure(foreground='red')
                             
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-                            
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
 
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3339,6 +3334,9 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
                             
                             break
                         else:
@@ -3391,9 +3389,6 @@ class CryptoTrader:
                             
                             self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
 
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-                            
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3415,6 +3410,9 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
                             
                             break
                         else:
@@ -3479,9 +3477,6 @@ class CryptoTrader:
                             self.no4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-  
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3503,7 +3498,10 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
@@ -3556,9 +3554,6 @@ class CryptoTrader:
                             self.yes4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3580,7 +3575,10 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3647,9 +3645,6 @@ class CryptoTrader:
                             # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
                             
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3671,7 +3666,10 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-                           
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3723,9 +3721,6 @@ class CryptoTrader:
                             # 设置 UP1-4/DOWN1-4 的金额
                             self.reset_yes_no_amount()
                             
-                            # 自动改变交易次数
-                            self.change_buy_and_trade_count()
-
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
                             # 交易统计已在change_buy_and_trade_count中记录
@@ -3747,7 +3742,10 @@ class CryptoTrader:
                                 cash_value=self.cash_value,
                                 portfolio_value=self.portfolio_value
                             )
-
+                            
+                            # 自动改变交易次数
+                            self.change_buy_and_trade_count()
+                            
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
@@ -3790,7 +3788,7 @@ class CryptoTrader:
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
         for retry in range(3):
-            self.logger.info("✅ \033[35m✅ 执行only_sell_up\033[0m")
+            self.logger.info("✅ \033[35m 执行only_sell_up\033[0m")
             # 计时
             start_time = time.perf_counter()
 
@@ -4271,7 +4269,6 @@ class CryptoTrader:
                 
                     # 第四步:获取当前 URL并保存到 GUI 和配置文件中
                     new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
-                    self.logger.info(f"✅ \033[34m成功获取到当前URL: {new_url}\033[0m")
                     time.sleep(8)
                     
                     # 保存当前 URL 到 config
