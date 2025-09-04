@@ -6214,6 +6214,10 @@ SHARES: {shares}
                             flex-direction: column !important;
                             gap: 10px !important;
                         }
+                        .log-container {
+                            height: 200px !important;
+                            max-height: 30vh !important;
+                        }
                     }
                     .header { text-align: center; margin-bottom: 5px; }
                     .header h1 { 
