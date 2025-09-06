@@ -3857,7 +3857,7 @@ class CryptoTrader:
                     price=self.price,
                     amount=self.amount,
                     shares=self.shares,
-                    trade_count=self.buy_count,
+                    trade_count=self.sell_count,
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
@@ -3908,7 +3908,7 @@ class CryptoTrader:
                     price=self.price,
                     amount=self.amount,
                     shares=self.shares,
-                    trade_count=self.buy_count,
+                    trade_count=self.sell_count,
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
@@ -5766,26 +5766,24 @@ class CryptoTrader:
             if not trading_pair or trading_pair == "--":
                 trading_pair = "未知交易币对"
             
-            # 根据交易类型选择显示的计数
-            count_in_subject = self.sell_count if "Sell" in trade_type else trade_count
-            
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            subject = f'{hostname}第{count_in_subject}次{trade_type}-{trading_pair}'
+            subject = f'{hostname}{trade_type}-{trading_pair}'
             
             # 修复格式化字符串问题,确保cash_value和portfolio_value是字符串
             str_cash_value = str(cash_value)
             str_portfolio_value = str(portfolio_value)
             
-            content = f"""
-            交易价格: {price:.0f}¢
-            交易金额: ${amount:.2f}
-            SHARES: {shares}
-            当前买入次数: {self.buy_count}
-            当前卖出次数: {self.sell_count}
-            当前 CASH 值: {str_cash_value}
-            当前 PORTFOLIO 值: {str_portfolio_value}
-            交易时间: {current_time}
-            """
+            # 根据交易类型决定卖出次数显示
+            display_sell_count = self.sell_count if "sell" in trade_type else (self.sell_count - 1)
+            
+            content = f"""交易价格: {price:.0f}¢
+交易金额: ${amount:.2f}
+SHARES: {shares}
+当前买入次数: {self.buy_count}
+当前卖出次数: {display_sell_count}
+当前 CASH 值: {str_cash_value}
+当前 PORTFOLIO 值: {str_portfolio_value}
+交易时间: {current_time}"""
             
             # 使用简化邮件发送器异步发送邮件
             if self.email_sender:
