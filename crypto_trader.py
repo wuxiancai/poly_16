@@ -6611,7 +6611,7 @@ class CryptoTrader:
                     }
                     .position-row { 
                         display: grid; 
-                        grid-template-columns: 60px 1fr 1fr; 
+                        grid-template-columns: 1fr 1fr 1fr; 
                         gap: 6px; 
                         padding: 6px 6px; 
                         border-bottom: 6px solid white; 
