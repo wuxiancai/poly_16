@@ -3198,8 +3198,6 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
-
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
                             
@@ -3271,7 +3269,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3356,7 +3354,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
 
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3432,7 +3430,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3520,7 +3518,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3597,7 +3595,7 @@ class CryptoTrader:
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3688,7 +3686,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3764,7 +3762,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
                             
-                            # 交易统计已在change_buy_and_trade_count中记录
+                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
