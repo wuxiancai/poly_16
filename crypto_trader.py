@@ -8676,7 +8676,7 @@ class CryptoTrader:
                         .position-row {
                             grid-template-columns: 1fr;
                             gap: 10px;
-                            padding: 15px 10px;
+                            padding: 15px 15px;
                             text-align: center;
                         }
                         
