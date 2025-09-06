@@ -9628,7 +9628,7 @@ class CryptoTrader:
     def start_flask_server(self):
         """在后台线程中启动Flask,24小时常驻"""
         # 从环境变量读取配置,默认值为localhost:8080
-        flask_host = os.environ.get('FLASK_HOST', '127.0.0.1')
+        flask_host = os.environ.get('FLASK_HOST', '0.0.0.0')
         flask_port = int(os.environ.get('FLASK_PORT', '8080'))
         
         # 检查并清理端口占用
@@ -9664,6 +9664,7 @@ class CryptoTrader:
             self.logger.info("🔒 服务仅监听本地地址,通过NGINX反向代理访问")
         else:
             self.logger.info(f"✅ Flask服务已启动,监听端口: {flask_port}")
+            self.logger.info(f"🌐 服务监听所有网络接口,可通过局域网IP访问: http://192.168.31.177:{flask_port}")
 
     def schedule_record_cash_daily(self):
         """安排每天 0:30 记录现金到CSV"""

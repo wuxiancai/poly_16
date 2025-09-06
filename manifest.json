@@ -1,6 +1,6 @@
 {
-  "name": "量化交易监控系统",
-  "short_name": "交易监控",
+  "name": "复盘交易监控系统",
+  "short_name": "复盘监控",
   "description": "实时监控量化交易策略和持仓状态",
   "start_url": "/",
   "display": "standalone",
@@ -11,49 +11,55 @@
   "lang": "zh-CN",
   "icons": [
     {
-      "src": "/static/icon-72x72.png",
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-72x72.png?v=2",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-96x96.png",
+      "src": "/static/icon-96x96.png?v=2",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-128x128.png",
+      "src": "/static/icon-128x128.png?v=2",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-144x144.png",
+      "src": "/static/icon-144x144.png?v=2",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-152x152.png",
+      "src": "/static/icon-152x152.png?v=2",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-192x192.png",
+      "src": "/static/icon-192x192.png?v=2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-384x384.png",
+      "src": "/static/icon-384x384.png?v=2",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/static/icon-512x512.png",
+      "src": "/static/icon-512x512.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
