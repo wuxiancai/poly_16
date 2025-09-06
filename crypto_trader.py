@@ -1407,7 +1407,7 @@ class CryptoTrader:
     def setup_gui(self):
         """优化后的GUI界面设置"""
         self.root = tk.Tk()
-        self.root.title("Automatic Trading System Power by @无为")
+        self.root.title("兑复相生 · 财富自来 · 兑复量化交易系统 @无为")
         
         # 创建主滚动框架
         main_canvas = tk.Canvas(self.root, bg='#f8f9fa', highlightthickness=0)
@@ -6277,7 +6277,7 @@ class CryptoTrader:
                     }
                     .header p { color: #5a6c7d; margin: 5px 0 0 0; font-size: 18px; font-weight: 500; }
                     .header .subtitle {
-                        font-size: 8px;   /* 小字体 */
+                        font-size: 10px;   /* 小字体 */
                         color: #666;       /* 灰色，避免喧宾夺主 */
                         margin-left: 0;  /* 和标题留点间距 */
                         font-weight: 400;
@@ -7529,7 +7529,7 @@ class CryptoTrader:
                     <div class="container">
                         <div class="header">
                             <h1>兑复量化交易系统
-                                <span class="subtitle">Power by 无为</span>
+                                <span class="subtitle">兑复相生 · 财富自来 · Power by 无为</span>
                             </h1>
                         </div>
 
