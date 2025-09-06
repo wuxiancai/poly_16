@@ -836,7 +836,7 @@ class Logger:
 
 class CryptoTrader:
     def __init__(self):
-        super().__init__()
+        
         self.logger = Logger('兑复')
         self.driver = None
         self.running = False
@@ -931,10 +931,10 @@ class CryptoTrader:
         self.default_target_price = 54 # 不修改
 
         # 添加交易次数计数器
-        self.buy_count = 1
-        self.sell_count = 1
+        self.buy_count = 0
+        self.sell_count = 0
         self.reset_trade_count = 1
-        # 交易次数
+        # 交易次数,默认22次,返回的值是:18,19,20,21,22
         self.trade_count = self.calculate_default_trade_count()
         
         # 买入价格冗余
@@ -1095,8 +1095,9 @@ class CryptoTrader:
                 return 19
             elif initial_amount == "1.2":
                 return 18
-            else:
+            elif initial_amount <= "0.64":
                 return 22
+            
         except Exception as e:
             self.logger.warning(f"计算默认trade_count时出错: {e}，使用默认值22")
             return 22
@@ -3076,12 +3077,7 @@ class CryptoTrader:
                             self.logger.warning("连续刷新失败3次,尝试重启浏览器")
                             self.refresh_fail_count = 0
                             self.restart_browser()
-                else:
-                    if not should_refresh:
-                        self.logger.debug("跳过刷新：页面状态良好")
-                    else:
-                        self.logger.debug(f"跳过刷新：running={self.running}, driver={bool(self.driver)}, trading={self.trading}")
-                    
+                
             except Exception as e:
                 self.refresh_fail_count += 1
                 self.logger.warning(f"页面刷新失败: {str(e)} (失败次数: {self.refresh_fail_count})")
@@ -3213,7 +3209,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy up1",
+                                trade_type=f"第{self.buy_count}次买UP",
                                 price=up_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3286,7 +3282,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy down1",
+                                trade_type=f"第{self.buy_count}次买DOWN",
                                 price=down_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3371,7 +3367,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy up2",
+                                trade_type=f"第{self.buy_count}次买UP",
                                 price=up_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3447,7 +3443,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy down2",
+                                trade_type=f"第{self.buy_count}次买DOWN",
                                 price=down_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3535,7 +3531,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy up3",
+                                trade_type=f"第{self.buy_count}次买UP",
                                 price=up_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3612,7 +3608,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy down3",
+                                trade_type=f"第{self.buy_count}次买DOWN",
                                 price=down_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3703,7 +3699,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy up4",
+                                trade_type=f"第{self.buy_count}次买UP",
                                 price=up_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3779,7 +3775,7 @@ class CryptoTrader:
 
                             # 发送交易邮件
                             self.send_trade_email(
-                                trade_type="buy down4",
+                                trade_type=f"第{self.buy_count}次买DOWN",
                                 price=down_price,
                                 amount=self.amount,
                                 shares=self.shares,
@@ -3838,7 +3834,7 @@ class CryptoTrader:
             start_time = time.perf_counter()
 
             # 点击position_sell按钮
-            self.click_position_sell_up_button()    
+            self.click_position_sell_button()    
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3858,11 +3854,11 @@ class CryptoTrader:
                 # 增加卖出计数
                 self.sell_count += 1
                 
-                self.logger.info(f"\033[34m✅ 卖出 Up 成功\033[0m")
+                self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
 
                 # 发送交易邮件
                 self.send_trade_email(
-                    trade_type="sell up",
+                    trade_type=f"第{self.sell_count}次卖出 UP",
                     price=self.price,
                     amount=self.amount,
                     shares=self.shares,
@@ -3890,7 +3886,7 @@ class CryptoTrader:
             start_time = time.perf_counter()
 
             # 点击position_sell按钮
-            self.click_position_sell_down_button()
+            self.click_position_sell_button()
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3911,11 +3907,11 @@ class CryptoTrader:
                 # 增加卖出计数
                 self.sell_count += 1
                 
-                self.logger.info(f"\033[34m✅ 卖出 Down 成功\033[0m")
+                self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
 
                 # 发送交易邮件
                 self.send_trade_email(
-                    trade_type="sell down",
+                    trade_type=f"第{self.sell_count}次卖出 DOWN",
                     price=self.price,
                     amount=self.amount,
                     shares=self.shares,
@@ -5411,7 +5407,7 @@ class CryptoTrader:
             except Exception as retry_e:
                 self.logger.error(f"❌ 第二次点击buy_confirm_button按钮失败: {str(retry_e)}")
     
-    def click_position_sell_down_button(self):
+    def click_position_sell_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
@@ -5787,14 +5783,14 @@ class CryptoTrader:
             str_portfolio_value = str(portfolio_value)
             
             content = f"""
-交易价格: {price:.0f}¢
-交易金额: ${amount:.2f}
-SHARES: {shares}
-当前买入次数: {self.buy_count}
-当前卖出次数: {self.sell_count}
-当前 CASH 值: {str_cash_value}
-当前 PORTFOLIO 值: {str_portfolio_value}
-交易时间: {current_time}
+            交易价格: {price:.0f}¢
+            交易金额: ${amount:.2f}
+            SHARES: {shares}
+            当前买入次数: {self.buy_count}
+            当前卖出次数: {self.sell_count}
+            当前 CASH 值: {str_cash_value}
+            当前 PORTFOLIO 值: {str_portfolio_value}
+            交易时间: {current_time}
             """
             
             # 使用简化邮件发送器异步发送邮件
