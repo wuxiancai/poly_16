@@ -931,8 +931,8 @@ class CryptoTrader:
         self.default_target_price = 54 # 不修改
 
         # 添加交易次数计数器
-        self.buy_count = 0
-        self.sell_count = 0
+        self.buy_count = 1  # 从1开始计数，表示即将进行的交易次数
+        self.sell_count = 1  # 从1开始计数，表示即将进行的交易次数
         self.reset_trade_count = 1
         # 交易次数,默认22次,返回的值是:18,19,20,21,22
         self.trade_count = self.calculate_default_trade_count()
@@ -3114,7 +3114,7 @@ class CryptoTrader:
         if self.trade_stats:
             try:
                 self.trade_stats.record_trade("BUY", 0)  # 价格参数在统计中不重要
-                self.logger.info(f"记录第{self.buy_count}次买入交易统计成功")
+                self.logger.info(f"记录第{self.buy_count - 1}次买入交易统计成功")
             except Exception as e:
                 self.logger.error(f"记录交易统计失败: {e}")
         
@@ -3849,9 +3849,6 @@ class CryptoTrader:
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
             
             if self.verify_trade('Sold', 'Up')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
-                
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
 
                 # 发送交易邮件
@@ -3864,7 +3861,8 @@ class CryptoTrader:
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
-
+                # 增加卖出计数
+                self.sell_count += 1
                 return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
@@ -3902,9 +3900,6 @@ class CryptoTrader:
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
             if self.verify_trade('Sold', 'Down')[0]:
-                # 增加卖出计数
-                self.sell_count += 1
-                
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
 
                 # 发送交易邮件
@@ -3917,7 +3912,8 @@ class CryptoTrader:
                     cash_value=self.cash_value,
                     portfolio_value=self.portfolio_value
                 )
-
+                # 增加卖出计数
+                self.sell_count += 1
                 return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
