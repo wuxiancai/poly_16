@@ -5774,16 +5774,9 @@ class CryptoTrader:
             str_portfolio_value = str(portfolio_value)
             
             # 根据交易类型决定卖出次数显示
-            display_sell_count = self.sell_count if "sell" in trade_type else (self.sell_count - 1)
+            display_sell_count = self.sell_count if "卖出" in trade_type else (self.sell_count - 1)
             
-            content = f"""交易价格: {price:.0f}¢
-交易金额: ${amount:.2f}
-SHARES: {shares}
-当前买入次数: {self.buy_count}
-当前卖出次数: {display_sell_count}
-当前 CASH 值: {str_cash_value}
-当前 PORTFOLIO 值: {str_portfolio_value}
-交易时间: {current_time}"""
+            content = f"交易价格: {price:.0f}¢\n交易金额: ${amount:.2f}\nSHARES: {shares}\n当前买入次数: {self.buy_count}\n当前卖出次数: {display_sell_count}\n当前 CASH 值: {str_cash_value}\n当前 PORTFOLIO 值: {str_portfolio_value}\n交易时间: {current_time}"
             
             # 使用简化邮件发送器异步发送邮件
             if self.email_sender:
