@@ -185,6 +185,45 @@ optimize_system() {
     # 创建桌面目录
     mkdir -p ~/Desktop
     
+    # 配置X2GO虚拟桌面固定分辨率为2560x1600
+    log_info "配置X2GO虚拟桌面分辨率为2560x1600..."
+    
+    # 创建X2GO服务端配置目录
+    sudo mkdir -p /etc/x2go
+    
+    # 配置X2GO服务端默认分辨率
+    if [[ ! -f /etc/x2go/x2goserver.conf ]]; then
+        sudo tee /etc/x2go/x2goserver.conf > /dev/null <<EOF
+# X2GO服务端配置文件
+# 设置默认虚拟桌面分辨率
+default.geometry=2560x1600
+EOF
+        log_success "X2GO服务端配置文件已创建"
+    else
+        # 如果配置文件已存在，更新分辨率设置
+        if ! sudo grep -q "default.geometry" /etc/x2go/x2goserver.conf; then
+            echo "default.geometry=2560x1600" | sudo tee -a /etc/x2go/x2goserver.conf > /dev/null
+            log_success "X2GO默认分辨率已设置为2560x1600"
+        else
+            sudo sed -i 's/^default.geometry=.*/default.geometry=2560x1600/' /etc/x2go/x2goserver.conf
+            log_success "X2GO分辨率已更新为2560x1600"
+        fi
+    fi
+    
+    # 创建用户级X2GO配置
+    mkdir -p ~/.x2go
+    cat > ~/.x2go/settings <<EOF
+# X2GO用户配置
+# 虚拟桌面分辨率设置
+geometry=2560x1600
+EOF
+    
+    # 重启X2GO服务以应用配置
+    if systemctl is-active --quiet x2goserver; then
+        sudo systemctl restart x2goserver
+        log_success "X2GO服务已重启，分辨率配置生效"
+    fi
+    
     log_success "系统配置优化完成"
 }
 
@@ -204,6 +243,7 @@ show_installation_info() {
     echo "  密码: noneboy"
     echo "  端口: 22 (SSH/X2GO)"
     echo "  会话类型: LXDE"
+    echo "  虚拟桌面分辨率: 2560x1600 (固定)"
     echo
     echo "客户端下载:"
     echo "  Windows: https://code.x2go.org/releases/X2GoClient_latest_mswin32-setup.exe"
@@ -214,7 +254,8 @@ show_installation_info() {
     echo "  1. 下载并安装X2GO客户端"
     echo "  2. 创建新会话，填入上述连接信息"
     echo "  3. 会话类型选择 'LXDE'"
-    echo "  4. 点击连接即可使用远程桌面"
+    echo "  4. 分辨率已固定为2560x1600，无需手动设置"
+    echo "  5. 点击连接即可使用远程桌面"
     echo
     log_warning "请确保腾讯云安全组已开放22端口！"
     echo "======================================"
