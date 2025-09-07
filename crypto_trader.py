@@ -8058,7 +8058,7 @@ class CryptoTrader:
                                 <tbody class="table-body">
                                     {% for record in data.cash_history[:7] %}
                                     <tr style="{% if loop.index % 2 == 0 %}background-color: #f8f9fa;{% endif %}">
-                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ loop.index }}</td>
+                                        <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ data.cash_history|length - loop.index0 }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd;">{{ record[0] }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd; font-weight: bold;">{{ record[1] }}</td>
                                         <td style="padding: 10px; text-align: center; border: 0 solid #ddd; color: {% if record[2]|float > 0 %}#28a745{% elif record[2]|float < 0 %}#dc3545{% else %}#6c757d{% endif %}; font-weight: bold;">{{ record[2] }}</td>
@@ -8843,6 +8843,7 @@ class CryptoTrader:
                     </div>
                     <table>
                         <tr>
+                            <th>序号</th>
                             <th>日期</th>
                             <th>金额</th>
                             <th>利润</th>
@@ -8858,6 +8859,7 @@ class CryptoTrader:
                         {% set total_profit_rate = (row[5] | replace('%', '') | float) if row|length > 5 else 0 %}
                         {% set trade_times = row[6] if row|length > 6 else '' %}
                         <tr>
+                            <td>{{ total - start - loop.index0 }}</td>
                             <td>{{ row[0] }}</td>
                             <td>{{ row[1] }}</td>
                             <td class=\"{{ 'positive' if profit > 0 else ('negative' if profit < 0 else 'zero') }}\">
