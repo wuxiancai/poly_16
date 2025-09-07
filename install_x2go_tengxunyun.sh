@@ -188,7 +188,7 @@ optimize_system() {
     # 配置X2GO虚拟桌面固定分辨率为2560x1600
     log_info "配置X2GO虚拟桌面分辨率为2560x1600..."
     
-    # 创建X2GO服务端配置目录
+    # 1. 配置X2GO服务端
     sudo mkdir -p /etc/x2go
     
     # 配置X2GO服务端默认分辨率
@@ -210,7 +210,7 @@ EOF
         fi
     fi
     
-    # 创建用户级X2GO配置
+    # 2. 创建用户级X2GO配置
     mkdir -p ~/.x2go
     cat > ~/.x2go/settings <<EOF
 # X2GO用户配置
@@ -218,11 +218,66 @@ EOF
 geometry=2560x1600
 EOF
     
+    # 3. 配置LXDE桌面环境分辨率
+    log_info "配置LXDE桌面环境分辨率..."
+    
+    # 创建LXDE自动启动目录
+    mkdir -p ~/.config/autostart
+    
+    # 创建分辨率设置脚本
+    cat > ~/.config/autostart/set-resolution.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Set Resolution
+Exec=sh -c 'sleep 3 && xrandr --output default --mode 2560x1600 2>/dev/null || xrandr --size 2560x1600 2>/dev/null || true'
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+    
+    # 4. 配置X11显示设置
+    log_info "配置X11显示设置..."
+    
+    # 更新.xsession文件，添加分辨率设置
+    cat > ~/.xsession <<EOF
+#!/bin/bash
+# 设置虚拟桌面分辨率
+xrandr --output default --mode 2560x1600 2>/dev/null || xrandr --size 2560x1600 2>/dev/null || true
+# 启动LXDE桌面环境
+exec startlxde
+EOF
+    chmod +x ~/.xsession
+    
+    # 5. 创建X11配置文件
+    sudo mkdir -p /etc/X11/xorg.conf.d
+    sudo tee /etc/X11/xorg.conf.d/99-virtual-screen.conf > /dev/null <<EOF
+Section "Screen"
+    Identifier "DefaultScreen"
+    SubSection "Display"
+        Virtual 2560 1600
+    EndSubSection
+EndSection
+EOF
+    
+    # 6. 配置X2GO会话脚本
+    mkdir -p ~/.x2go
+    cat > ~/.x2go/session <<EOF
+#!/bin/bash
+# X2GO会话启动脚本
+# 设置分辨率
+xrandr --output default --mode 2560x1600 2>/dev/null || xrandr --size 2560x1600 2>/dev/null || true
+# 启动LXDE
+exec startlxde
+EOF
+    chmod +x ~/.x2go/session
+    
     # 重启X2GO服务以应用配置
     if systemctl is-active --quiet x2goserver; then
         sudo systemctl restart x2goserver
         log_success "X2GO服务已重启，分辨率配置生效"
     fi
+    
+    log_success "2560x1600分辨率配置已完成，包括X2GO、LXDE和X11设置"
     
     log_success "系统配置优化完成"
 }
@@ -254,8 +309,18 @@ show_installation_info() {
     echo "  1. 下载并安装X2GO客户端"
     echo "  2. 创建新会话，填入上述连接信息"
     echo "  3. 会话类型选择 'LXDE'"
-    echo "  4. 分辨率已固定为2560x1600，无需手动设置"
-    echo "  5. 点击连接即可使用远程桌面"
+    echo "  4. 分辨率已通过多层配置固定为2560x1600:"
+    echo "     - X2GO服务端配置"
+    echo "     - LXDE桌面自动启动脚本"
+    echo "     - X11显示配置"
+    echo "     - X2GO会话脚本"
+    echo "  5. 点击连接即可使用2560x1600分辨率的远程桌面"
+    echo
+    echo "分辨率说明:"
+    echo "  如果连接后分辨率仍不正确，请:"
+    echo "  1. 重新连接X2GO会话"
+    echo "  2. 在桌面右键 -> 首选项 -> 显示设置中检查"
+    echo "  3. 或在终端运行: xrandr --size 2560x1600"
     echo
     log_warning "请确保腾讯云安全组已开放22端口！"
     echo "======================================"
