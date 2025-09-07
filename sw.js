@@ -1,9 +1,7 @@
-const CACHE_NAME = 'crypto-trader-v1.0.0';
+const CACHE_NAME = 'crypto-trader-v1.0.1';
 const urlsToCache = [
-  '/',
   '/static/icon-192x192.png',
   '/static/icon-512x512.png',
-  '/history',
   '/manifest.json'
 ];
 
@@ -50,11 +48,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 对于API请求，使用网络优先策略
+  // 对于API请求和动态页面，使用网络优先策略
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('/update_') ||
       event.request.url.includes('/save_') ||
-      event.request.url.includes('/reset_')) {
+      event.request.url.includes('/reset_') ||
+      event.request.url.endsWith('/') ||
+      event.request.url.includes('/history')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {

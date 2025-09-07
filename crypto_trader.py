@@ -34,7 +34,7 @@ import websocket
 import subprocess
 import shutil
 import csv
-from flask import Flask, render_template, render_template_string, request, url_for, jsonify, send_file
+from flask import Flask, render_template, render_template_string, request, url_for, jsonify, send_file, make_response
 import psutil
 import socket
 import requests
@@ -1407,7 +1407,7 @@ class CryptoTrader:
     def setup_gui(self):
         """优化后的GUI界面设置"""
         self.root = tk.Tk()
-        self.root.title("兑复相生 · 财富自来 · 兑复量化交易系统 @无为")
+        self.root.title("兑复相生 · 财富自来 · 兑复量化 @无为")
         
         # 创建主滚动框架
         main_canvas = tk.Canvas(self.root, bg='#f8f9fa', highlightthickness=0)
@@ -3169,7 +3169,7 @@ class CryptoTrader:
                     self.trading = True
                     for retry in range(5):
                         self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-                
+                        
                         # 计时开始
                         start_time = time.perf_counter()
 
@@ -3268,8 +3268,6 @@ class CryptoTrader:
                             self.yes2_price_entry.configure(foreground='red')
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3841,16 +3839,13 @@ class CryptoTrader:
             if self.no_i_accept_button:
                 self.click_i_accept_button()
 
-            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
-            self.click_buy_button()
-
             # 计时结束
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
             
             if self.verify_trade('Sold', 'Up')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
-
+                self.driver.refresh()
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 UP",
@@ -3882,7 +3877,7 @@ class CryptoTrader:
             start_time = time.perf_counter()
 
             # 点击position_sell按钮
-            self.click_position_sell_button()
+            self.click_position_sell_down_button()
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3891,17 +3886,13 @@ class CryptoTrader:
             if self.no_i_accept_button:
                 self.click_i_accept_button()
 
-            # 预防价格波动太快,点了卖出按钮后,立即点击buy和buy_up按钮,避免卖出失败
-            self.click_buy_up_button()
-            self.click_buy_button()
-
             # 计时结束
             elapsed = time.perf_counter() - start_time
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
             if self.verify_trade('Sold', 'Down')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
-
+                self.driver.refresh()
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 DOWN",
@@ -5442,30 +5433,30 @@ class CryptoTrader:
             except Exception as retry_e:
                 self.logger.error(f"❌ 第二次点击position_sell按钮失败: {str(retry_e)}")
 
-    def click_position_sell_up_button(self):
+    def click_position_sell_down_button(self):
         # 点击position_sell按钮
         try:
             start_time = time.perf_counter()
 
             positions_sell_up_button = WebDriverWait(self.driver, 0.2).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
+                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
             )
             if positions_sell_up_button:
                 try:
                     positions_sell_up_button.click()
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+                    self.logger.info(f"✅ \033[34m点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ position_sell按钮被遮挡，使用JavaScript点击")
+                    self.logger.info("⚠️ position_sell_down按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", positions_sell_up_button)
                     elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34mJavaScript点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+                    self.logger.info(f"✅ \033[34mJavaScript点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
 
         except Exception as e:
             try:
                 positions_sell_up_button = self._find_element_with_retry(
-                    XPathConfig.POSITION_SELL_BUTTON,
+                    XPathConfig.POSITION_SELL_DOWN_BUTTON,
                     timeout=1,
                     silent=True
                 )
@@ -5473,17 +5464,17 @@ class CryptoTrader:
                     try:
                         positions_sell_up_button.click()
                         elapsed = time.perf_counter() - start_time
-                        self.logger.info(f"✅ \033[34m第二次点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+                        self.logger.info(f"✅ \033[34m第二次点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                     except ElementClickInterceptedException:
                         # 如果元素被遮挡，使用JavaScript点击
-                        self.logger.info("⚠️ 第二次position_sell按钮被遮挡，使用JavaScript点击")
+                        self.logger.info("⚠️ 第二次position_sell_down按钮被遮挡，使用JavaScript点击")
                         self.driver.execute_script("arguments[0].click();", positions_sell_up_button)
                         elapsed = time.perf_counter() - start_time
-                        self.logger.info(f"✅ \033[34m第二次JavaScript点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+                        self.logger.info(f"✅ \033[34m第二次JavaScript点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 else:
-                    self.logger.warning("❌ 第二次找不到position_sell按钮")
+                    self.logger.warning("❌ 第二次找不到position_sell_down按钮")
             except Exception as retry_e:
-                self.logger.error(f"❌ 点击position_sell按钮失败: {str(retry_e)}")    
+                self.logger.error(f"❌ 点击position_sell_down按钮失败: {str(retry_e)}")    
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
@@ -6139,6 +6130,17 @@ class CryptoTrader:
     def create_flask_app(self):
         """创建Flask应用,展示内存中的cash_history"""
         app = Flask(__name__)
+        
+        def no_cache(f):
+            """装饰器：为响应添加禁用缓存的头部"""
+            def decorated_function(*args, **kwargs):
+                response = make_response(f(*args, **kwargs))
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
+            decorated_function.__name__ = f.__name__
+            return decorated_function
 
         @app.route("/")
         def index():
@@ -6201,13 +6203,13 @@ class CryptoTrader:
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <title>兑复量化交易系统</title>
+                <title>兑复量化</title>
                 
                 <!-- PWA Meta Tags -->
-                <meta name="application-name" content="量化交易监控系统">
+                <meta name="application-name" content="兑复量化">
                 <meta name="apple-mobile-web-app-capable" content="yes">
                 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-                <meta name="apple-mobile-web-app-title" content="交易监控">
+                <meta name="apple-mobile-web-app-title" content="兑复量化">
                 <meta name="description" content="实时监控量化交易策略和持仓状态">
                 <meta name="format-detection" content="telephone=no">
                 <meta name="mobile-web-app-capable" content="yes">
@@ -7528,7 +7530,7 @@ class CryptoTrader:
                 <div class="container">
                     <div class="container">
                         <div class="header">
-                            <h1>兑复量化交易系统
+                            <h1>兑复量化
                                 <span class="subtitle">兑复相生 · 财富自来 · Power by 无为</span>
                             </h1>
                         </div>
@@ -8202,7 +8204,12 @@ class CryptoTrader:
             from datetime import datetime
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-            return render_template_string(dashboard_template, data=current_data, current_time=current_time)
+            response = make_response(render_template_string(dashboard_template, data=current_data, current_time=current_time))
+            # 禁用缓存，确保每次都获取最新数据
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         
         @app.route("/start", methods=['POST'])
         def start_trading():
@@ -8283,6 +8290,7 @@ class CryptoTrader:
                 })
         
         @app.route("/api/status")
+        @no_cache
         def get_status():
             """获取实时状态数据API"""
             try:
@@ -8294,17 +8302,20 @@ class CryptoTrader:
         
         # 新的标准接口
         @app.route("/api/status")
+        @no_cache
         def get_status_api():
             """获取实时状态数据API"""
             return get_status()
         
         # 保持向后兼容性,保留原/api/data接口
         @app.route("/api/data")
+        @no_cache
         def get_data():
             """获取实时数据API (向后兼容)"""
             return get_status()
         
         @app.route("/api/system_info")
+        @no_cache
         def get_system_info():
             """获取系统信息API"""
             try:
@@ -8322,6 +8333,7 @@ class CryptoTrader:
                 return jsonify({'error': str(e)}), 500
         
         @app.route("/api/positions")
+        @no_cache
         def get_positions_api():
             """获取持仓信息API"""
             try:
@@ -8353,6 +8365,7 @@ class CryptoTrader:
                 }), 500
         
         @app.route("/api/positions/check-update")
+        @no_cache
         def check_position_update():
             """检查持仓信息是否有更新"""
             try:
@@ -8896,7 +8909,7 @@ class CryptoTrader:
             </body>
             </html>
             """
-            return render_template_string(html_template, 
+            response = make_response(render_template_string(html_template, 
                                         history_page=history_page, 
                                         total=total,
                                         page=page,
@@ -8907,7 +8920,12 @@ class CryptoTrader:
                                         has_next=has_next,
                                         prev_num=prev_num,
                                         next_num=next_num,
-                                        total_pages=total_pages)
+                                        total_pages=total_pages))
+            # 禁用缓存，确保每次都获取最新数据
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         
         @app.route("/api/update_coin", methods=["POST"])
         def update_coin():
@@ -8995,6 +9013,7 @@ class CryptoTrader:
                 return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
         
         @app.route("/api/logs", methods=['GET'])
+        @no_cache
         def get_logs():
             """获取系统日志"""
             try:
@@ -9190,6 +9209,7 @@ class CryptoTrader:
             return render_template('trade_stats.html')
         
         @app.route('/api/stats')
+        @no_cache
         def get_stats():
             """获取统计数据API"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
@@ -9244,24 +9264,28 @@ class CryptoTrader:
                 return jsonify({'error': str(e)}), 500
         
         @app.route('/api/trades/daily')
+        @no_cache
         def get_daily_trades():
             """获取日统计数据"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
             return jsonify(self.trade_stats.get_daily_stats(date))
         
         @app.route('/api/trades/weekly')
+        @no_cache
         def get_weekly_trades():
             """获取周统计数据"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
             return jsonify(self.trade_stats.get_weekly_stats(date))
         
         @app.route('/api/trades/monthly')
+        @no_cache
         def get_monthly_trades():
             """获取月统计数据"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
             return jsonify(self.trade_stats.get_monthly_stats(date))
         
         @app.route('/api/trades/details')
+        @no_cache
         def get_trade_details():
             """获取详细交易记录（精确到秒）"""
             date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))

@@ -67,7 +67,8 @@ class XPathConfig:
 
     # 16.Position-Sell No按钮长期有效
     POSITION_SELL_DOWN_BUTTON = [
-        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//div[(contains(., "Up") or contains(., "Down"))]//button[normalize-space(.)="Sell"])[2]'
+        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//div[(contains(., "Up") or contains(., "Down"))]//button[normalize-space(.)="Sell"])[2]',
+        '(//div//h3[contains(text(),"Positions")]/ancestor::div//div/button[contains(text(),"Sell")])[1]'
         ]
 
     # 17.Portfolio值长期有效
