@@ -880,11 +880,11 @@ class CryptoTrader:
         self.is_restarting = False  # 重启状态标志
 
         # 初始化本金
-        self.initial_amount = 0.65
+        self.initial_amount = 1
         self.first_rebound = 190
         self.n_rebound = 122
-        self.profit_rate = 1.4
-        self.doubling_weeks = 48
+        self.profit_rate = 1.7
+        self.doubling_weeks = 40
 
         # 初始化交易统计管理器
         try:
@@ -1103,8 +1103,16 @@ class CryptoTrader:
                 return 20
             elif initial_amount == "1":
                 return 19
-            elif initial_amount == "1.2":
+            elif initial_amount == "1.22":
                 return 18
+            elif initial_amount == "1.45":
+                return 17
+            elif initial_amount == "1.8":
+                return 16
+            elif initial_amount == "2.3":
+                return 15
+            elif initial_amount == "2.8":
+                return 14
             elif initial_amount <= "0.64":
                 return 22
             
