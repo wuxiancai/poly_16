@@ -1113,14 +1113,13 @@ class CryptoTrader:
                     'Up2': {'target_price': 0, 'amount': 0},
                     'Up3': {'target_price': 0, 'amount': 0},
                     'Up4': {'target_price': 0, 'amount': 0},
-
-
                     'Down1': {'target_price': 0, 'amount': 0},
                     'Down2': {'target_price': 0, 'amount': 0},
                     'Down3': {'target_price': 0, 'amount': 0},
                     'Down4': {'target_price': 0, 'amount': 0}
                 },
                 'url_history': [],
+                "auto_find_time": "02:00",
                 'selected_coin': 'BTC'  # 默认选择的币种
             }
             
@@ -1209,7 +1208,7 @@ class CryptoTrader:
             
             # 保存配置到文件,使用indent=4确保格式化
             with open('config.json', 'w', encoding='utf-8') as f:
-                json.dump(self.config, f)
+                json.dump(self.config, f, indent=4, ensure_ascii=False)
                 
         except Exception as e:
             self.logger.error(f"保存配置失败: {str(e)}")
