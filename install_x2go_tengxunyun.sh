@@ -122,10 +122,9 @@ install_x2go_server() {
     fi
     
     # 安装X2GO服务端组件
-    sudo apt install -y \    
-        x2goserver \        # X2GO服务端
-        x2goserver-xsession \  # 会话支持
-        x2golxdebindings    # LXDE绑定
+    sudo apt install -y \
+        x2goserver \
+        x2goserver-xsession
     
     # 启动并启用X2GO服务
     sudo systemctl enable x2goserver
