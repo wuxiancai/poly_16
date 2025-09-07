@@ -552,13 +552,30 @@ else
     echo -e "${GREEN}使用当前DISPLAY环境变量: $DISPLAY${NC}"
 fi
 
-# 设置X11授权
-if [ -f "$HOME/.Xauthority" ]; then
-    export XAUTHORITY="$HOME/.Xauthority"
+# 设置X11授权（X2GO环境优化）
+if [ -n "$X2GO_SESSION" ]; then
+    # X2GO环境下的授权设置
+    if [ -f "$HOME/.Xauthority" ]; then
+        export XAUTHORITY="$HOME/.Xauthority"
+    elif [ -f "/tmp/.X11-unix/X${DISPLAY#:}" ]; then
+        # 尝试使用X2GO的授权方式
+        export XAUTHORITY="$HOME/.Xauthority"
+        touch "$HOME/.Xauthority"
+        # 为X2GO会话添加授权
+        xauth add $DISPLAY . $(mcookie) 2>/dev/null || true
+    else
+        # 创建基本授权文件
+        export XAUTHORITY="$HOME/.Xauthority"
+        touch "$HOME/.Xauthority"
+    fi
 else
-    # 尝试生成授权文件
-    touch "$HOME/.Xauthority"
-    export XAUTHORITY="$HOME/.Xauthority"
+    # 非X2GO环境的标准授权设置
+    if [ -f "$HOME/.Xauthority" ]; then
+        export XAUTHORITY="$HOME/.Xauthority"
+    else
+        touch "$HOME/.Xauthority"
+        export XAUTHORITY="$HOME/.Xauthority"
+    fi
 fi
 
 echo -e "${YELLOW}使用 DISPLAY=$DISPLAY${NC}"
@@ -610,17 +627,15 @@ check_x2go_environment() {
         log_message "WARNING" "未检测到X2GO_SESSION环境变量"
     fi
     
-    # 检查DISPLAY环境变量
+    # 检查DISPLAY环境变量（不修改，只检查）
     if [ -n "$DISPLAY" ]; then
         echo -e "${GREEN}DISPLAY环境变量: $DISPLAY${NC}"
         log_message "SUCCESS" "DISPLAY环境变量设置正确: $DISPLAY"
     else
         echo -e "${RED}DISPLAY环境变量未设置${NC}"
         log_message "ERROR" "DISPLAY环境变量未设置"
-        # 尝试设置默认DISPLAY（X2GO通常使用:10.0或更高）
-        export DISPLAY=:10.0
-        echo -e "${YELLOW}已设置默认DISPLAY=:10.0${NC}"
-        log_message "INFO" "已设置默认DISPLAY=:10.0"
+        echo -e "${YELLOW}警告：DISPLAY未设置，Chrome可能无法启动${NC}"
+        log_message "WARNING" "DISPLAY未设置，Chrome可能无法启动"
     fi
     
     # 检查X11转发
@@ -630,7 +645,26 @@ check_x2go_environment() {
     else
         echo -e "${RED}X11显示服务器连接失败${NC}"
         log_message "ERROR" "X11显示服务器连接失败"
-        echo -e "${YELLOW}尝试启动X11转发...${NC}"
+        echo -e "${YELLOW}尝试修复X11连接...${NC}"
+        
+        # 尝试修复X11授权
+        if [ -n "$X2GO_SESSION" ] && [ -n "$DISPLAY" ]; then
+            # 重新设置X11授权
+            touch "$HOME/.Xauthority"
+            export XAUTHORITY="$HOME/.Xauthority"
+            
+            # 尝试添加X11授权
+            xauth add $DISPLAY . $(mcookie) 2>/dev/null || true
+            
+            # 再次测试连接
+            if xset q &>/dev/null; then
+                echo -e "${GREEN}X11连接修复成功${NC}"
+                log_message "SUCCESS" "X11连接修复成功"
+            else
+                echo -e "${YELLOW}X11连接仍有问题，但将尝试继续启动Chrome${NC}"
+                log_message "WARNING" "X11连接仍有问题，但将尝试继续启动Chrome"
+            fi
+        fi
     fi
     
     # 设置X2GO优化的环境变量
