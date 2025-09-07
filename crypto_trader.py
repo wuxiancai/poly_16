@@ -1078,6 +1078,16 @@ class CryptoTrader:
         self.last_memory_check = time.time()
         self.memory_monitor_timer = None
         self.consecutive_high_memory_count = 0  # 连续高内存使用次数
+        
+        # 初始化晚间交易定时器
+        self.evening_trade_flag = False
+        self.evening_start_timer = None
+        self.evening_end_timer = None
+        try:
+            self.setup_evening_trade_scheduler()
+            self.logger.info("✅ \033[34m晚间交易定时器初始化成功\033[0m")
+        except Exception as e:
+            self.logger.error(f"❌ \033[31m晚间交易定时器初始化失败:\033[0m {e}")
         self.max_consecutive_count = 2  # 连续2次检测到高内存才触发重启
         
         # 打印启动参数
@@ -3172,8 +3182,12 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Up')
+                            
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
@@ -3240,8 +3254,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Down')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
@@ -3327,8 +3345,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Up')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
@@ -3398,8 +3420,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Down')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
@@ -3489,8 +3515,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Up')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
@@ -3564,8 +3594,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Down')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
@@ -3591,8 +3625,6 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3657,8 +3689,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Up')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
 
@@ -3682,8 +3718,6 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3730,8 +3764,12 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
+                        if self.is_evening_trade_time():
+                            self.evening_sell_before_buy('Down')
+
                         # 如果买入次数大于 14 次,那么先卖出,后买入
-                        if self.buy_count > 14:
+                        elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 UP
                             self.only_sell_up()
 
@@ -3758,8 +3796,6 @@ class CryptoTrader:
                             self.reset_yes_no_amount()
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -4098,7 +4134,104 @@ class CryptoTrader:
             
         except Exception as e:
             self.logger.error(f"卖出操作失败: {str(e)}")
-      
+    
+    def is_evening_trade_time(self):
+        """
+        检查当前是否在晚间特殊交易时段
+        使用标志位避免每次交易时都进行时间计算
+        """
+        return getattr(self, 'evening_trade_flag', False)
+    
+    def evening_sell_before_buy(self, direction):
+        """
+        晚间交易时段的先卖后买逻辑
+        direction: 'Up' 或 'Down'，表示即将买入的方向
+        """
+        try:
+            if direction == 'Up':
+                # 即将买入UP，先卖出DOWN仓位
+                self.logger.info("🌙 \033[34m晚间交易时段:即将买入U,先卖出DOWN仓位\033[0m")
+                self.only_sell_down()
+            elif direction == 'Down':
+                # 即将买入DOWN，先卖出UP仓位
+                self.logger.info("🌙 \033[34m晚间交易时段:即将买入DOWN,先卖出UP仓位\033[0m")
+                self.only_sell_up()
+            
+        except Exception as e:
+            self.logger.error(f"❌ 晚间先卖后买逻辑执行失败: {str(e)}")
+
+    def setup_evening_trade_scheduler(self):
+        """
+        设置晚间交易时段的定时器
+        在19:00设置标志位，在00:00重置标志位
+        """
+        try:
+            now = datetime.now()
+            
+            # 计算到19:00的秒数
+            evening_start = now.replace(hour=19, minute=0, second=0, microsecond=0)
+            if now >= evening_start:
+                # 如果已经过了今天的19:00，计算到明天19:00的时间
+                evening_start += timedelta(days=1)
+            
+            seconds_to_evening = (evening_start - now).total_seconds()
+            
+            # 计算到00:00的秒数
+            midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            seconds_to_midnight = (midnight - now).total_seconds()
+            
+            # 设置19:00的定时器
+            self.evening_start_timer = threading.Timer(seconds_to_evening, self._set_evening_flag)
+            self.evening_start_timer.daemon = True
+            self.evening_start_timer.start()
+            
+            # 设置00:00的定时器
+            self.evening_end_timer = threading.Timer(seconds_to_midnight, self._reset_evening_flag)
+            self.evening_end_timer.daemon = True
+            self.evening_end_timer.start()
+            
+            # 检查当前时间是否已经在晚间时段
+            current_hour = now.hour
+            self.evening_trade_flag = 19 <= current_hour <= 23
+            
+            status = "已激活" if self.evening_trade_flag else "未激活"
+            self.logger.info(f"🌙 \033[34m晚间交易定时器已设置,当前状态:{status}\033[0m")
+            
+        except Exception as e:
+            self.logger.error(f"❌ 设置晚间交易定时器失败: {str(e)}")
+    
+    def _set_evening_flag(self):
+        """
+        设置晚间交易标志位
+        """
+        self.evening_trade_flag = True
+        self.logger.info("🌙 \033[34m晚间交易时段开始(19:00-23:59)先卖后买模式已激活\033[0m")
+        
+        # 设置明天00:10的重置定时器
+        now = datetime.now()
+        midnight = now.replace(hour=0, minute=10, second=0, microsecond=0) + timedelta(days=1)
+        seconds_to_midnight = (midnight - now).total_seconds()
+        
+        self.evening_end_timer = threading.Timer(seconds_to_midnight, self._reset_evening_flag)
+        self.evening_end_timer.daemon = True
+        self.evening_end_timer.start()
+    
+    def _reset_evening_flag(self):
+        """
+        重置晚间交易标志位
+        """
+        self.evening_trade_flag = False
+        self.logger.info("🌅 \033[34m晚间交易时段结束(00:00-07:59)，恢复正常交易模式\033[0m")
+        
+        # 设置今天19:00的定时器
+        now = datetime.now()
+        evening_start = now.replace(hour=19, minute=0, second=0, microsecond=0)
+        seconds_to_evening = (evening_start - now).total_seconds()
+        
+        self.evening_start_timer = threading.Timer(seconds_to_evening, self._set_evening_flag)
+        self.evening_start_timer.daemon = True
+        self.evening_start_timer.start()
+
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
         now = datetime.now()
