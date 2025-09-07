@@ -544,7 +544,13 @@ else
     log_message "SUCCESS" "ChromeDriver版本检查通过"
 fi
 
-export DISPLAY=:1
+# 保持当前DISPLAY环境变量（X2GO会话的DISPLAY）
+if [ -z "$DISPLAY" ]; then
+    echo -e "${YELLOW}DISPLAY环境变量未设置，使用默认值:10.0${NC}"
+    export DISPLAY=:10.0
+else
+    echo -e "${GREEN}使用当前DISPLAY环境变量: $DISPLAY${NC}"
+fi
 
 # 设置X11授权
 if [ -f "$HOME/.Xauthority" ]; then
@@ -555,7 +561,7 @@ else
     export XAUTHORITY="$HOME/.Xauthority"
 fi
 
-echo -e "${YELLOW}使用 DISPLAY=1"
+echo -e "${YELLOW}使用 DISPLAY=$DISPLAY${NC}"
 echo -e "${YELLOW}使用 XAUTHORITY=$XAUTHORITY${NC}"
 
 # 清理崩溃文件
@@ -611,7 +617,7 @@ check_x2go_environment() {
     else
         echo -e "${RED}DISPLAY环境变量未设置${NC}"
         log_message "ERROR" "DISPLAY环境变量未设置"
-        # 尝试设置默认DISPLAY
+        # 尝试设置默认DISPLAY（X2GO通常使用:10.0或更高）
         export DISPLAY=:10.0
         echo -e "${YELLOW}已设置默认DISPLAY=:10.0${NC}"
         log_message "INFO" "已设置默认DISPLAY=:10.0"
