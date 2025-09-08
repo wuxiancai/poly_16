@@ -36,7 +36,7 @@ esac
 SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
 TMP_DIR=$(mktemp -d)
 
-wget -O "$TMP_DIR/sing-box.tar.gz" "https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.tar.gz"
+wget -O "$TMP_DIR/sing-box.tar.gz" "https://github.com/SagerNet/sing-box/releases/download/v1.12.4/sing-box-1.12.4-linux-amd64.tar.gz"
 tar -xzf "$TMP_DIR/sing-box.tar.gz" -C "$TMP_DIR/"
 install -m 755 "$TMP_DIR"/sing-box*/sing-box /usr/local/bin/sing-box
 
