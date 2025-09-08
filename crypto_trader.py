@@ -3975,7 +3975,7 @@ class CryptoTrader:
                 # 计时
                 start_time = time.time()
 
-                max_wait_time = 3  # 每次智能等待3秒
+                max_wait_time = 2  # 每次智能等待2秒
                 check_interval = 0.1  # 检查间隔0.1秒
 
                 # 智能等待循环
