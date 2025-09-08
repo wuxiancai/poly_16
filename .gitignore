@@ -194,7 +194,7 @@ data/
 
 # Backup files
 *.bak
-
+run_trader.sh
 
 # Node modules (if using any JS tools)
 node_modules/
