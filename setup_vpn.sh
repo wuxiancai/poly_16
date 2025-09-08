@@ -42,12 +42,14 @@ esac
 
 # 获取最新 sing-box 版本
 echo "正在获取最新版本信息..."
-SB_VERSION=$(curl -s --connect-timeout 10 --max-time 30 https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
+SB_VERSION=$(curl -s --connect-timeout 10 --max-time 30 https://api.github.com/repos/SagerNet/sing-box/releases/latest 2>/dev/null | jq -r '.tag_name' 2>/dev/null)
 
 if [[ -z "$SB_VERSION" || "$SB_VERSION" == "null" ]]; then
     echo "警告: 无法获取最新版本，使用默认版本 v1.12.4"
     SB_VERSION="v1.12.4"
 fi
+
+echo "获取到版本: $SB_VERSION"
 
 echo "将下载版本: $SB_VERSION，架构: $SB_ARCH"
 
@@ -55,8 +57,9 @@ TMP_DIR="/tmp/singbox_install"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 
-# 构建下载URL
-DOWNLOAD_URL="https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.tar.gz"
+# 构建下载URL (移除版本号中的v前缀)
+VERSION_NUMBER=${SB_VERSION#v}  # 移除v前缀
+DOWNLOAD_URL="https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${VERSION_NUMBER}-linux-${SB_ARCH}.tar.gz"
 echo "下载地址: $DOWNLOAD_URL"
 
 # 下载文件
