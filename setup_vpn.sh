@@ -34,7 +34,8 @@ esac
 
 # 获取最新 sing-box 版本
 SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
-TMP_DIR=$(mktemp -d)
+TMP_DIR="/tmp/singbox_install"
+mkdir -p "$TMP_DIR"
 
 wget -O "$TMP_DIR/sing-box.tar.gz" "https://github.com/SagerNet/sing-box/releases/download/v1.12.4/sing-box-1.12.4-linux-amd64.tar.gz"
 tar -xzf "$TMP_DIR/sing-box.tar.gz" -C "$TMP_DIR/"
