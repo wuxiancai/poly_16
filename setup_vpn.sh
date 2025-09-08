@@ -8,8 +8,16 @@ CONFIG_FILE="$CONFIG_DIR/config.json"
 UPDATE_SCRIPT="/usr/local/bin/singbox-refresh.sh"
 # ========================
 
+# 检查是否为root用户
+if [[ $EUID -ne 0 ]]; then
+   echo "错误: 此脚本需要root权限运行"
+   exit 1
+fi
+
+echo "正在更新软件包列表..."
 apt update
-apt install -y curl wget unzip jq cron
+echo "正在安装依赖包..."
+apt install -y curl wget unzip jq cron tar
 
 # 检测系统架构
 ARCH=$(uname -m)
@@ -33,19 +41,50 @@ case $ARCH in
 esac
 
 # 获取最新 sing-box 版本
-SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
+echo "正在获取最新版本信息..."
+SB_VERSION=$(curl -s --connect-timeout 10 --max-time 30 https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
+
+if [[ -z "$SB_VERSION" || "$SB_VERSION" == "null" ]]; then
+    echo "警告: 无法获取最新版本，使用默认版本 v1.12.4"
+    SB_VERSION="v1.12.4"
+fi
+
+echo "将下载版本: $SB_VERSION，架构: $SB_ARCH"
+
 TMP_DIR="/tmp/singbox_install"
+rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 
-wget -O "$TMP_DIR/sing-box.tar.gz" "https://github.com/SagerNet/sing-box/releases/download/v1.12.4/sing-box-1.12.4-linux-amd64.tar.gz"
-tar -xzf "$TMP_DIR/sing-box.tar.gz" -C "$TMP_DIR/"
-install -m 755 "$TMP_DIR"/sing-box*/sing-box /usr/local/bin/sing-box
+# 构建下载URL
+DOWNLOAD_URL="https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.tar.gz"
+echo "下载地址: $DOWNLOAD_URL"
 
+# 下载文件
+echo "正在下载 sing-box..."
+if ! wget --timeout=60 --tries=3 -O "$TMP_DIR/sing-box.tar.gz" "$DOWNLOAD_URL"; then
+    echo "错误: 下载失败，请检查网络连接或版本号"
+    exit 1
+fi
+
+echo "正在解压文件..."
+if ! tar -xzf "$TMP_DIR/sing-box.tar.gz" -C "$TMP_DIR/"; then
+    echo "错误: 解压失败"
+    exit 1
+fi
+
+echo "正在安装 sing-box..."
+if ! install -m 755 "$TMP_DIR"/sing-box*/sing-box /usr/local/bin/sing-box; then
+    echo "错误: 安装失败"
+    exit 1
+fi
+
+echo "清理临时文件..."
 rm -rf "$TMP_DIR"
 
 mkdir -p "$CONFIG_DIR"
 
 # ========== 创建刷新脚本 ==========
+echo "正在创建刷新脚本..."
 cat > $UPDATE_SCRIPT <<'EOF'
 #!/bin/bash
 set -e
@@ -54,11 +93,24 @@ SUB_URL="https://10ncydlf.flsubcn.cc:2096/zvlqjih1t/mukeyvbugo4xzyjj?singbox=1&e
 CONFIG_DIR="/etc/sing-box"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 
+echo "[$(date '+%F %T')] 开始刷新订阅..." >> /var/log/sing-box-update.log
+
 # 拉取订阅
-curl -sL "$SUB_URL" -o $CONFIG_DIR/sub.json
+echo "正在拉取订阅..."
+if ! curl -sL --connect-timeout 10 --max-time 30 "$SUB_URL" -o $CONFIG_DIR/sub.json; then
+    echo "[$(date '+%F %T')] ❌ 订阅拉取失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
+
+# 检查订阅文件是否有效
+if ! jq empty $CONFIG_DIR/sub.json 2>/dev/null; then
+    echo "[$(date '+%F %T')] ❌ 订阅文件格式无效" >> /var/log/sing-box-update.log
+    exit 1
+fi
 
 # 生成配置文件（带健康检查和自动切换）
-jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
+echo "正在生成配置文件..."
+if ! jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
 {
   "log": { "level": "info" },
   "dns": {
@@ -94,19 +146,37 @@ jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
     ]
   }
 }
-' > $CONFIG_FILE
+' > $CONFIG_FILE; then
+    echo "[$(date '+%F %T')] ❌ 配置文件生成失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
+
+# 验证配置文件
+if ! /usr/local/bin/sing-box check -c $CONFIG_FILE; then
+    echo "[$(date '+%F %T')] ❌ 配置文件验证失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
 
 # 重启 sing-box
-systemctl restart sing-box
+echo "正在重启 sing-box 服务..."
+if ! systemctl restart sing-box; then
+    echo "[$(date '+%F %T')] ❌ 服务重启失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
+
+# 等待服务启动
+sleep 3
+if ! systemctl is-active --quiet sing-box; then
+    echo "[$(date '+%F %T')] ❌ 服务启动失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
 echo "[$(date '+%F %T')] ✅ Sing-Box 配置已刷新并重启" >> /var/log/sing-box-update.log
 EOF
 
 chmod +x $UPDATE_SCRIPT
 
-# ========== 首次运行一次 ==========
-$UPDATE_SCRIPT
-
 # ========== 创建 systemd 服务 ==========
+echo "正在创建 systemd 服务..."
 cat >/etc/systemd/system/sing-box.service <<EOF
 [Unit]
 Description=Sing-Box Proxy Service
@@ -123,23 +193,58 @@ LimitNOFILE=65535
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reexec
+echo "正在重载 systemd 配置..."
+systemctl daemon-reload
+echo "正在启用 sing-box 服务..."
 systemctl enable sing-box
-systemctl restart sing-box
+
+# ========== 首次运行刷新脚本 ==========
+echo "正在首次运行刷新脚本..."
+if ! $UPDATE_SCRIPT; then
+    echo "错误: 首次配置失败，请检查订阅地址"
+    exit 1
+fi
 
 # ========== 设置全局代理环境变量 ==========
-grep -q "http_proxy" /etc/profile || cat >>/etc/profile <<'EOF'
+echo "正在设置全局代理环境变量..."
+if ! grep -q "http_proxy" /etc/profile; then
+    cat >>/etc/profile <<'EOF'
 export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890
 export all_proxy=socks5://127.0.0.1:7890
 EOF
-source /etc/profile
+    echo "环境变量已添加到 /etc/profile"
+else
+    echo "环境变量已存在，跳过设置"
+fi
 
 # ========== 配置 cron 每天 00:45 自动刷新 ==========
-(crontab -l 2>/dev/null; echo "45 0 * * * $UPDATE_SCRIPT") | crontab -
+echo "正在配置定时任务..."
+CRON_JOB="45 0 * * * $UPDATE_SCRIPT"
+if ! crontab -l 2>/dev/null | grep -q "$UPDATE_SCRIPT"; then
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    echo "定时任务已添加"
+else
+    echo "定时任务已存在，跳过设置"
+fi
 
-echo "✅ Sing-Box 已部署完成"
-echo "👉 代理端口: 127.0.0.1:7890"
-echo "👉 每天 00:45 自动刷新订阅并重启"
-echo "👉 查看运行日志: journalctl -u sing-box -f"
-echo "👉 刷新日志文件: /var/log/sing-box-update.log"
+# ========== 验证服务状态 ==========
+echo "正在验证服务状态..."
+if systemctl is-active --quiet sing-box; then
+    echo "✅ Sing-Box 服务运行正常"
+else
+    echo "⚠️  Sing-Box 服务未运行，请检查日志"
+fi
+
+echo ""
+echo "🎉 Sing-Box 部署完成！"
+echo "=============================="
+echo "👉 代理端口: 127.0.0.1:7890 (HTTP/SOCKS)"
+echo "👉 配置文件: $CONFIG_FILE"
+echo "👉 刷新脚本: $UPDATE_SCRIPT"
+echo "👉 定时刷新: 每天 00:45 自动更新订阅"
+echo "👉 服务状态: systemctl status sing-box"
+echo "👉 运行日志: journalctl -u sing-box -f"
+echo "👉 刷新日志: /var/log/sing-box-update.log"
+echo "👉 手动刷新: $UPDATE_SCRIPT"
+echo "=============================="
