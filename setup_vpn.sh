@@ -13,14 +13,15 @@ apt install -y curl wget unzip jq cron
 
 # 获取最新 sing-box 版本
 SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
-wget -O /tmp/sing-box.zip https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-amd64v3.zip
-unzip -o /tmp/sing-box.zip -d /usr/local/bin/
-mv /usr/local/bin/sing-box*/sing-box /usr/local/bin/sing-box
-chmod +x /usr/local/bin/sing-box
-rm -rf /usr/local/bin/sing-box-*
-rm -f /tmp/sing-box.zip
+TMP_DIR=$(mktemp -d)
 
-mkdir -p $CONFIG_DIR
+wget -O "$TMP_DIR/sing-box.zip" "https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.zip"
+unzip -o "$TMP_DIR/sing-box.zip" -d "$TMP_DIR/"
+install -m 755 "$TMP_DIR"/sing-box*/sing-box /usr/local/bin/sing-box
+
+rm -rf "$TMP_DIR"
+
+mkdir -p "$CONFIG_DIR"
 
 # ========== 创建刷新脚本 ==========
 cat > $UPDATE_SCRIPT <<'EOF'
