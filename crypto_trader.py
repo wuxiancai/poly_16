@@ -934,6 +934,7 @@ class CryptoTrader:
         self.buy_count = 1  # 从1开始计数，表示即将进行的交易次数
         self.sell_count = 1  # 从1开始计数，表示即将进行的交易次数
         self.reset_trade_count = 1
+
         # 交易次数,默认22次,返回的值是:18,19,20,21,22
         self.trade_count = self.calculate_default_trade_count()
         
@@ -4656,10 +4657,22 @@ class CryptoTrader:
             
             # 设置self.trade_count为默认值
             self.trade_count_label.config(text=str(default_trade_count))
+            
             # 同步到web界面
             self.set_web_value('trade_count_label', str(default_trade_count))
             # 同步到status_data
             self._update_status_async('trading', 'remaining_trades', str(default_trade_count))
+
+            # 设置self.buy_count为默认值1
+            self.buy_count = 1
+
+            # 设置self.sell_count为默认值1
+            self.sell_count = 1
+
+            # 同步到status_data
+            self._update_status_async('trading', 'buy_count', str(self.buy_count))
+            # 同步到status_data
+            self._update_status_async('trading', 'sell_count', str(self.sell_count))
 
         except Exception as e:
             self.logger.error(f"获取零点CASH值时发生错误: {str(e)}")
