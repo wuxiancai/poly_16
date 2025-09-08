@@ -11,12 +11,33 @@ UPDATE_SCRIPT="/usr/local/bin/singbox-refresh.sh"
 apt update
 apt install -y curl wget unzip jq cron
 
+# 检测系统架构
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)
+        SB_ARCH="amd64"
+        ;;
+    aarch64)
+        SB_ARCH="arm64"
+        ;;
+    armv7l)
+        SB_ARCH="armv7"
+        ;;
+    i686)
+        SB_ARCH="386"
+        ;;
+    *)
+        echo "不支持的架构: $ARCH"
+        exit 1
+        ;;
+esac
+
 # 获取最新 sing-box 版本
 SB_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
 TMP_DIR=$(mktemp -d)
 
-wget -O "$TMP_DIR/sing-box.zip" "https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.zip"
-unzip -o "$TMP_DIR/sing-box.zip" -d "$TMP_DIR/"
+wget -O "$TMP_DIR/sing-box.tar.gz" "https://github.com/SagerNet/sing-box/releases/download/${SB_VERSION}/sing-box-${SB_VERSION}-linux-${SB_ARCH}.tar.gz"
+tar -xzf "$TMP_DIR/sing-box.tar.gz" -C "$TMP_DIR/"
 install -m 755 "$TMP_DIR"/sing-box*/sing-box /usr/local/bin/sing-box
 
 rm -rf "$TMP_DIR"
