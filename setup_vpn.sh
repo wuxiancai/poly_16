@@ -113,7 +113,21 @@ fi
 
 # 生成配置文件（带健康检查和自动切换）
 echo "正在生成配置文件..."
-if ! jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
+echo "[$(date '+%F %T')] 开始生成配置文件" >> /var/log/sing-box-update.log
+
+# 首先提取节点信息
+echo "正在提取节点信息..."
+if ! NODES=$(jq -c '.outbounds' $CONFIG_DIR/sub.json 2>/dev/null); then
+    echo "[$(date '+%F %T')] ❌ 提取节点信息失败" >> /var/log/sing-box-update.log
+    exit 1
+fi
+
+echo "节点数量: $(echo "$NODES" | jq 'length')" 
+echo "[$(date '+%F %T')] 提取到 $(echo "$NODES" | jq 'length') 个节点" >> /var/log/sing-box-update.log
+
+# 生成基础配置
+echo "正在生成基础配置..."
+cat > $CONFIG_FILE << 'EOF'
 {
   "log": { "level": "info" },
   "dns": {
@@ -126,22 +140,7 @@ if ! jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
     { "type": "socks", "listen": "127.0.0.1", "listen_port": 7890 },
     { "type": "http",  "listen": "127.0.0.1", "listen_port": 7890 }
   ],
-  "outbounds": (
-    $nodes + [
-      {
-        "type": "selector",
-        "tag": "proxy",
-        "outbounds": ($nodes | map(.tag)),
-        "default": ($nodes | .[0].tag),
-        "health_check": {
-          "interval": "30s",
-          "url": "http://www.gstatic.com/generate_204"
-        }
-      },
-      { "type": "direct", "tag": "direct" },
-      { "type": "block",  "tag": "block" }
-    ]
-  ),
+  "outbounds": [],
   "route": {
     "auto_detect_interface": true,
     "rules": [
@@ -149,10 +148,27 @@ if ! jq --argjson nodes "$(jq -r '.outbounds' $CONFIG_DIR/sub.json)" '
     ]
   }
 }
-' > $CONFIG_FILE; then
+EOF
+
+# 使用jq合并节点信息
+echo "正在合并节点配置..."
+if ! jq --argjson nodes "$NODES" '
+  .outbounds = ($nodes + [
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": ($nodes | map(.tag)),
+      "default": ($nodes | if length > 0 then .[0].tag else "direct" end)
+    },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" }
+  ])
+' $CONFIG_FILE > $CONFIG_FILE.tmp && mv $CONFIG_FILE.tmp $CONFIG_FILE; then
     echo "[$(date '+%F %T')] ❌ 配置文件生成失败" >> /var/log/sing-box-update.log
     exit 1
 fi
+
+echo "[$(date '+%F %T')] ✅ 配置文件生成成功" >> /var/log/sing-box-update.log
 
 # 验证配置文件
 if ! /usr/local/bin/sing-box check -c $CONFIG_FILE; then
