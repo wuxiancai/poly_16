@@ -3352,8 +3352,8 @@ class CryptoTrader:
                     for retry in range(5):
                         # 计时开始
                         start_time = time.perf_counter()
-
                         self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+
                         # 晚间交易时段（19:00-23:59）先卖后买逻辑
                         if self.is_evening_trade_time():
                             self.evening_sell_before_buy('Up')
@@ -3362,7 +3362,7 @@ class CryptoTrader:
                         elif self.buy_count > 14:
                             # 买入次数大于 14 次,先卖出 DOWN
                             self.only_sell_down()
-
+                        
                         # 执行买入 UP2 操作
                         self.buy_operation(self.up2_amount)
                         
@@ -3889,7 +3889,8 @@ class CryptoTrader:
             
             if self.verify_trade('Sold', 'Up')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
-                self.driver.refresh()
+                self.click_buy_button()
+                
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 UP",
@@ -3936,7 +3937,10 @@ class CryptoTrader:
 
             if self.verify_trade('Sold', 'Down')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
-                self.driver.refresh()
+                self.click_buy_up_button()
+                time.sleep(0.2)
+                self.click_buy_button()
+
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 DOWN",
@@ -3961,13 +3965,9 @@ class CryptoTrader:
 
     def verify_trade(self, action_type, direction):
         """
-        验证交易是否成功完成
-        智能等待3秒,如果没有出现交易记录,立即再重试一次智能等待,如果还是没有交易记录,说明交易失败
-        Args:
-            action_type: 'Bought' 或 'Sold'
-            direction: 'Up' 或 'Down'
-        Returns:
-            tuple: (是否成功, 价格, 金额, 份额)
+        验证交易是否成功完成,智能等待3秒.
+        Args:action_type: 'Bought' 或 'Sold',direction: 'Up' 或 'Down' 
+        Returns:tuple: (是否成功, 价格, 金额, 份额)
         """
         try:
             # 智能等待逻辑：最多重试2次,每次等待3秒
@@ -4024,10 +4024,10 @@ class CryptoTrader:
                         pass
                     
                     time.sleep(check_interval)
-                self.logger.info(f"\033[34m❌ 没有交易记录,第{attempt}次验证失败,开始第{attempt+1}次重试\033[0m")
+                self.logger.info(f"\033[34m❌ 没有交易记录,开始第{attempt+1}次重试\033[0m")
 
             # 两次智能等待都失败
-            self.logger.warning(f"❌ \033[31m{action_type} {direction} 第 2 次重试也失败,交易验证失败\033[0m")
+            self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 2 次都失败,交易验证失败\033[0m")
             return False, 0, 0, 0
 
         except Exception as e:
@@ -4379,7 +4379,7 @@ class CryptoTrader:
         now = datetime.now()
 
         # 计算下一个指定时间的时间点,必须是 00:05 分只有,太早可能找不到当天的日期
-        next_run = now.replace(hour=0, minute=3, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=2, second=0, microsecond=0)
 
         if now >= next_run:
             next_run += timedelta(days=1)
@@ -4717,8 +4717,8 @@ class CryptoTrader:
 
         api_data = None
         coin_form_websocket = ""
-        max_retries = 10 # 最多重试次数
-        retry_delay = 2  # 重试间隔（秒）
+        max_retries = 5 # 最多重试次数
+        retry_delay = 1  # 重试间隔（秒）
 
         for attempt in range(max_retries):
             try:
@@ -9856,7 +9856,7 @@ class CryptoTrader:
                 self.logger.warning(f"取消之前的记录Cash定时器失败: {e}")
         
         now = datetime.now()
-        next_run = now.replace(hour=0, minute=30, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=8, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
         wait_time = (next_run - now).total_seconds()
@@ -10182,4 +10182,3 @@ if __name__ == "__main__":
                 print(f"❌ \033[31mHTTP连接池关闭时出错: {str(e)}\033[0m")
         
         print("✅ \033[34m程序清理完成\033[0m")
-    
