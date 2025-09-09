@@ -3207,9 +3207,8 @@ class CryptoTrader:
                             # 重置Up1和Down1价格为0,参数为价格编号
                             self.reset_up_down_price_0(1)
                             
-                            # 第一次买 UP1,不用卖出 DOWN
-                            default_trade_count = self.calculate_default_trade_count()
-                            if self.trade_count < default_trade_count:
+                            # 第一次交易不用卖出 DOWN（因为没有仓位）
+                            if self.buy_count != 1 and not self.is_evening_trade_time():
                                 self.only_sell_down()
 
                             # 设置No2价格为str(self.default_target_price)
@@ -3282,9 +3281,8 @@ class CryptoTrader:
                             # 重置Up1和Down1价格为0
                             self.reset_up_down_price_0(1)
                             
-                            # 第一次买 UP1,不用卖出 DOWN
-                            default_trade_count = self.calculate_default_trade_count()
-                            if self.trade_count < default_trade_count:
+                            # 第一次交易不用卖出 UP（因为没有仓位）
+                            if self.buy_count != 1 and not self.is_evening_trade_time():
                                 self.only_sell_up()
 
                             # 设置Yes2价格为str(self.default_target_price)
@@ -3371,8 +3369,10 @@ class CryptoTrader:
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
                             
-                            # 卖出DOWN
-                            self.only_sell_down()
+                            # 如果不是晚间交易时段，才卖出DOWN
+                            if not self.is_evening_trade_time():
+                                # 卖出DOWN
+                                self.only_sell_down()
 
                             # 设置No3价格为str(self.default_target_price)
                             self.no3_price_entry = self.no_frame.grid_slaves(row=4, column=1)[0]
@@ -3381,8 +3381,6 @@ class CryptoTrader:
                             self.no3_price_entry.configure(foreground='red')
                             
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
-
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3449,8 +3447,10 @@ class CryptoTrader:
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
                             
-                            # 卖出UP
-                            self.only_sell_up()
+                            # 如果不是晚间交易时段，才卖出UP
+                            if not self.is_evening_trade_time():
+                                # 卖出UP
+                                self.only_sell_up()
 
                             # 设置YES3价格为str(self.default_target_price)
                             self.yes3_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
@@ -3542,8 +3542,11 @@ class CryptoTrader:
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
 
-                            # 卖出DOWN
-                            self.only_sell_down()
+                            # 如果不是晚间交易时段，才卖出DOWN
+                            if not self.is_evening_trade_time():
+                                # 卖出DOWN
+                                self.only_sell_down()
+
 
                             # 设置No4价格为str(self.default_target_price)
                             self.no4_price_entry = self.no_frame.grid_slaves(row=6, column=1)[0]
@@ -3623,8 +3626,10 @@ class CryptoTrader:
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
 
-                            # 卖出UP
-                            self.only_sell_up()
+                            # 如果不是晚间交易时段，才卖出UP
+                            if not self.is_evening_trade_time():
+                                # 卖出UP
+                                self.only_sell_up()
 
                             # 设置Yes4价格为str(self.default_target_price)
                             self.yes4_price_entry = self.yes_frame.grid_slaves(row=6, column=1)[0]
@@ -3715,8 +3720,11 @@ class CryptoTrader:
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
 
-                            # 卖出DOWN
-                            self.only_sell_down()
+                            # 如果不是晚间交易时段，才卖出DOWN
+                            if not self.is_evening_trade_time():
+                                # 卖出DOWN
+                                self.only_sell_down()
+
 
                             # 设置 NO1 价格为str(self.default_target_price)
                             self.no1_price_entry.delete(0, tk.END)
@@ -3793,8 +3801,10 @@ class CryptoTrader:
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
 
-                            # 卖出UP
-                            self.only_sell_up()
+                            # 如果不是晚间交易时段，才卖出UP
+                            if not self.is_evening_trade_time():
+                                # 卖出UP
+                                self.only_sell_up()
 
                             # 设置 YES1价格为str(self.default_target_price)
                             self.yes1_price_entry.configure(foreground='red')
@@ -4028,7 +4038,7 @@ class CryptoTrader:
                 self.logger.info(f"\033[34m❌ 没有交易记录,开始第{attempt+1}次重试\033[0m")
 
             # 两次智能等待都失败
-            self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 2 次都失败,交易验证失败\033[0m")
+            self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 {attempt+1}次都失败,交易验证失败\033[0m")
             return False, 0, 0, 0
 
         except Exception as e:
