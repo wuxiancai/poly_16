@@ -1080,15 +1080,6 @@ class CryptoTrader:
         self.memory_monitor_timer = None
         self.consecutive_high_memory_count = 0  # 连续高内存使用次数
         
-        # 初始化晚间交易定时器
-        self.evening_trade_flag = False
-        self.evening_start_timer = None
-        self.evening_end_timer = None
-        try:
-            self.setup_evening_trade_scheduler()
-            self.logger.info("✅ \033[34m晚间交易定时器初始化成功\033[0m")
-        except Exception as e:
-            self.logger.error(f"❌ \033[31m晚间交易定时器初始化失败:\033[0m {e}")
         self.max_consecutive_count = 2  # 连续2次检测到高内存才触发重启
         
         # 打印启动参数
@@ -3125,6 +3116,8 @@ class CryptoTrader:
         self.buy_count += 1
         self.trade_count -= 1
         self.trade_count_label.config(text=str(self.trade_count))
+        self.logger.info(f"\033[34m]剩余交易次数: \033[31m{self.trade_count}\033[0m;买入次数{self.buy_count}\033[0m")
+
         # 同步到web界面
         self.set_web_value('trade_count_label', str(self.trade_count))
         
@@ -3771,20 +3764,6 @@ class CryptoTrader:
         finally:
             self.trading = False
 
-    def check_emergency_close(self):
-        """
-        检查 23:00 - 23:59 是否触发紧急平仓
-        """
-        now = datetime.datetime.now()
-        if now.hour == 23:
-            # 0.2% 阈值，可按需调整
-            if abs(self.binance_rate) >= 0.002:
-                self.logger.info(f"\033[31m[触发紧急平仓] binance_rate={self.binance_rate:.4%}\033[0m")
-                self.sell_up_down()        # 平仓
-            self.set_up_down_price_0() # 禁止开仓
-            return True
-        return False
-
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
@@ -4064,103 +4043,6 @@ class CryptoTrader:
             
         except Exception as e:
             self.logger.error(f"卖出操作失败: {str(e)}")
-    
-    def is_evening_trade_time(self):
-        """
-        检查当前是否在晚间特殊交易时段
-        使用标志位避免每次交易时都进行时间计算
-        """
-        return getattr(self, 'evening_trade_flag', False)
-    
-    def evening_sell_before_buy(self, direction):
-        """
-        晚间交易时段的先卖后买逻辑
-        direction: 'Up' 或 'Down'，表示即将买入的方向
-        """
-        try:
-            if direction == 'Up':
-                # 即将买入UP，先卖出DOWN仓位
-                self.logger.info("🌙 \033[34m晚间交易时段:即将买入U,先卖出DOWN仓位\033[0m")
-                self.only_sell_down()
-            elif direction == 'Down':
-                # 即将买入DOWN，先卖出UP仓位
-                self.logger.info("🌙 \033[34m晚间交易时段:即将买入DOWN,先卖出UP仓位\033[0m")
-                self.only_sell_up()
-            
-        except Exception as e:
-            self.logger.error(f"❌ 晚间先卖后买逻辑执行失败: {str(e)}")
-
-    def setup_evening_trade_scheduler(self):
-        """
-        设置晚间交易时段的定时器
-        在19:00设置标志位，在00:00重置标志位
-        """
-        try:
-            now = datetime.now()
-            
-            # 计算到19:00的秒数
-            evening_start = now.replace(hour=19, minute=0, second=0, microsecond=0)
-            if now >= evening_start:
-                # 如果已经过了今天的19:00，计算到明天19:00的时间
-                evening_start += timedelta(days=1)
-            
-            seconds_to_evening = (evening_start - now).total_seconds()
-            
-            # 计算到00:00的秒数
-            midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-            seconds_to_midnight = (midnight - now).total_seconds()
-            
-            # 设置19:00的定时器
-            self.evening_start_timer = threading.Timer(seconds_to_evening, self._set_evening_flag)
-            self.evening_start_timer.daemon = True
-            self.evening_start_timer.start()
-            
-            # 设置00:00的定时器
-            self.evening_end_timer = threading.Timer(seconds_to_midnight, self._reset_evening_flag)
-            self.evening_end_timer.daemon = True
-            self.evening_end_timer.start()
-            
-            # 检查当前时间是否已经在晚间时段
-            current_hour = now.hour
-            self.evening_trade_flag = 19 <= current_hour <= 23
-            
-            status = "已激活" if self.evening_trade_flag else "未激活"
-            self.logger.info(f"🌙 \033[34m晚间交易定时器已设置,当前状态:{status}\033[0m")
-            
-        except Exception as e:
-            self.logger.error(f"❌ 设置晚间交易定时器失败: {str(e)}")
-    
-    def _set_evening_flag(self):
-        """
-        设置晚间交易标志位
-        """
-        self.evening_trade_flag = True
-        self.logger.info("🌙 \033[34m晚间交易时段开始(19:00-23:59)先卖后买模式已激活\033[0m")
-        
-        # 设置明天00:10的重置定时器
-        now = datetime.now()
-        midnight = now.replace(hour=0, minute=10, second=0, microsecond=0) + timedelta(days=1)
-        seconds_to_midnight = (midnight - now).total_seconds()
-        
-        self.evening_end_timer = threading.Timer(seconds_to_midnight, self._reset_evening_flag)
-        self.evening_end_timer.daemon = True
-        self.evening_end_timer.start()
-    
-    def _reset_evening_flag(self):
-        """
-        重置晚间交易标志位
-        """
-        self.evening_trade_flag = False
-        self.logger.info("🌅 \033[34m晚间交易时段结束(00:00-07:59)，恢复正常交易模式\033[0m")
-        
-        # 设置今天19:00的定时器
-        now = datetime.now()
-        evening_start = now.replace(hour=19, minute=0, second=0, microsecond=0)
-        seconds_to_evening = (evening_start - now).total_seconds()
-        
-        self.evening_start_timer = threading.Timer(seconds_to_evening, self._set_evening_flag)
-        self.evening_start_timer.daemon = True
-        self.evening_start_timer.start()
 
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
