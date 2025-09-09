@@ -3819,8 +3819,10 @@ class CryptoTrader:
             self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
             # 计时
             start_time = time.perf_counter()
+
             # 为了等 UP 出现,所以要等待大概 0.5 秒
             time.sleep(0.5)
+
             # 点击position_sell_down按钮
             self.click_position_sell_down_button()
 
@@ -3838,7 +3840,7 @@ class CryptoTrader:
             if self.verify_trade('Sold', 'Down')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
                 self.click_buy_up_button()
-                time.sleep(0.2)
+                time.sleep(0.3)
                 self.click_buy_button()
 
                 # 发送交易邮件
@@ -3940,6 +3942,7 @@ class CryptoTrader:
             # 计时开始
             start_time = time.perf_counter()
             start_time_count = time.perf_counter()
+            
             # 查找并设置金额输入框
             try:
                 amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
