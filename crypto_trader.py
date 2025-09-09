@@ -3191,13 +3191,8 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
 
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Up')
-                            
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
+                        # 第一次交易不用卖出 DOWN（因为没有仓位）
+                        if self.buy_count != 1:
                             self.only_sell_down()
 
                         # 买入 UP1
@@ -3206,10 +3201,6 @@ class CryptoTrader:
                         if self.verify_trade('Bought', 'Up')[0]:
                             # 重置Up1和Down1价格为0,参数为价格编号
                             self.reset_up_down_price_0(1)
-                            
-                            # 第一次交易不用卖出 DOWN（因为没有仓位）
-                            if self.buy_count != 1 and not self.is_evening_trade_time():
-                                self.only_sell_down()
 
                             # 设置No2价格为str(self.default_target_price)
                             self.no2_price_entry = self.no_frame.grid_slaves(row=2, column=1)[0]
@@ -3262,13 +3253,9 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Down')
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
+                        
+                        # 第一次交易不用卖出 UP（因为没有仓位）
+                        if self.buy_count != 1:
                             self.only_sell_up()
 
                         # 点击buy_down按钮  
@@ -3281,10 +3268,6 @@ class CryptoTrader:
                             # 重置Up1和Down1价格为0
                             self.reset_up_down_price_0(1)
                             
-                            # 第一次交易不用卖出 UP（因为没有仓位）
-                            if self.buy_count != 1 and not self.is_evening_trade_time():
-                                self.only_sell_up()
-
                             # 设置Yes2价格为str(self.default_target_price)
                             self.yes2_price_entry = self.yes_frame.grid_slaves(row=2, column=1)[0]
                             self.yes2_price_entry.delete(0, tk.END)
@@ -3351,16 +3334,9 @@ class CryptoTrader:
                         # 计时开始
                         start_time = time.perf_counter()
                         self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+     
+                        self.only_sell_down()
 
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Up')
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
-                        
                         # 执行买入 UP2 操作
                         self.buy_operation(self.up2_amount)
                         
@@ -3369,11 +3345,6 @@ class CryptoTrader:
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
                             
-                            # 如果不是晚间交易时段，才卖出DOWN
-                            if not self.is_evening_trade_time():
-                                # 卖出DOWN
-                                self.only_sell_down()
-
                             # 设置No3价格为str(self.default_target_price)
                             self.no3_price_entry = self.no_frame.grid_slaves(row=4, column=1)[0]
                             self.no3_price_entry.delete(0, tk.END)
@@ -3427,14 +3398,8 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Down')
 
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
+                        self.only_sell_up()
 
                         # 执行交易操作
                         self.click_buy_down_button()
@@ -3447,11 +3412,6 @@ class CryptoTrader:
                             # 重置Yes2和No2价格为0
                             self.reset_up_down_price_0(2)
                             
-                            # 如果不是晚间交易时段，才卖出UP
-                            if not self.is_evening_trade_time():
-                                # 卖出UP
-                                self.only_sell_up()
-
                             # 设置YES3价格为str(self.default_target_price)
                             self.yes3_price_entry = self.yes_frame.grid_slaves(row=4, column=1)[0]
                             self.yes3_price_entry.delete(0, tk.END)
@@ -3461,8 +3421,6 @@ class CryptoTrader:
                             self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3524,14 +3482,8 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Up')
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
+                        
+                        self.only_sell_down()
 
                         # 执行买入 UP3 操作
                         self.buy_operation(self.up3_amount)
@@ -3542,12 +3494,6 @@ class CryptoTrader:
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
 
-                            # 如果不是晚间交易时段，才卖出DOWN
-                            if not self.is_evening_trade_time():
-                                # 卖出DOWN
-                                self.only_sell_down()
-
-
                             # 设置No4价格为str(self.default_target_price)
                             self.no4_price_entry = self.no_frame.grid_slaves(row=6, column=1)[0]
                             self.no4_price_entry.delete(0, tk.END)
@@ -3556,8 +3502,6 @@ class CryptoTrader:
                             #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
                             self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
-                            
-                            
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3606,14 +3550,8 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Down')
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
+                        
+                        self.only_sell_up()
 
                         # 执行交易操作
                         self.click_buy_down_button()
@@ -3625,11 +3563,6 @@ class CryptoTrader:
                             
                             # 重置Yes3和No3价格为0
                             self.reset_up_down_price_0(3)
-
-                            # 如果不是晚间交易时段，才卖出UP
-                            if not self.is_evening_trade_time():
-                                # 卖出UP
-                                self.only_sell_up()
 
                             # 设置Yes4价格为str(self.default_target_price)
                             self.yes4_price_entry = self.yes_frame.grid_slaves(row=6, column=1)[0]
@@ -3703,14 +3636,8 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Up')
-
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 DOWN
-                            self.only_sell_down()
+                        
+                        self.only_sell_down()
 
                         # 执行买入 UP4 操作
                         self.buy_operation(self.up4_amount)
@@ -3719,12 +3646,6 @@ class CryptoTrader:
                             
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
-
-                            # 如果不是晚间交易时段，才卖出DOWN
-                            if not self.is_evening_trade_time():
-                                # 卖出DOWN
-                                self.only_sell_down()
-
 
                             # 设置 NO1 价格为str(self.default_target_price)
                             self.no1_price_entry.delete(0, tk.END)
@@ -3781,14 +3702,8 @@ class CryptoTrader:
                         start_time = time.perf_counter()
 
                         self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        # 晚间交易时段（19:00-23:59）先卖后买逻辑
-                        if self.is_evening_trade_time():
-                            self.evening_sell_before_buy('Down')
 
-                        # 如果买入次数大于 14 次,那么先卖出,后买入
-                        elif self.buy_count > 14:
-                            # 买入次数大于 14 次,先卖出 UP
-                            self.only_sell_up()
+                        self.only_sell_up()
 
                         # 执行交易操作
                         self.click_buy_down_button()
@@ -3800,11 +3715,6 @@ class CryptoTrader:
                             
                             # 设置 YES4/No4的价格为0
                             self.reset_up_down_price_0(4)
-
-                            # 如果不是晚间交易时段，才卖出UP
-                            if not self.is_evening_trade_time():
-                                # 卖出UP
-                                self.only_sell_up()
 
                             # 设置 YES1价格为str(self.default_target_price)
                             self.yes1_price_entry.configure(foreground='red')
