@@ -3920,8 +3920,9 @@ class CryptoTrader:
             self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
             # 计时
             start_time = time.perf_counter()
-
-            # 点击position_sell按钮
+            # 为了等 UP 出现,所以要等待大概 0.5 秒
+            time.sleep(0.5)
+            # 点击position_sell_down按钮
             self.click_position_sell_down_button()
 
             # 点击卖出确认按钮
@@ -5591,37 +5592,37 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
 
-            positions_sell_up_button = WebDriverWait(self.driver, 0.2).until(
+            positions_sell_down_button = WebDriverWait(self.driver, 0.2).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_DOWN_BUTTON[0]))
             )
-            if positions_sell_up_button:
+            if positions_sell_down_button:
                 try:
-                    positions_sell_up_button.click()
+                    positions_sell_down_button.click()  
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34m点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ position_sell_down按钮被遮挡，使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", positions_sell_up_button)
+                    self.driver.execute_script("arguments[0].click();", positions_sell_down_button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
 
         except Exception as e:
             try:
-                positions_sell_up_button = self._find_element_with_retry(
+                positions_sell_down_button = self._find_element_with_retry(
                     XPathConfig.POSITION_SELL_DOWN_BUTTON,
                     timeout=1,
                     silent=True
                 )
-                if positions_sell_up_button:
+                if positions_sell_down_button:
                     try:
-                        positions_sell_up_button.click()
+                        positions_sell_down_button.click()
                         elapsed = time.perf_counter() - start_time
                         self.logger.info(f"✅ \033[34m第二次点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                     except ElementClickInterceptedException:
                         # 如果元素被遮挡，使用JavaScript点击
-                        self.logger.info("⚠️ 第二次position_sell_down按钮被遮挡，使用JavaScript点击")
-                        self.driver.execute_script("arguments[0].click();", positions_sell_up_button)
+                        self.logger.info("⚠️ 第二次position_sell_down按钮被遮挡,使用JavaScript点击")
+                        self.driver.execute_script("arguments[0].click();", positions_sell_down_button)
                         elapsed = time.perf_counter() - start_time
                         self.logger.info(f"✅ \033[34m第二次JavaScript点击position_sell_down按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
                 else:
