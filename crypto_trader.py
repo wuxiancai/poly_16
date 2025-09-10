@@ -3823,8 +3823,8 @@ class CryptoTrader:
             # 为了等 UP 出现,所以要等待大概 0.5 秒
             time.sleep(0.5)
 
-            # 点击position_sell_down按钮
-            self.click_position_sell_down_button()
+            # 点击position_sell按钮,因为只有一个持仓.先卖后买
+            self.click_position_sell_button()
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
