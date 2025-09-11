@@ -3116,7 +3116,7 @@ class CryptoTrader:
         self.buy_count += 1
         self.trade_count -= 1
         self.trade_count_label.config(text=str(self.trade_count))
-        self.logger.info(f"\033[34m]剩余交易次数: \033[31m{self.trade_count}\033[0m;买入次数{self.buy_count}\033[0m")
+        self.logger.info(f"\033[34m剩余交易次数: \033[31m{self.trade_count}\033[0m;买入次数{self.buy_count-1}\033[0m")
 
         # 同步到web界面
         self.set_web_value('trade_count_label', str(self.trade_count))
@@ -3767,7 +3767,7 @@ class CryptoTrader:
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(3):
+        for retry in range(6):
             self.logger.info("✅ \033[35m 执行only_sell_up\033[0m")
             # 计时
             start_time = time.perf_counter()
@@ -3815,13 +3815,10 @@ class CryptoTrader:
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(3): 
+        for retry in range(6): 
             self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
             # 计时
             start_time = time.perf_counter()
-
-            # 为了等 UP 出现,所以要等待大概 0.5 秒
-            time.sleep(0.5)
 
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
             self.click_position_sell_button()
