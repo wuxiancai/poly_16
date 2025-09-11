@@ -17,26 +17,28 @@ class XPathConfig:
 
     # 3.Buy Yes 按钮长期有效
     BUY_UP_BUTTON = [
-        '//button[.//span[contains(text(), "Up")] and .//span[contains(text(), "¢")]]',
-        '//button[.//span[contains(text(), "Yes")] and .//span[contains(text(), "¢")]]'
+        '//button[.//span[contains(text(), "Up")] and .//span[contains(text(), "¢")]]'
+        
     ]
 
     # 4.Buy No 按钮长期有效
     BUY_DOWN_BUTTON = [
-        '//button[.//span[contains(text(), "Down")] and .//span[contains(text(), "¢")]]',
-        '//button[.//span[contains(text(), "No")] and .//span[contains(text(), "¢")]]'
+        '//button[.//span[contains(text(), "Down")] and .//span[contains(text(), "¢")]]'
+        
     ]
 
     # 7.Buy-确认买入按钮
     BUY_CONFIRM_BUTTON = [
         '//button[@class="c-bDcLpV c-bDcLpV-fLyPyt-color-blue c-bDcLpV-ileGDsu-css"]',
-        '(//*[normalize-space(.)="Max"]/ancestor::div/following-sibling::div//button)[3]'
+        '(//*[normalize-space(.)="Max"]/ancestor::div/following-sibling::div//button)[1]'
+        
         ]
 
     # 8.Sell-卖出按钮
     SELL_CONFIRM_BUTTON = [
         '//button[@class="c-bDcLpV c-bDcLpV-fLyPyt-color-blue c-bDcLpV-ileGDsu-css"]',
-        '(//*[normalize-space(.)="Max"]/ancestor::div/following-sibling::div//button)[3]'
+        '(//*[normalize-space(.)="Max"]/ancestor::div/following-sibling::div//button)[1]'
+        
         ]
 
     # 9.Amount输入框长期有效
@@ -47,12 +49,14 @@ class XPathConfig:
 
     # 10.Position-Up标签长期有效
     POSITION_UP_LABEL = [
-        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Up"])[1]'
+        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Up"])[1]',
+        '(//div//h3[contains(text(),"Positions")]/ancestor::div//div/div[contains(text(),"Up")])[1]'
         ]
 
     # 11.Position-Down标签长期有效
     POSITION_DOWN_LABEL = [
-        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Down"])[1]'
+        '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Down"])[1]',
+        '(//div//h3[contains(text(),"Positions")]/ancestor::div//div/div[contains(text(),"Down")])[1]'
         ]
 
     # 14.Position-Sell按钮长期有效
@@ -99,12 +103,6 @@ class XPathConfig:
         '//button[contains(text(), "Accept")]',
         '//button[contains(text(), "I Accept")]'
     ]    
-
-    # 22.定位 SPREAD 的 XPATH
-    SPREAD = [
-        '(//span[@class="c-ggujGL"])[2]',
-        '//span[contains(text(), "Spread") or contains(text(), "spread")]'
-    ]
 
     # 23.搜索框长期有效
     SEARCH_INPUT = [
