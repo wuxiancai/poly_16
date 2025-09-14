@@ -3776,7 +3776,7 @@ class CryptoTrader:
 
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
-        # 重试 3 次
+        # 重试 4 次
         for retry in range(4):
             self.logger.info("✅ \033[35m 执行only_sell_up\033[0m")
             # 计时
@@ -3820,12 +3820,12 @@ class CryptoTrader:
                 time.sleep(2)
             
             # 3此失败后返回false
-            if retry == 2:
+            if retry == 3:
                 return False
 
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
-        # 重试 3 次
+        # 重试 4 次
         for retry in range(4): 
             self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
             # 计时
@@ -3871,7 +3871,7 @@ class CryptoTrader:
                 time.sleep(2)
             
             # 3此失败后返回false
-            if retry == 2:
+            if retry == 3:
                 return False
 
     def verify_trade(self, action_type, direction):
