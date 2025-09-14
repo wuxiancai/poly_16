@@ -3178,15 +3178,17 @@ class CryptoTrader:
                 # 检查Up1价格匹配
                 if 0 <= round((up_price - yes1_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
-                    for retry in range(5):
-                        self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-                        
-                        # 计时开始
-                        start_time = time.perf_counter()
+                    
+                    self.logger.info(f"✅ \033[35mUp 1: {up_price}¢ 价格匹配,执行第{retry+1}次尝试,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
+                    
+                    # 计时开始
+                    start_time = time.perf_counter()
 
-                        # 第一次交易不用卖出 DOWN（因为没有仓位）
-                        if self.buy_count != 1:
-                            self.only_sell_down()
+                    # 第一次交易不用卖出 DOWN（因为没有仓位）
+                    if self.buy_count != 1:
+                        self.only_sell_down()
+
+                    for retry in range(5):
 
                         # 买入 UP1
                         self.buy_operation(self.up1_amount)
@@ -3241,15 +3243,17 @@ class CryptoTrader:
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
+                    
+                    # 计时开始
+                    start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        
-                        # 第一次交易不用卖出 UP（因为没有仓位）
-                        if self.buy_count != 1:
-                            self.only_sell_up()
+                    self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                    
+                    # 第一次交易不用卖出 UP（因为没有仓位）
+                    if self.buy_count != 1:
+                        self.only_sell_up()
+
+                    for retry in range(5):
 
                         # 点击buy_down按钮  
                         self.click_buy_down_button()
@@ -3323,13 +3327,13 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes2_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True
 
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-                        self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                    # 计时开始
+                    start_time = time.perf_counter()
+                    self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
      
-                        self.only_sell_down()
+                    self.only_sell_down()
 
+                    for retry in range(5):
                         # 执行买入 UP2 操作
                         self.buy_operation(self.up2_amount)
                         
@@ -3386,13 +3390,14 @@ class CryptoTrader:
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
 
+                    # 计时开始
+                    start_time = time.perf_counter()
+
+                    self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+
+                    self.only_sell_up()
+
                     for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-
-                        self.only_sell_up()
 
                         # 执行交易操作
                         self.click_buy_down_button()
@@ -3470,13 +3475,14 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes3_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True  # 开始交易
             
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
+                    # 计时开始
+                    start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        
-                        self.only_sell_down()
+                    self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                    
+                    self.only_sell_down()
+
+                    for retry in range(5):
 
                         # 执行买入 UP3 操作
                         self.buy_operation(self.up3_amount)
@@ -3538,14 +3544,14 @@ class CryptoTrader:
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
 
+                    # 计时开始
+                    start_time = time.perf_counter()
+
+                    self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+                    
+                    self.only_sell_up()
+                    
                     for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-                        
-                        self.only_sell_up()
-
                         # 执行交易操作
                         self.click_buy_down_button()
 
@@ -3624,13 +3630,15 @@ class CryptoTrader:
                 if 0 <= round((up_price - yes4_price), 2) <= self.price_premium and up_price > 20:
                     self.trading = True  # 开始交易
 
-                    for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
+                    # 计时开始
+                    start_time = time.perf_counter()
 
-                        self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
-                        
-                        self.only_sell_down()
+                    self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试")
+                    
+                    self.only_sell_down()
+
+
+                    for retry in range(5):
 
                         # 执行买入 UP4 操作
                         self.buy_operation(self.up4_amount)
@@ -3690,13 +3698,15 @@ class CryptoTrader:
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
+                    
+                    # 计时开始
+                    start_time = time.perf_counter()
+
+                    self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
+
+                    self.only_sell_up()
+
                     for retry in range(5):
-                        # 计时开始
-                        start_time = time.perf_counter()
-
-                        self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,执行第\033[31m{self.buy_count}\033[0m次买入,第{retry+1}次尝试\033[0m")
-
-                        self.only_sell_up()
 
                         # 执行交易操作
                         self.click_buy_down_button()
