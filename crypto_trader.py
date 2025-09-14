@@ -3800,7 +3800,7 @@ class CryptoTrader:
             if self.verify_trade('Sold', 'Up')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
                 #self.click_buy_button()
-                
+                self.driver.refresh()
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 UP",
@@ -3851,7 +3851,7 @@ class CryptoTrader:
                 #self.click_buy_up_button()
                 #time.sleep(0.3)
                 #self.click_buy_button()
-
+                self.driver.refresh()
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 DOWN",
@@ -3951,11 +3951,13 @@ class CryptoTrader:
             # 计时开始
             start_time = time.perf_counter()
             start_time_count = time.perf_counter()
-            self.driver.refresh()
-            time.sleep(0.5)
+            #self.driver.refresh()
+            #time.sleep(0.5)
             # 查找并设置金额输入框
             try:
-                amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
+                amount_input = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
+                )
                 # 清空并设置新值
                 amount_input.clear()
                 amount_input.send_keys(str(amount))
@@ -3968,15 +3970,17 @@ class CryptoTrader:
 
             # 计时开始
             start_time = time.perf_counter()
-            time.sleep(0.2)
+            #time.sleep(0.2)
             # 点击买入确认按钮
             try:
-                buy_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])
+                buy_confirm_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
+                )
                 try:
                     buy_confirm_button.click()
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ 买入确认按钮被遮挡，使用JavaScript点击")
+                    self.logger.info("⚠️ 买入确认按钮被遮挡,使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", buy_confirm_button)
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法点击buy_confirm_button按钮: {str(e)}")
@@ -3998,7 +4002,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"回退买入操作失败: {str(e)}")
             raise
-    
 
     def sell_up_down_operation(self):
         """卖出操作的回退方法,仅仅night_auto_sell_check调用"""
@@ -4009,12 +4012,14 @@ class CryptoTrader:
 
             # 点击position_sell按钮
             try:
-                positions_sell_button = self.driver.find_element(By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0])
+                positions_sell_button = WebDriverWait(self.driver, 0.2).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
+                )
                 try:
                     positions_sell_button.click()
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ positions_sell按钮被遮挡，使用JavaScript点击")
+                    self.logger.info("⚠️ positions_sell按钮被遮挡,使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", positions_sell_button)
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法点击positions_sell_button按钮: {str(e)}")
@@ -4028,12 +4033,14 @@ class CryptoTrader:
             time.sleep(0.2)
             # 点击卖出确认按钮
             try:
-                sell_confirm_button = self.driver.find_element(By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0])
+                sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
+                    EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
+                )
                 try:
                     sell_confirm_button.click()
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ sell_confirm按钮被遮挡，使用JavaScript点击")
+                    self.logger.info("⚠️ sell_confirm按钮被遮挡,使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", sell_confirm_button)
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法点击sell_confirm_button按钮: {str(e)}")
