@@ -3959,8 +3959,11 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
                 )
                 # 清空并设置新值
-                amount_input.clear()
-                amount_input.send_keys(str(amount))
+                if amount_input:
+                    amount_input.clear()
+                    amount_input.send_keys(str(amount))
+                else:
+                    self.logger.info("❌ amount_input元素不存在")
             except (NoSuchElementException, StaleElementReferenceException) as e:
                 self.logger.info(f"❌ 找不到或无法操作 amount_input按钮: {str(e)}")
 
@@ -3977,7 +3980,10 @@ class CryptoTrader:
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
                 )
                 try:
-                    buy_confirm_button.click()
+                    if buy_confirm_button:
+                        buy_confirm_button.click()
+                    else:
+                        self.logger.info("❌ 买入确认按钮不存在")
                 except ElementClickInterceptedException:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ 买入确认按钮被遮挡,使用JavaScript点击")
@@ -5369,6 +5375,8 @@ class CryptoTrader:
                     self.driver.execute_script("arguments[0].click();", positions_sell_button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+            else:
+                self.logger.info("❌ position_sell按钮不存在")
         
         except Exception as e:
             try:
@@ -5408,7 +5416,9 @@ class CryptoTrader:
                     self.driver.execute_script("arguments[0].click();", sell_confirm_button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击sell_confirm按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-                
+            else:
+                self.logger.info("❌ sell_confirm按钮不存在")
+        
         except Exception as e:
             try:
                 sell_confirm_button = self._find_element_with_retry(
@@ -5481,7 +5491,9 @@ class CryptoTrader:
                     self.driver.execute_script("arguments[0].click();", button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击Buy按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
-
+            else:
+                self.logger.info("❌ Buy按钮不存在")
+        
         except (NoSuchElementException, StaleElementReferenceException):
             
             try:
@@ -5516,16 +5528,19 @@ class CryptoTrader:
             button = WebDriverWait(self.driver, 0.2).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_UP_BUTTON[0]))
             )
-            try:
-                button.click()
-                elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
-            except ElementClickInterceptedException:
-                # 如果元素被遮挡，使用JavaScript点击
-                self.logger.info("⚠️ Buy-UP按钮被遮挡,使用JavaScript点击")
-                self.driver.execute_script("arguments[0].click();", button)
-                elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34mJavaScript点击Buy-UP按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
+            if button:
+                try:
+                    button.click()
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34m点击Buy-UP按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
+                except ElementClickInterceptedException:
+                    # 如果元素被遮挡，使用JavaScript点击
+                    self.logger.info("⚠️ Buy-UP按钮被遮挡,使用JavaScript点击")
+                    self.driver.execute_script("arguments[0].click();", button)
+                    elapsed = time.perf_counter() - start_time
+                    self.logger.info(f"✅ \033[34mJavaScript点击Buy-UP按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
+            else:
+                self.logger.info("❌ Buy-UP按钮不存在")
             
         except (NoSuchElementException, StaleElementReferenceException):
             try:
@@ -5571,9 +5586,10 @@ class CryptoTrader:
                     self.driver.execute_script("arguments[0].click();", button)
                     elapsed = time.perf_counter() - start_time
                     self.logger.info(f"✅ \033[34mJavaScript点击Buy-DOWN按钮耗时\033[31m {elapsed:.3f} \033[0m秒\033[0m")
-            
+            else:
+                self.logger.info("❌ Buy-DOWN按钮不存在")
         except (NoSuchElementException, StaleElementReferenceException):
-            
+            self.logger.info("❌ 第一次也找不到Buy-DOWN按钮")
             try:
                 button = self._find_element_with_retry(
                     XPathConfig.BUY_DOWN_BUTTON,
