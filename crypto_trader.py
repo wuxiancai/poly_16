@@ -3941,7 +3941,8 @@ class CryptoTrader:
             # 计时开始
             start_time = time.perf_counter()
             start_time_count = time.perf_counter()
-            
+            self.driver.refresh()
+            time.sleep(0.5)
             # 查找并设置金额输入框
             try:
                 amount_input = self.driver.find_element(By.XPATH, XPathConfig.AMOUNT_INPUT[0])
