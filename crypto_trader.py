@@ -3767,13 +3767,14 @@ class CryptoTrader:
     def only_sell_up(self):
         """只卖出YES,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(6):
+        for retry in range(4):
             self.logger.info("✅ \033[35m 执行only_sell_up\033[0m")
             # 计时
             start_time = time.perf_counter()
 
             # 点击position_sell按钮
-            self.click_position_sell_button()    
+            if self.find_position_label_up():
+                self.click_position_sell_button()    
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3788,7 +3789,7 @@ class CryptoTrader:
             
             if self.verify_trade('Sold', 'Up')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
-                self.click_buy_button()
+                #self.click_buy_button()
                 
                 # 发送交易邮件
                 self.send_trade_email(
@@ -3815,13 +3816,14 @@ class CryptoTrader:
     def only_sell_down(self):
         """只卖出Down,且验证交易是否成功"""
         # 重试 3 次
-        for retry in range(6): 
+        for retry in range(4): 
             self.logger.info("\033[35m✅ 执行only_sell_down\033[0m")
             # 计时
             start_time = time.perf_counter()
 
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
-            self.click_position_sell_button()
+            if self.find_position_label_down():
+                self.click_position_sell_button()
 
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
@@ -3836,9 +3838,9 @@ class CryptoTrader:
 
             if self.verify_trade('Sold', 'Down')[0]:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
-                self.click_buy_up_button()
-                time.sleep(0.3)
-                self.click_buy_button()
+                #self.click_buy_up_button()
+                #time.sleep(0.3)
+                #self.click_buy_button()
 
                 # 发送交易邮件
                 self.send_trade_email(
