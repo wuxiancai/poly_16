@@ -4182,7 +4182,7 @@ class CryptoTrader:
         now = datetime.now()
 
         # 计算下一个指定时间的时间点,必须是 00:05 分只有,太早可能找不到当天的日期
-        next_run = now.replace(hour=0, minute=2, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=3, second=0, microsecond=0)
 
         if now >= next_run:
             next_run += timedelta(days=1)
