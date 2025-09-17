@@ -1117,7 +1117,7 @@ class CryptoTrader:
                 return 22
                 
         except Exception as e:
-            self.logger.warning(f"计算默认trade_count时出错: {e},使用默认值22")
+            self.logger.warning(f"❌ \033[31m计算默认trade_count时出错: {e},使用默认值22\033[0m")
             return 22
       
     def load_config(self):
