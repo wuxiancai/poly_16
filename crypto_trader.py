@@ -3801,6 +3801,7 @@ class CryptoTrader:
                 self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
                 #self.click_buy_button()
                 self.driver.refresh()
+                self.logger.info("\033[34m刷新页面成功\033[0m")
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 UP",
@@ -3852,6 +3853,7 @@ class CryptoTrader:
                 #time.sleep(0.3)
                 #self.click_buy_button()
                 self.driver.refresh()
+                self.logger.info("\033[34m刷新页面成功\033[0m")
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 DOWN",
@@ -4202,12 +4204,12 @@ class CryptoTrader:
         
         # 检查Down持仓
         if self.find_position_label_down():
-            self.logger.info("🔍 检测到Down持仓，开始卖出操作")
+            self.logger.info("🔍 检测到Down持仓,开始卖出操作")
             sell_success = self._sell_position_with_retry('down', 5)
         
         # 检查Up持仓
         if self.find_position_label_up():
-            self.logger.info("🔍 检测到Up持仓，开始卖出操作")
+            self.logger.info("🔍 检测到Up持仓,开始卖出操作")
             up_sell_success = self._sell_position_with_retry('up', 5)
             sell_success = sell_success and up_sell_success
         
@@ -5921,12 +5923,12 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
     
-    def _sell_position_with_retry(self, position_type, max_retries=5):
+    def _sell_position_with_retry(self, position_type, max_retries=3):
         """带重试机制的持仓卖出函数
         
         Args:
             position_type (str): 持仓类型，'up' 或 'down'
-            max_retries (int): 最大重试次数，默认5次
+            max_retries (int): 最大重试次数,默认3次
             
         Returns:
             bool: 卖出是否成功
