@@ -1088,7 +1088,13 @@ class CryptoTrader:
     def calculate_default_trade_count(self):
         """根据initial_amount_entry的值计算trade_count的默认值"""
         try:
-            initial_amount = self.initial_amount_entry.get().strip()
+            # 检查initial_amount_entry是否存在
+            if not hasattr(self, 'initial_amount_entry'):
+                # 如果GUI还未初始化，使用self.initial_amount属性
+                initial_amount = str(self.initial_amount)
+            else:
+                initial_amount = self.initial_amount_entry.get().strip()
+                
             if initial_amount == "0.65":
                 return 21
             elif initial_amount == "0.8":
@@ -1107,9 +1113,11 @@ class CryptoTrader:
                 return 14
             elif initial_amount <= "0.64":
                 return 22
-            
+            else:
+                return 22
+                
         except Exception as e:
-            self.logger.warning(f"计算默认trade_count时出错: {e}，使用默认值22")
+            self.logger.warning(f"计算默认trade_count时出错: {e},使用默认值22")
             return 22
       
     def load_config(self):
@@ -4183,7 +4191,7 @@ class CryptoTrader:
         """安排每天指定时间执行自动找币"""
         now = datetime.now()
 
-        # 计算下一个指定时间的时间点,必须是 00:05 分只有,太早可能找不到当天的日期
+        # 计算下一个指定时间的时间点,必须是 00:03 分
         next_run = now.replace(hour=0, minute=3, second=0, microsecond=0)
 
         if now >= next_run:
@@ -4294,6 +4302,13 @@ class CryptoTrader:
                 self.logger.error(f"第{attempt+1}次自动找币失败.错误信息:{e}")
         else:
             self.logger.error("❌ 重试3次自动找币都失败")
+            
+        # 自动找币完成后，重新安排明天的自动找币任务
+        try:
+            self.schedule_auto_find_coin()
+            self.logger.info("✅ \033[34m已重新安排明天的自动找币任务\033[0m")
+        except Exception as e:
+            self.logger.error(f"❌ 重新安排自动找币任务失败: {e}")
             
     def click_today_card(self):
         """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
