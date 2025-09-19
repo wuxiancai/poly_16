@@ -2025,7 +2025,13 @@ class CryptoTrader:
         if self.memory_monitor_enabled:
             self.root.after(65000, self.start_memory_monitoring)
             self.logger.info("✅ \033[34m内存监控系统已启动\033[0m")
-            
+
+        # 17.打印交易次数初始值
+        self.root.after(70000, self.type_count)
+    
+    def type_count(self):
+        self.logger.info(f"\033[34m✅ trade_count: {self.trade_count},buy_count:{self.buy_count},sell_count:{self.sell_count}\033[0m")
+    
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
         try:
