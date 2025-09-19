@@ -5952,7 +5952,7 @@ class CryptoTrader:
                     try:
                         position_label_up = self.driver.find_element(By.XPATH, XPathConfig.POSITION_UP_LABEL[0])
                     except (NoSuchElementException, StaleElementReferenceException):
-                        position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
+                        position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=1, silent=True)
                         
                     if position_label_up is not None and position_label_up:
                         self.logger.info("✅ find-element,找到了Up持仓标签: {position_label_up.text}")
@@ -5961,7 +5961,7 @@ class CryptoTrader:
                         self.logger.info("❌ find_element,未找到Up持仓标签")
                         return False
                 except (NoSuchElementException, StaleElementReferenceException):
-                    position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=3, silent=True)
+                    position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=1, silent=True)
                     if position_label_up is not None and position_label_up:
                         self.logger.info(f"✅ with-retry,找到了Up持仓标签: {position_label_up.text}")
                         return True
@@ -5991,7 +5991,7 @@ class CryptoTrader:
                     try:
                         position_label_down = self.driver.find_element(By.XPATH, XPathConfig.POSITION_DOWN_LABEL[0])
                     except (NoSuchElementException, StaleElementReferenceException):
-                        position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
+                        position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=1, silent=True)
                         
                     if position_label_down is not None and position_label_down:
                         self.logger.info(f"✅ find-element,找到了Down持仓标签: {position_label_down.text}")
@@ -6000,7 +6000,7 @@ class CryptoTrader:
                         self.logger.info("❌ find-element,未找到Down持仓标签")
                         return False
                 except (NoSuchElementException, StaleElementReferenceException):
-                    position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=3, silent=True)
+                    position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=1, silent=True)
                     if position_label_down is not None and position_label_down:
                         self.logger.info(f"✅ with-retry,找到了Down持仓标签: {position_label_down.text}")
                         return True
@@ -9054,7 +9054,7 @@ class CryptoTrader:
                 latest_log_file = Logger.get_latest_log_file()
                 if latest_log_file and os.path.exists(latest_log_file):
                     with open(latest_log_file, 'r', encoding='utf-8') as f:
-                        lines = f.readlines()[-100:]  # 最近100行
+                        lines = f.readlines()
                         for line in lines:
                             line = line.strip()
                             if line:
