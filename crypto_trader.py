@@ -3287,7 +3287,7 @@ class CryptoTrader:
                             self.no2_price_entry.insert(0, str(self.default_target_price))
                             self.no2_price_entry.configure(foreground='red')
 
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 买UP1成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买UP1成功")
                             
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3355,7 +3355,7 @@ class CryptoTrader:
                             self.yes2_price_entry.insert(0, str(self.default_target_price))
                             self.yes2_price_entry.configure(foreground='red')
                             
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN1成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买DOWN1成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3432,7 +3432,7 @@ class CryptoTrader:
                             self.no3_price_entry.insert(0, str(self.default_target_price))
                             self.no3_price_entry.configure(foreground='red')
                             
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP2成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买UP2成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3502,7 +3502,7 @@ class CryptoTrader:
                             
                             self.logger.info(f"✅ \033[34mYes3价格已重置为{self.default_target_price}\033[0m")
 
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN2成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买DOWN2成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3584,7 +3584,7 @@ class CryptoTrader:
                             self.no4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mNo4价格已重置为{self.default_target_price}\033[0m")
 
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP3成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买UP3成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3654,7 +3654,7 @@ class CryptoTrader:
                             self.yes4_price_entry.configure(foreground='red')
                             #self.logger.info(f"✅ \033[34mYes4价格已重置为{self.default_target_price}\033[0m")
 
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN3成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买DOWN3成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3740,7 +3740,7 @@ class CryptoTrader:
                             # 重新设置 UP1/DOWN1 的金额,功能等同于函数:set_yes_no_amount()
                             self.reset_yes_no_amount()
                             
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY UP4成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买UP4成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3811,7 +3811,7 @@ class CryptoTrader:
                             # 设置 UP1-4/DOWN1-4 的金额
                             self.reset_yes_no_amount()
                             
-                            self.logger.info(f"\033[34m✅ 第{self.buy_count}次 BUY DOWN4成功\033[0m")
+                            self.logger.info(f"✅ 第\033[31m{self.buy_count}次 \033[0m买DOWN4成功")
 
                             # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
                             self.async_gui_price_amount_to_web()
@@ -3882,7 +3882,7 @@ class CryptoTrader:
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
             
             if self.verify_trade('Sold', 'Up')[0]:
-                self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Up 成功\033[0m")
+                self.logger.info(f"✅ 第\033[31m{self.sell_count}次 \033[0m卖出 Up 成功")
                 #self.click_buy_button()
                 self.driver.refresh()
                 self.logger.info("\033[34m刷新页面成功\033[0m")
@@ -3932,7 +3932,7 @@ class CryptoTrader:
             self.logger.info(f"\033[34m点击所有卖出操作按钮耗时\033[0m \033[31m{elapsed:.3f} 秒\033[0m")
 
             if self.verify_trade('Sold', 'Down')[0]:
-                self.logger.info(f"\033[34m✅ 第{self.sell_count}次卖出 Down 成功\033[0m")
+                self.logger.info(f"✅ 第\033[31m{self.sell_count}次 \033[0m卖出 Down 成功")
                 #self.click_buy_up_button()
                 #time.sleep(0.3)
                 #self.click_buy_button()
