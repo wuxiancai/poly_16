@@ -55,6 +55,40 @@ warnings.filterwarnings('ignore', message='Connection pool is full, discarding c
 # 通过降低日志级别来抑制urllib3.connectionpool的警告输出
 logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
+# 抑制requests库的HTTP错误日志
+logging.getLogger('requests').setLevel(logging.ERROR)
+logging.getLogger('requests.packages.urllib3').setLevel(logging.ERROR)
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.ERROR)
+
+# 抑制HTTP连接相关的所有日志
+logging.getLogger('urllib3').setLevel(logging.ERROR)
+logging.getLogger('urllib3.util').setLevel(logging.ERROR)
+logging.getLogger('urllib3.util.retry').setLevel(logging.ERROR)
+
+# 全局抑制所有HTTP相关错误日志的函数
+def suppress_all_http_logs():
+    """全局抑制所有HTTP相关的日志输出"""
+    http_loggers = [
+        'requests', 'requests.packages', 'requests.packages.urllib3',
+        'requests.packages.urllib3.connectionpool', 'urllib3', 'urllib3.connectionpool',
+        'urllib3.util', 'urllib3.util.retry', 'urllib3.poolmanager',
+        'urllib3.response', 'urllib3.connection', 'http.client', 'httpcore', 'httpx'
+    ]
+    
+    for logger_name in http_loggers:
+        try:
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.CRITICAL)
+            logger.propagate = False
+            # 移除所有现有的处理器
+            for handler in logger.handlers[:]:
+                logger.removeHandler(handler)
+        except:
+            pass
+
+# 立即执行全局HTTP日志抑制
+suppress_all_http_logs()
+
 # 设置urllib3的默认连接池大小
 from urllib3.util.connection import create_connection
 from urllib3.poolmanager import PoolManager
@@ -776,6 +810,9 @@ class Logger:
     def __init__(self, name):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
+        
+        # 全面抑制HTTP相关的日志输出
+        self._suppress_http_logs()
 
         # 如果logger已经有处理器,则不再添加新的处理器
         if not self.logger.handlers:
@@ -802,6 +839,34 @@ class Logger:
             # 添加处理器到logger
             self.logger.addHandler(file_handler)
             self.logger.addHandler(console_handler)
+    
+    def _suppress_http_logs(self):
+        """全面抑制HTTP相关的日志输出"""
+        # 抑制所有HTTP相关的日志记录器
+        http_loggers = [
+            'requests',
+            'requests.packages',
+            'requests.packages.urllib3',
+            'requests.packages.urllib3.connectionpool',
+            'urllib3',
+            'urllib3.connectionpool',
+            'urllib3.util',
+            'urllib3.util.retry',
+            'urllib3.poolmanager',
+            'urllib3.response',
+            'urllib3.connection',
+            'http.client',
+            'httpcore',
+            'httpx'
+        ]
+        
+        for logger_name in http_loggers:
+            try:
+                logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+                # 同时禁用传播，确保不会传播到父级日志记录器
+                logging.getLogger(logger_name).propagate = False
+            except:
+                pass
     
     @staticmethod
     def get_latest_log_file():
@@ -2212,10 +2277,21 @@ class CryptoTrader:
                         time.sleep(wait_interval)
                         try:
                             # 检查调试端口是否可用，使用上下文管理器确保连接正确关闭
-                            with self.http_session.get('http://127.0.0.1:9222/json', timeout=2, stream=False) as response:
-                                if response.status_code == 200:
-                                    self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
-                                    break
+                            # 临时抑制requests的日志输出
+                            old_level = logging.getLogger('requests').level
+                            old_urllib3_level = logging.getLogger('urllib3').level
+                            logging.getLogger('requests').setLevel(logging.CRITICAL)
+                            logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+                            
+                            try:
+                                with self.http_session.get('http://127.0.0.1:9222/json', timeout=2, stream=False) as response:
+                                    if response.status_code == 200:
+                                        self.logger.info(f"✅ Chrome浏览器已重新启动,调试端口可用 (等待{wait_time+1}秒)")
+                                        break
+                            finally:
+                                # 恢复日志级别
+                                logging.getLogger('requests').setLevel(old_level)
+                                logging.getLogger('urllib3').setLevel(old_urllib3_level)
                         except:
                             continue
                     else:
@@ -4778,8 +4854,9 @@ class CryptoTrader:
             if 1 <= current_hour <= 8:
                 #self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
                 
-                # 检查交易次数是否小于等于14
-                if self.trade_count <= 14:
+                # 检查交易次数是否小于等于14,initial是否小于 1.2
+                initial = float(self.initial_amount_entry.get().strip())
+                if self.trade_count <= 14 and initial < 1.2:
                     # 执行卖出仓位操作
                     self.sell_up_down_operation()
                     self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
