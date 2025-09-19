@@ -3311,10 +3311,10 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
+                            
+                            time.sleep(1)
                     else:
-                        # 3次失败后发邮件
+                        # 5次失败后发邮件
                         self.send_trade_email(
                             trade_type="Buy Up1失败",
                             price=up_price,
@@ -3380,8 +3380,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
+                            
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -3458,8 +3458,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
+                            
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -3528,8 +3528,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)
+                            
+                            time.sleep(1)
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -3610,10 +3610,10 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            
+                            time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
-                        # 3次失败后发邮件
+                        # 5次失败后发邮件
                         self.send_trade_email(
                             trade_type="Buy UP3失败",
                             price=up_price,
@@ -3680,10 +3680,10 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            
+                            time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
-                        # 3次失败后发邮件
+                        # 5次失败后发邮件
                         self.send_trade_email(
                             trade_type="Buy Down3失败",
                             price=down_price,
@@ -3766,10 +3766,10 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            
+                            time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
-                        # 3次失败后发邮件
+                        # 5次失败后发邮件
                         self.send_trade_email(
                             trade_type="Buy Up4失败",
                             price=up_price,
@@ -3837,10 +3837,10 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            
+                            time.sleep(1)  # 添加延时避免过于频繁的重试
                     else:
-                        # 3次失败后发邮件
+                        # 5次失败后发邮件
                         self.send_trade_email(
                             trade_type="Buy Down4失败",
                             price=down_price,
@@ -3901,8 +3901,6 @@ class CryptoTrader:
                 return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_up第{retry+1}次验证失败,重试\033[0m")
-                self.driver.refresh()
-                time.sleep(2)
             
             # 3此失败后返回false
             if retry == 3:
@@ -3953,8 +3951,6 @@ class CryptoTrader:
                 return True
             else:
                 self.logger.warning(f"❌ \033[31m卖出only_sell_down第{retry+1}次验证失败,重试\033[0m")
-                self.driver.refresh()
-                time.sleep(2)
             
             # 3此失败后返回false
             if retry == 3:
@@ -3972,7 +3968,7 @@ class CryptoTrader:
                 # 计时
                 start_time = time.time()
 
-                max_wait_time = 2  # 每次智能等待2秒
+                max_wait_time = 3  # 每次智能等待3秒
                 check_interval = 0.1  # 检查间隔0.1秒
 
                 # 智能等待循环
