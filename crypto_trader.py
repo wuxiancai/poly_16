@@ -4290,12 +4290,12 @@ class CryptoTrader:
         
         # 检查Down持仓
         if self.find_position_label_down():
-            self.logger.info("🔍 检测到Down持仓,开始卖出操作")
+            
             sell_success = self._sell_position_with_retry('down', 5)
         
         # 检查Up持仓
         if self.find_position_label_up():
-            self.logger.info("🔍 检测到Up持仓,开始卖出操作")
+            
             up_sell_success = self._sell_position_with_retry('up', 5)
             sell_success = sell_success and up_sell_success
         
@@ -4555,6 +4555,7 @@ class CryptoTrader:
             
             # 设置self.trade_count为默认值
             self.trade_count_label.config(text=str(default_trade_count))
+            self.logger.info(f"✅ 重置交易次数为: \033[31m{default_trade_count}\033[0m成功")
             
             # 同步到web界面
             self.set_web_value('trade_count_label', str(default_trade_count))
@@ -5401,20 +5402,23 @@ class CryptoTrader:
 
     def set_up_down_price_0(self):
         """设置YES1-4/NO1-4价格为0"""
-        for i in range(1,5):  # 1-4
-            yes_entry = getattr(self, f'yes{i}_price_entry', None)
-            no_entry = getattr(self, f'no{i}_price_entry', None)
+        try:
+            for i in range(1,5):  # 1-4
+                yes_entry = getattr(self, f'yes{i}_price_entry', None)
+                no_entry = getattr(self, f'no{i}_price_entry', None)
 
-            if yes_entry:
-                yes_entry.delete(0, tk.END)
-                yes_entry.insert(0, "0")
-                yes_entry.configure(foreground='black')
-                
-            if no_entry:
-                no_entry.delete(0, tk.END)
-                no_entry.insert(0, "0")
-                no_entry.configure(foreground='black')
-        
+                if yes_entry:
+                    yes_entry.delete(0, tk.END)
+                    yes_entry.insert(0, "0")
+                    yes_entry.configure(foreground='black')
+                    
+                if no_entry:
+                    no_entry.delete(0, tk.END)
+                    no_entry.insert(0, "0")
+                    no_entry.configure(foreground='black')
+        except Exception as e:
+            self.logger.error(f"设置YES1-4/NO1-4价格为0失败: {e}")
+            
         self.logger.info(f"✅ \033[34m设置YES1-4/NO1-4价格为0成功\033[0m")
 
     def click_buy_confirm_button(self):
@@ -5943,7 +5947,9 @@ class CryptoTrader:
         """查找Yes持仓标签"""
         max_retries = 3
         retry_delay = 0.3
-        
+        # 开始计时
+        start_time = time.time()
+
         for attempt in range(max_retries):
             try:
                 # 尝试获取Up标签
@@ -5955,7 +5961,11 @@ class CryptoTrader:
                         position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=1, silent=True)
                         
                     if position_label_up is not None and position_label_up:
-                        self.logger.info("✅ find-element,找到了Up持仓标签: {position_label_up.text}")
+                        #self.logger.info(f"✅ find-element,找到了Up持仓标签: {position_label_up.text}")
+
+                        # 计算耗时
+                        end_time = time.time()
+                        self.logger.info(f"✅ 找到Up持仓标,签耗时: {end_time - start_time:.2f}秒")
                         return True
                     else:
                         self.logger.info("❌ find_element,未找到Up持仓标签")
@@ -5963,7 +5973,10 @@ class CryptoTrader:
                 except (NoSuchElementException, StaleElementReferenceException):
                     position_label_up = self._find_element_with_retry(XPathConfig.POSITION_UP_LABEL, timeout=1, silent=True)
                     if position_label_up is not None and position_label_up:
-                        self.logger.info(f"✅ with-retry,找到了Up持仓标签: {position_label_up.text}")
+                        
+                        # 计算耗时
+                        end_time = time.time()
+                        self.logger.info(f"✅ with-retry找到Up持仓标,签耗时: {end_time - start_time:.2f}秒")
                         return True
                     else:
                         self.logger.info("❌ use with-retry,未找到Up持仓标签")
@@ -5982,6 +5995,8 @@ class CryptoTrader:
         """查找Down持仓标签"""
         max_retries = 3
         retry_delay = 0.3
+        # 开始计时
+        start_time = time.time()
         
         for attempt in range(max_retries):
             try: 
@@ -5994,7 +6009,10 @@ class CryptoTrader:
                         position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=1, silent=True)
                         
                     if position_label_down is not None and position_label_down:
-                        self.logger.info(f"✅ find-element,找到了Down持仓标签: {position_label_down.text}")
+                        
+                        # 计算耗时
+                        end_time = time.time()
+                        self.logger.info(f"✅ 找到Down持仓标,签耗时: {end_time - start_time:.2f}秒")
                         return True
                     else:
                         self.logger.info("❌ find-element,未找到Down持仓标签")
@@ -6002,7 +6020,10 @@ class CryptoTrader:
                 except (NoSuchElementException, StaleElementReferenceException):
                     position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=1, silent=True)
                     if position_label_down is not None and position_label_down:
-                        self.logger.info(f"✅ with-retry,找到了Down持仓标签: {position_label_down.text}")
+                        
+                        # 计算耗时
+                        end_time = time.time()
+                        self.logger.info(f"✅ with-retry找到Down持仓标,签耗时: {end_time - start_time:.2f}秒")
                         return True
                     else:
                         self.logger.info("❌ with-retry,未找到Down持仓标签")
