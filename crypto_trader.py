@@ -469,7 +469,8 @@ class StatusDataManager:
                 },
                 'coin': data['trading']['selected_coin'],
                 'auto_find_time': data['trading']['auto_find_time'],
-                'remaining_trades': data['trading']['remaining_trades']
+                'remaining_trades': data['trading']['remaining_trades'],
+                'buy_count': data['trading']['buy_count']
             }
 
 
@@ -7091,11 +7092,13 @@ class CryptoTrader:
                                 const cashElement = document.querySelector('#cash');
                                 const zeroTimeCashElement = document.querySelector('#zeroTimeCash');
                                 const remainingTradesElement = document.querySelector('#remainingTrades');
+                                const buyCountElement = document.querySelector('#buyCount');
                                 
                                 if (portfolioElement) portfolioElement.textContent = data.account.portfolio;
                                 if (cashElement) cashElement.textContent = data.account.cash;
                                 if (zeroTimeCashElement) zeroTimeCashElement.textContent = data.account.zero_time_cash || '--';
                                 if (remainingTradesElement) remainingTradesElement.textContent = data.remaining_trades || '--';
+                                if (buyCountElement) buyCountElement.textContent = data.buy_count || '0';
                                 
                                 // 更新币种和交易时间显示
                                 const coinDisplayElement = document.querySelector('#coinDisplay');
@@ -7612,6 +7615,9 @@ class CryptoTrader:
                                     </div>
                                     <div class="binance-price-item" style="display: inline-block; padding: 5px 8px;">
                                         <span class="binance-label">剩余交易次数:</span> <span class="value" id="remainingTrades" style="color: {% if data.remaining_trades and data.remaining_trades|int < 7 %}red{% else %}black{% endif %};">{{ data.remaining_trades or '--' }}</span>
+                                    </div>
+                                    <div class="binance-price-item" style="display: inline-block; padding: 5px 8px;">
+                                        <span class="binance-label">交易次数:</span> <span class="value" id="buyCount" style="color: black;">{{ data.buy_count or '0' }}</span>
                                     </div>
                                 </div>
                                 
