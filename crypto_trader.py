@@ -1643,6 +1643,7 @@ class CryptoTrader:
         initial_trade_count = self.calculate_default_trade_count()
         self.trade_count_label = ttk.Label(trade_count_frame, text=str(initial_trade_count), style='Red_bold.TLabel')
         self.trade_count_label.pack(side=tk.LEFT, padx=(0, 1))
+
         # 同步初始值到web界面
         self.set_web_value('trade_count_label', str(initial_trade_count))
         # 同步到status_data
@@ -4555,7 +4556,9 @@ class CryptoTrader:
             self.logger.info(f"真实交易了的次数: {self.last_trade_count}")
             
             # 设置self.trade_count为默认值
+            self.trade_count = self.calculate_default_trade_count()
             self.trade_count_label.config(text=str(default_trade_count))
+            
             self.logger.info(f"✅ 重置交易次数为: \033[31m{default_trade_count}\033[0m成功")
             
             # 同步到web界面
@@ -4882,6 +4885,7 @@ class CryptoTrader:
                     # 交易次数恢复到初始值
                     self.trade_count = self.calculate_default_trade_count()
                     self.trade_count_label.config(text=str(self.trade_count))
+
                     # 同步到web界面
                     self.set_web_value('trade_count_label', str(self.trade_count))
                     # 同步到status_data
