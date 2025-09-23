@@ -991,7 +991,7 @@ class CryptoTrader:
             self.async_data_updater = None
         
         # 真实交易次数 (默认交易次数减去已交易次数)
-        self.last_trade_count = 0
+        self.real_trade_count = 0
 
         # 默认买价
         self.default_target_price = 54 # 不修改
@@ -4546,15 +4546,12 @@ class CryptoTrader:
             self.root.after(5000, self.schedule_update_amount)
             self.logger.info("✅ \033[34m零点 10 分设置 YES/NO 金额成功!\033[0m")
 
-            # 读取 GUI 上的交易次数
+            # 读取 GUI 上的剩余交易次数
             trade_count = self.trade_count_label.cget("text")
-            self.logger.info(f"最后一次交易次数: {trade_count}")
-
-            # 真实交易了的次数
+            # 计算真实交易了的次数=默认交易次数-剩余交易次数
             default_trade_count = self.calculate_default_trade_count()
-            self.last_trade_count = default_trade_count - int(trade_count)
-            self.logger.info(f"真实交易了的次数: {self.last_trade_count}")
-            
+            self.real_trade_count = default_trade_count - int(trade_count)
+            self.logger.info(f"真实交易次数: \033[31m{self.real_trade_count}\033[0m")
             # 设置self.trade_count为默认值
             self.trade_count = self.calculate_default_trade_count()
             self.trade_count_label.config(text=str(default_trade_count))
@@ -5396,13 +5393,13 @@ class CryptoTrader:
         try:
             with open(self.csv_file, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow([date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)])
-            self.logger.info(f"✅ 已追加写入CSV: {date_str}, Cash:{cash_float:.2f}, 利润:{profit:.2f}, 总利润:{total_profit:.2f}, 交易次数:{self.last_trade_count}")
+                writer.writerow([date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.real_trade_count)])
+            self.logger.info(f"✅ 已追加写入CSV: {date_str}, Cash:{cash_float:.2f}, 利润:{profit:.2f}, 总利润:{total_profit:.2f}, 交易次数:{self.real_trade_count}")
         except Exception as e:
             self.logger.error(f"写入CSV失败: {e}")
             
         # 更新内存中的历史记录
-        new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.last_trade_count)]
+        new_record = [date_str, f"{cash_float:.2f}", f"{profit:.2f}", f"{profit_rate*100:.2f}%", f"{total_profit:.2f}", f"{total_profit_rate*100:.2f}%", str(self.real_trade_count)]
         self.cash_history.append(new_record)
 
     def set_up_down_price_0(self):
@@ -5788,7 +5785,7 @@ class CryptoTrader:
             # 根据HOSTNAME决定邮件接收者
             receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
             if 'ZZY' in hostname:
-                receivers.append('2049330@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱272763832@qq.com
+                receivers.append('272763832@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱272763832@qq.com
             
             # 获取交易币对信息
             full_pair = self.trading_pair_label.cget("text")
