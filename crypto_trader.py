@@ -9760,7 +9760,7 @@ class CryptoTrader:
                 self.logger.warning(f"取消之前的记录Cash定时器失败: {e}")
         
         now = datetime.now()
-        next_run = now.replace(hour=0, minute=8, second=0, microsecond=0)
+        next_run = now.replace(hour=0, minute=7, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
         wait_time = (next_run - now).total_seconds()
