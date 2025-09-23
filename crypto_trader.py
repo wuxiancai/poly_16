@@ -3276,8 +3276,8 @@ class CryptoTrader:
                     # 计时开始
                     start_time = time.perf_counter()
 
-                    # 第一次交易不用卖出 DOWN（因为没有仓位）
-                    if self.buy_count != 1:
+                    # 先卖后买
+                    if self.find_position_label_down():
                         self.only_sell_down()
 
                     for retry in range(5):
@@ -3341,8 +3341,8 @@ class CryptoTrader:
 
                     self.logger.info(f"✅ \033[35mDown 1: {down_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
                     
-                    # 第一次交易不用卖出 UP（因为没有仓位）
-                    if self.buy_count != 1:
+                    # 先卖后买
+                    if self.find_position_label_up():
                         self.only_sell_up()
 
                     for retry in range(5):
@@ -3422,8 +3422,9 @@ class CryptoTrader:
                     # 计时开始
                     start_time = time.perf_counter()
                     self.logger.info(f"✅  \033[35mUp 2: {up_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-     
-                    self.only_sell_down()
+                    # 先卖后买
+                    if self.find_position_label_down():
+                        self.only_sell_down()
 
                     for retry in range(5):
                         # 执行买入 UP2 操作
@@ -3486,8 +3487,9 @@ class CryptoTrader:
                     start_time = time.perf_counter()
 
                     self.logger.info(f"✅ \033[35mDown 2: {down_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-
-                    self.only_sell_up()
+                    # 先卖后买
+                    if self.find_position_label_up():
+                        self.only_sell_up()
 
                     for retry in range(5):
 
@@ -3571,8 +3573,9 @@ class CryptoTrader:
                     start_time = time.perf_counter()
 
                     self.logger.info(f"✅ \033[35mUp 3: {up_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-                    
-                    self.only_sell_down()
+                    # 先卖后买
+                    if self.find_position_label_down():
+                        self.only_sell_down()
 
                     for retry in range(5):
 
@@ -3640,8 +3643,9 @@ class CryptoTrader:
                     start_time = time.perf_counter()
 
                     self.logger.info(f"✅ \033[35mDown 3: {down_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-                    
-                    self.only_sell_up()
+                    # 先卖后买
+                    if self.find_position_label_up():
+                        self.only_sell_up()
                     
                     for retry in range(5):
                         # 执行交易操作
@@ -3726,9 +3730,9 @@ class CryptoTrader:
                     start_time = time.perf_counter()
 
                     self.logger.info(f"✅ \033[35mUp 4: {up_price}¢\033[0m 价格匹配,第\033[31m{self.buy_count}\033[0m次买入")
-                    
-                    self.only_sell_down()
-
+                    # 先卖后买
+                    if self.find_position_label_down():
+                        self.only_sell_down()
 
                     for retry in range(5):
 
@@ -3795,8 +3799,9 @@ class CryptoTrader:
                     start_time = time.perf_counter()
 
                     self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
-
-                    self.only_sell_up()
+                    # 先卖后买
+                    if self.find_position_label_down():
+                        self.only_sell_down()
 
                     for retry in range(5):
 
@@ -6015,7 +6020,6 @@ class CryptoTrader:
                         position_label_down = self._find_element_with_retry(XPathConfig.POSITION_DOWN_LABEL, timeout=1, silent=True)
                         
                     if position_label_down is not None and position_label_down:
-                        
                         # 计算耗时
                         end_time = time.time()
                         self.logger.info(f"✅ 找到Down持仓标,签耗时: {end_time - start_time:.2f}秒")
