@@ -4883,6 +4883,10 @@ class CryptoTrader:
                     self.trade_count = self.calculate_default_trade_count()
                     self.trade_count_label.config(text=str(self.trade_count))
 
+                    # 买入和卖出次数恢复到初始值
+                    self.buy_count = 1
+                    self.sell_count = 1 
+
                     # 同步到web界面
                     self.set_web_value('trade_count_label', str(self.trade_count))
                     # 同步到status_data
