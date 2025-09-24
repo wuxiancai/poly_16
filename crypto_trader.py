@@ -4299,12 +4299,12 @@ class CryptoTrader:
         # 检查Down持仓
         if self.find_position_label_down():
             
-            sell_success = self._sell_position_with_retry('down', 5)
+            sell_success = self._sell_position_with_retry('down', 2)
         
         # 检查Up持仓
         if self.find_position_label_up():
             
-            up_sell_success = self._sell_position_with_retry('up', 5)
+            up_sell_success = self._sell_position_with_retry('up', 2)
             sell_success = sell_success and up_sell_success
         
         # 如果没有持仓，直接执行找币
@@ -6049,7 +6049,7 @@ class CryptoTrader:
                 self.driver.refresh()
         return False
     
-    def _sell_position_with_retry(self, position_type, max_retries=3):
+    def _sell_position_with_retry(self, position_type, max_retries=2):
         """带重试机制的持仓卖出函数
         
         Args:
