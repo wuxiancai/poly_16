@@ -3882,7 +3882,7 @@ class CryptoTrader:
             # 点击position_sell按钮
             if self.find_position_label_up():
                 self.click_position_sell_button()
-                self.timer.sleep(0.5)
+                time.sleep(0.5)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -3930,7 +3930,7 @@ class CryptoTrader:
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
             if self.find_position_label_down():
                 self.click_position_sell_button()
-                self.timer.sleep(0.5)
+                time.sleep(0.5)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -4057,7 +4057,7 @@ class CryptoTrader:
                 if amount_input:
                     amount_input.clear()
                     amount_input.send_keys(str(amount))
-                    self.timer.sleep(0.5)
+                    time.sleep(0.5)
                 else:
                     self.logger.info("❌ amount_input元素不存在")
             except (NoSuchElementException, StaleElementReferenceException) as e:
@@ -4098,7 +4098,7 @@ class CryptoTrader:
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-            self.timer.sleep(0.3)
+            time.sleep(0.3)
             self.click_buy_up_button()
 
         except Exception as e:
