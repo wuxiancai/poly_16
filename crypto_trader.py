@@ -3881,8 +3881,8 @@ class CryptoTrader:
 
             # 点击position_sell按钮
             if self.find_position_label_up():
-                self.click_position_sell_button()    
-
+                self.click_position_sell_button()
+                self.timer.sleep(0.5)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -3930,7 +3930,7 @@ class CryptoTrader:
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
             if self.find_position_label_down():
                 self.click_position_sell_button()
-
+                self.timer.sleep(0.5)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -4057,6 +4057,7 @@ class CryptoTrader:
                 if amount_input:
                     amount_input.clear()
                     amount_input.send_keys(str(amount))
+                    self.timer.sleep(0.5)
                 else:
                     self.logger.info("❌ amount_input元素不存在")
             except (NoSuchElementException, StaleElementReferenceException) as e:
@@ -4097,7 +4098,7 @@ class CryptoTrader:
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-
+            self.timer.sleep(0.3)
             self.click_buy_up_button()
 
         except Exception as e:
@@ -5793,8 +5794,8 @@ class CryptoTrader:
             
             # 根据HOSTNAME决定邮件接收者
             receivers = ['2049330@qq.com']  # 默认接收者,必须接收所有邮件
-            if 'ZZY' in hostname:
-                receivers.append('272763832@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱272763832@qq.com
+            #if 'ZZY' in hostname:
+            #    receivers.append('272763832@qq.com')  # 如果HOSTNAME包含ZZY,添加QQ邮箱272763832@qq.com
             
             # 获取交易币对信息
             full_pair = self.trading_pair_label.cget("text")
