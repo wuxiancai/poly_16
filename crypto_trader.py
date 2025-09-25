@@ -1308,6 +1308,22 @@ class CryptoTrader:
             self.web_data['url_entry'] = self.config.get('website', {}).get('url', '')
             self.web_data['coin_combobox'] = self.config.get('coin', 'BTC')
             self.web_data['auto_find_time_combobox'] = self.get_selected_time() if hasattr(self, 'auto_find_time_combobox_hour') else self.config.get('auto_find_time', '2:00')
+        
+        # 初始化同步交易次数到WEB
+        try:
+            self._update_status_async('trading', 'buy_count', str(self.buy_count))
+            self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
+            self.logger.info(f"✅ 初始化同步交易次数: buy_count={self.buy_count}, remaining_trades={self.trade_count}")
+        except Exception as e:
+            self.logger.error(f"❌ 初始化同步交易次数失败: {e}")
+        
+        # 初始化同步价格和金额到WEB（如果GUI界面已初始化）
+        try:
+            if hasattr(self, 'yes1_price_entry') and hasattr(self, 'yes1_amount_entry'):
+                self.async_gui_price_amount_to_web()
+                self.logger.info("✅ 初始化同步价格和金额到WEB成功")
+        except Exception as e:
+            self.logger.error(f"❌ 初始化同步价格和金额失败: {e}")
     
     def get_web_value(self, key):
         """获取web数据值,替代GUI的get()方法"""
@@ -1959,6 +1975,13 @@ class CryptoTrader:
         initial_time = self.get_selected_time()
         self._update_status_async('trading_info', 'coin', initial_coin)
         self._update_status_async('trading_info', 'time', initial_time)
+        
+        # 初始化同步价格和金额到WEB
+        try:
+            self.async_gui_price_amount_to_web()
+            self.logger.info("✅ GUI初始化完成后同步价格和金额到WEB成功")
+        except Exception as e:
+            self.logger.error(f"❌ GUI初始化完成后同步价格和金额失败: {e}")
     
     def start_monitoring(self):
         """开始监控"""
@@ -3212,6 +3235,9 @@ class CryptoTrader:
 
         # 同步到web界面
         self.set_web_value('trade_count_label', str(self.trade_count))
+        
+        # 同步交易次数到StatusDataManager
+        self._update_status_async('trading', 'buy_count', str(self.buy_count))
         
         # 记录交易统计
         if self.trade_stats:
