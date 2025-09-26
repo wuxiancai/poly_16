@@ -339,7 +339,8 @@ class StatusDataManager:
                 'auto_find_time': '2:00',
                 'last_trade_time': None,
                 'trade_count': 22,  # 这里保持22作为初始默认值，实际会在初始化时动态设置
-                'remaining_trades': 22  # 这里保持22作为初始默认值，实际会在初始化时动态设置
+                'remaining_trades': 22,  # 这里保持22作为初始默认值，实际会在初始化时动态设置
+                'buy_count': 1  # 添加buy_count字段，默认值为1
             },
             'prices': {
                 'polymarket_up': '--',
@@ -1316,14 +1317,6 @@ class CryptoTrader:
             self.logger.info(f"✅ 初始化同步交易次数: buy_count={self.buy_count}, remaining_trades={self.trade_count}")
         except Exception as e:
             self.logger.error(f"❌ 初始化同步交易次数失败: {e}")
-        
-        # 初始化同步价格和金额到WEB（如果GUI界面已初始化）
-        try:
-            if hasattr(self, 'yes1_price_entry') and hasattr(self, 'yes1_amount_entry'):
-                self.async_gui_price_amount_to_web()
-                self.logger.info("✅ 初始化同步价格和金额到WEB成功")
-        except Exception as e:
-            self.logger.error(f"❌ 初始化同步价格和金额失败: {e}")
     
     def get_web_value(self, key):
         """获取web数据值,替代GUI的get()方法"""
@@ -1976,12 +1969,16 @@ class CryptoTrader:
         self._update_status_async('trading_info', 'coin', initial_coin)
         self._update_status_async('trading_info', 'time', initial_time)
         
-        # 初始化同步价格和金额到WEB
-        try:
-            self.async_gui_price_amount_to_web()
-            self.logger.info("✅ GUI初始化完成后同步价格和金额到WEB成功")
-        except Exception as e:
-            self.logger.error(f"❌ GUI初始化完成后同步价格和金额失败: {e}")
+        # 延迟同步价格和金额到WEB（等待价格设置完成）
+        def delayed_sync():
+            try:
+                self.async_gui_price_amount_to_web()
+                self.logger.info("✅ GUI初始化完成后延迟同步价格和金额到WEB成功")
+            except Exception as e:
+                self.logger.error(f"❌ GUI初始化完成后延迟同步价格和金额失败: {e}")
+        
+        # 延迟5秒执行同步，确保价格设置完成
+        self.root.after(5000, delayed_sync)
     
     def start_monitoring(self):
         """开始监控"""
@@ -3233,7 +3230,7 @@ class CryptoTrader:
         self.trade_count_label.config(text=str(self.trade_count))
         self.logger.info(f"\033[34m剩余交易次数: \033[31m{self.trade_count}\033[0m;买入次数{self.buy_count-1}\033[0m")
 
-        # 同步到web界面
+        # 同步剩余交易次数到web界面
         self.set_web_value('trade_count_label', str(self.trade_count))
         
         # 同步交易次数到StatusDataManager
@@ -3267,7 +3264,9 @@ class CryptoTrader:
                 {'price': f"{float(self.no4_price_entry.get()):.0f}", 'amount': f"{float(self.no4_amount_entry.get()):.2f}"}    # DOWN4
             ])
         except Exception as e:
-            self.logger.info("\033[34m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败\033[0m")
+            self.logger.error(f"\033[31m同步UP1-4和DOWN1-4的价格和金额到StatusDataManager失败: {e}\033[0m")
+            import traceback
+            self.logger.error(f"\033[31m详细错误信息: {traceback.format_exc()}\033[0m")
 
     def reset_up_down_price_0(self, trade_no: int):
         """
