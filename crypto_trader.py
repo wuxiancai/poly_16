@@ -340,7 +340,7 @@ class StatusDataManager:
                 'last_trade_time': None,
                 'trade_count': 22,  # 这里保持22作为初始默认值，实际会在初始化时动态设置
                 'remaining_trades': 22,  # 这里保持22作为初始默认值，实际会在初始化时动态设置
-                'buy_count': 1  # 添加buy_count字段，默认值为1
+                'buy_count': 0,  # 添加buy_count字段，默认值为0
             },
             'prices': {
                 'polymarket_up': '--',
