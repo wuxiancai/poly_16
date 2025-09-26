@@ -1312,9 +1312,9 @@ class CryptoTrader:
         
         # 初始化同步交易次数到WEB
         try:
-            self._update_status_async('trading', 'buy_count', str(self.buy_count))
+            self._update_status_async('trading', 'buy_count', str(self.buy_count-1))
             self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
-            self.logger.info(f"✅ 初始化同步交易次数: buy_count={self.buy_count}, remaining_trades={self.trade_count}")
+            self.logger.info(f"✅ 初始化同步交易次数: buy_count={self.buy_count-1}, remaining_trades={self.trade_count}")
         except Exception as e:
             self.logger.error(f"❌ 初始化同步交易次数失败: {e}")
     
