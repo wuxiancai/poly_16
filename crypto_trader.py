@@ -3234,7 +3234,7 @@ class CryptoTrader:
         self.set_web_value('trade_count_label', str(self.trade_count))
         
         # 同步交易次数到StatusDataManager
-        self._update_status_async('trading', 'buy_count', str(self.buy_count))
+        self._update_status_async('trading', 'buy_count', str(self.buy_count-1))
         
         # 记录交易统计
         if self.trade_stats:
