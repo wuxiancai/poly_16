@@ -3344,8 +3344,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3357,6 +3357,8 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
+                        self.driver.refresh()
+                        self.time.sleep(2)  
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
@@ -3413,8 +3415,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -3425,6 +3427,9 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
+                        self.driver.refresh()
+                        self.time.sleep(2)  
+
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
         except Exception as e:
@@ -3492,8 +3497,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -3504,6 +3509,9 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
+                        self.driver.refresh()
+                        self.time.sleep(2)  
+
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
@@ -3563,8 +3571,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -3575,6 +3583,9 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
+                        self.driver.refresh()
+                        self.time.sleep(2)  
+
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
         except Exception as e:
@@ -3646,8 +3657,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3659,6 +3670,8 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )   
+                    self.driver.refresh()
+                    self.time.sleep(2)
 
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
@@ -3717,8 +3730,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3730,7 +3743,8 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
-                        self.logger.error(f"❌ \033[31mBuy Down3 连续3次失败\033[0m")
+                        self.driver.refresh()
+                        self.time.sleep(2)
             
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -3803,8 +3817,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3816,6 +3830,9 @@ class CryptoTrader:
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
                         )
+                        self.driver.refresh()
+                        self.time.sleep(2)
+
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
@@ -3875,8 +3892,8 @@ class CryptoTrader:
                             break
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
-                            
-                            time.sleep(1)  # 添加延时避免过于频繁的重试
+                            self.driver.refresh()
+                            self.time.sleep(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3887,7 +3904,9 @@ class CryptoTrader:
                             trade_count=self.buy_count,
                             cash_value=self.cash_value,
                             portfolio_value=self.portfolio_value
-                        )   
+                        )
+                        self.driver.refresh()
+                        self.time.sleep(2)  
             
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
