@@ -2052,7 +2052,7 @@ class CryptoTrader:
         self.root.after(70000, self.type_count)
     
     def type_count(self):
-        self.logger.info(f"\033[34m✅ trade_count: {self.trade_count},buy_count:{self.buy_count},sell_count:{self.sell_count}\033[0m")
+        self.logger.info(f"\033[34m✅ trade_count: {self.trade_count},buy_count:{self.buy_count-1},sell_count:{self.sell_count-1}\033[0m")
     
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
