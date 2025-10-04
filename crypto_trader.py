@@ -2588,7 +2588,7 @@ class CryptoTrader:
                 self.root.after_cancel(self.set_up1_down1_default_target_price_timer)
                 self.set_up1_down1_default_target_price_timer = None
             self.logger.info("✅ 清理了设置默认目标价格定时器状态")
-            self.set_up1_down1_default_target_price_timer = self.root.after(1000, lambda: self.schedule_price_setting())
+            self.set_up1_down1_default_target_price_timer = self.root.after(1000,self.schedule_price_setting)
 
             # 13. 重新启动重试更新金额定时器（如果需要）
             # 注意：这个定时器通常由错误情况触发,这里只是确保清理状态
