@@ -2588,7 +2588,8 @@ class CryptoTrader:
                 self.root.after_cancel(self.set_up1_down1_default_target_price_timer)
                 self.set_up1_down1_default_target_price_timer = None
             self.logger.info("✅ 清理了设置默认目标价格定时器状态")
-            
+            self.set_up1_down1_default_target_price_timer = self.root.after(1000, lambda: self.set_up1_down1_default_target_price())
+
             # 13. 重新启动重试更新金额定时器（如果需要）
             # 注意：这个定时器通常由错误情况触发,这里只是确保清理状态
             if hasattr(self, 'retry_update_amount_timer') and self.retry_update_amount_timer:
@@ -4266,12 +4267,12 @@ class CryptoTrader:
     def set_up1_down1_default_target_price(self):
         """设置默认目标价格54"""
         self.no1_price_entry.delete(0, tk.END)
-        self.no1_price_entry.insert(0, str(self.default_target_price))
+        self.no1_price_entry.insert(0, "52")
         self.no1_price_entry.configure(foreground='red')
         self.yes1_price_entry.delete(0, tk.END)
-        self.yes1_price_entry.insert(0, str(self.default_target_price))
+        self.yes1_price_entry.insert(0, "52")
         self.yes1_price_entry.configure(foreground='red')
-        self.logger.info(f"✅ \033[34m设置UP1/DOWN1价格为54成功\033[0m")
+        self.logger.info(f"✅ \033[34m设置UP1/DOWN1价格为52成功\033[0m")
           
         # 同步UP1-4和DOWN1-4的价格和金额到StatusDataManager（从GUI界面获取当前显示的数据）
         self.async_gui_price_amount_to_web()
