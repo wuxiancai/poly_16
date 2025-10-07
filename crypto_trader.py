@@ -2028,9 +2028,6 @@ class CryptoTrader:
         self.refresh_page_timer = self.root.after(140000, self.refresh_page)
         self.logger.info("\033[34m✅ 40秒后启动页面刷新!\033[0m")
         
-        # 11.启动夜间自动卖出检查（每30分钟检查一次）
-        self.root.after(45000, self.schedule_night_auto_sell_check)
-        
         # 12.启动自动Swap检查（每30分钟检查一次）
         self.root.after(100000, self.schedule_auto_use_swap)
 
@@ -2533,11 +2530,6 @@ class CryptoTrader:
             self.schedule_auto_find_coin()
             self.logger.info("✅ 恢复了自动找币定时器")
 
-            # 8.重新启动夜间自动卖出检查
-            if hasattr(self,'night_auto_sell_timer') and self.night_auto_sell_timer:
-                self.root.after_cancel(self.night_auto_sell_timer)
-            self.schedule_night_auto_sell_check()
-            self.logger.info("✅ 恢复了夜间自动卖出检查定时器")
             
             # 9.重新启动自动Swap检查
             if hasattr(self,'auto_use_swap_timer') and self.auto_use_swap_timer:
@@ -3989,11 +3981,10 @@ class CryptoTrader:
 
             if self.verify_trade('Sold', 'Down')[0]:
                 self.logger.info(f"✅ 第\033[31m{self.sell_count}次 \033[0m卖出 Down 成功")
-                #self.click_buy_up_button()
-                #time.sleep(0.3)
-                #self.click_buy_button()
+                
                 self.driver.refresh()
                 self.logger.info("\033[34m刷新页面成功\033[0m")
+                
                 # 发送交易邮件
                 self.send_trade_email(
                     trade_type=f"第{self.sell_count}次卖出 DOWN",
@@ -4149,67 +4140,6 @@ class CryptoTrader:
         except Exception as e:
             self.logger.error(f"回退买入操作失败: {str(e)}")
             raise
-
-    def sell_up_down_operation(self):
-        """卖出操作的回退方法,仅仅night_auto_sell_check调用"""
-        try:
-            # 计时开始
-            start_time = time.perf_counter()
-            start_time_count = time.perf_counter()
-
-            # 点击position_sell按钮
-            try:
-                positions_sell_button = WebDriverWait(self.driver, 0.2).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
-                )
-                try:
-                    positions_sell_button.click()
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ positions_sell按钮被遮挡,使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", positions_sell_button)
-            except (NoSuchElementException, StaleElementReferenceException) as e:
-                self.logger.info(f"❌ 找不到或无法点击positions_sell_button按钮: {str(e)}")
-            
-            # 计时结束
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(f"✅ \033[34m点击position_sell按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
- 
-            # 计时开始
-            start_time = time.perf_counter()
-            time.sleep(0.2)
-            # 点击卖出确认按钮
-            try:
-                sell_confirm_button = WebDriverWait(self.driver, 0.5).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
-                )
-                try:
-                    sell_confirm_button.click()
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ sell_confirm按钮被遮挡,使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", sell_confirm_button)
-            except (NoSuchElementException, StaleElementReferenceException) as e:
-                self.logger.info(f"❌ 找不到或无法点击sell_confirm_button按钮: {str(e)}")
-            
-            # 计时结束
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(f"✅ \033[34m点击卖出确认按钮\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-
-            # 处理 I ACCEPT弹窗
-            if self.no_i_accept_button:
-                self.click_i_accept_button()
-
-            # 计时结束
-            elapsed = time.perf_counter() - start_time_count
-            self.logger.info(f"✅ \033[34m卖出操作完成!\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-
-            # 预防价格接近时在卖的时候又买了
-            self.click_buy_up_button()
-            self.click_buy_button()
-            
-        except Exception as e:
-            self.logger.error(f"卖出操作失败: {str(e)}")
 
     def schedule_price_setting(self):
         """安排每天指定时间执行价格设置"""
@@ -4894,79 +4824,6 @@ class CryptoTrader:
             pass
         finally:
             self.comparison_binance_price()
-
-    def night_auto_sell_check(self):
-        """
-        夜间自动卖出检查函数
-        在1点到上午6点时间内,如果self.trade_count小于等于14,则卖出仓位
-        """
-        try:
-            # 获取当前时间
-            now = datetime.now()
-            current_hour = now.hour
-            
-            # 检查是否在1点到8点之间（包含1点,不包含8点）
-            if 1 <= current_hour <= 8:
-                #self.logger.info(f"✅ 当前时间 {now.strftime('%H:%M:%S')} 在夜间时段(01:00-08:00)内")
-                
-                # 检查交易次数是否小于等于14,initial是否小于 1.2
-                initial = float(self.initial_amount_entry.get().strip())
-                if self.trade_count <= 14 and initial < 1.2:
-                    # 执行卖出仓位操作
-                    self.sell_up_down_operation()
-                    self.logger.info(f"✅ 夜间自动卖出仓位执行完成")
-
-                    # 设置 YES1-4/NO1-4 价格为 0
-                    self.set_up_down_price_0()
-
-                    # 设置 YES1/NO1 价格为默认值
-                    self.no1_price_entry.delete(0, tk.END)
-                    self.no1_price_entry.insert(0, str(self.default_target_price))
-                    self.no1_price_entry.configure(foreground='red')
-                    self.logger.info(f"\033[34m✅ 设置NO1价格{self.default_target_price}成功\033[0m")
-                
-                    self.yes1_price_entry.delete(0, tk.END)
-                    self.yes1_price_entry.insert(0, str(self.default_target_price))
-                    self.yes1_price_entry.configure(foreground='red')
-                    self.logger.info(f"\033[34m✅ 设置YES1价格{self.default_target_price}成功\033[0m")
-
-                    # 交易次数恢复到初始值
-                    self.trade_count = self.calculate_default_trade_count()
-                    self.trade_count_label.config(text=str(self.trade_count))
-
-                    # 买入和卖出次数恢复到初始值
-                    self.buy_count = 1
-                    self.sell_count = 1 
-
-                    # 同步到web界面
-                    self.set_web_value('trade_count_label', str(self.trade_count))
-                    # 同步到status_data
-                    self._update_status_async('trading', 'remaining_trades', str(self.trade_count))
-                    self.logger.info(f"✅ 交易次数已恢复到初始值: {self.trade_count}")
-                
-        except Exception as e:
-            self.logger.error(f"❌ 夜间自动卖出检查失败: {str(e)}")
-
-    def schedule_night_auto_sell_check(self):
-        """
-        调度夜间自动卖出检查
-        每30分钟执行一次检查
-        """
-        #self.logger.info("\033[34m✅ 启动夜间自动卖出检查!\033[0m")
-        try:
-            # 执行夜间自动卖出检查
-            self.night_auto_sell_check()
-            
-            # 设置下一次检查（30分钟后）
-            if self.running and not self.stop_event.is_set():
-                self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)  # 30分钟 = 30 * 60 * 1000毫秒
-                #self.logger.info("✅ 已设置30分钟后进行下一次夜间自动卖出检查")
-                
-        except Exception as e:
-            self.logger.error(f"❌ 调度夜间自动卖出检查失败: {str(e)}")
-            # 即使出错也要设置下一次检查
-            if self.running and not self.stop_event.is_set():
-                 self.night_auto_sell_timer = self.root.after(30 * 60 * 1000, self.schedule_night_auto_sell_check)
 
     def schedule_auto_use_swap(self):
         """
