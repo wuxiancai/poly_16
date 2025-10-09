@@ -3835,8 +3835,8 @@ class CryptoTrader:
 
                     self.logger.info(f"✅ \033[35mDown 4: {down_price}¢ 价格匹配,第\033[31m{self.buy_count}\033[0m次买入\033[0m")
                     # 先卖后买
-                    if self.find_position_label_down():
-                        self.only_sell_down()
+                    if self.find_position_label_up():
+                        self.only_sell_up()
 
                     for retry in range(5):
 
