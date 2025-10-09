@@ -3967,7 +3967,7 @@ class CryptoTrader:
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
             if self.find_position_label_down():
                 self.click_position_sell_button()
-                time.sleep(0.5)
+                time.sleep(1)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -4068,7 +4068,7 @@ class CryptoTrader:
                     time.sleep(check_interval)
                 self.logger.info(f"\033[34m❌ 没有交易记录,开始第{attempt+1}次重试\033[0m")
                 self.driver.refresh()
-                time.sleep(1)
+                time.sleep(2)
             # 两次智能等待都失败
             self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 {attempt+1}次都失败,交易验证失败\033[0m")
             return False, 0, 0, 0
@@ -4095,6 +4095,7 @@ class CryptoTrader:
                     amount_input.clear()
                     amount_input.send_keys(str(amount))
                     time.sleep(0.5)
+                    self.logger.info(f"✅ \033[32m成功设置买入金额为 {amount}\033[0m")
                 else:
                     self.logger.info("❌ amount_input元素不存在")
             except (NoSuchElementException, StaleElementReferenceException) as e:
@@ -4109,12 +4110,13 @@ class CryptoTrader:
             #time.sleep(0.2)
             # 点击买入确认按钮
             try:
-                buy_confirm_button = WebDriverWait(self.driver, 0.5).until(
+                buy_confirm_button = WebDriverWait(self.driver, 1).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
                 )
                 try:
                     if buy_confirm_button:
                         buy_confirm_button.click()
+                        self.logger.info(f"✅ \033[32m成功点击买入确认按钮\033[0m")
                     else:
                         self.logger.info("❌ 买入确认按钮不存在")
                 except ElementClickInterceptedException:
@@ -5341,7 +5343,7 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
 
-            buy_confirm_button = WebDriverWait(self.driver, 0.2).until(
+            buy_confirm_button = WebDriverWait(self.driver, 1).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
             )
             if buy_confirm_button:
@@ -5376,7 +5378,7 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
 
-            positions_sell_button = WebDriverWait(self.driver, 0.2).until(
+            positions_sell_button = WebDriverWait(self.driver, 1).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
             )
             if positions_sell_button:
@@ -5417,7 +5419,7 @@ class CryptoTrader:
         try:
             start_time = time.perf_counter()
 
-            sell_confirm_button = WebDriverWait(self.driver, 0.2).until(
+            sell_confirm_button = WebDriverWait(self.driver, 1).until(
                 EC.element_to_be_clickable((By.XPATH, XPathConfig.SELL_CONFIRM_BUTTON[0]))
             )
             if sell_confirm_button:
