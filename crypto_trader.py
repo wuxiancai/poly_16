@@ -4067,7 +4067,8 @@ class CryptoTrader:
                     
                     time.sleep(check_interval)
                 self.logger.info(f"\033[34m❌ 没有交易记录,开始第{attempt+1}次重试\033[0m")
-
+                self.driver.refresh()
+                time.sleep(1)
             # 两次智能等待都失败
             self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 {attempt+1}次都失败,交易验证失败\033[0m")
             return False, 0, 0, 0
