@@ -48,13 +48,13 @@ class XPathConfig:
         ]
 
     # 10.Position-Up标签长期有效
-    POSITION_UP_LABEL = [
+    POSITION_LABEL_UP = [
         '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Up"])[1]',
         '(//div//h3[contains(text(),"Positions")]/ancestor::div//div/div[contains(text(),"Up")])[1]'
         ]
 
     # 11.Position-Down标签长期有效
-    POSITION_DOWN_LABEL = [
+    POSITION_LABEL_DOWN = [
         '(//*[normalize-space(.)="Positions"]/ancestor::*[1]//*[text()="Down"])[1]',
         '(//div//h3[contains(text(),"Positions")]/ancestor::div//div/div[contains(text(),"Down")])[1]'
         ]
