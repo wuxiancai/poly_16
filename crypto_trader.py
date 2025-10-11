@@ -3919,7 +3919,7 @@ class CryptoTrader:
             # 点击position_sell按钮
             if self.find_position_label_up():
                 self.click_position_sell_button()
-                time.sleep(0.5)
+                time.sleep(1)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
