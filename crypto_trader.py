@@ -4362,11 +4362,15 @@ class CryptoTrader:
                     break
                 else:
                     self.logger.error(f"❌ 未成功点击目标URL按钮")
+                    self.driver.refresh()
+                    
             except Exception as e:
                 self.logger.error(f"第{attempt+1}次自动找币失败.错误信息:{e}")
+                self.driver.refresh()
         else:
             self.logger.error("❌ 重试3次自动找币都失败")
-            
+            self.driver.refresh()
+
         # 自动找币完成后，重新安排明天的自动找币任务
         try:
             self.schedule_auto_find_coin()
@@ -4375,68 +4379,80 @@ class CryptoTrader:
             self.logger.error(f"❌ 重新安排自动找币任务失败: {e}")
             
     def click_today_card(self):
-        """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页"""
-        try:
-            # 获取当前日期字符串,比如 "April 18"
-            if platform.system() == 'Darwin':  # macOS
-                today_str = datetime.now().strftime("%B %-d")  # macOS格式
-            else:  # Linux (Ubuntu)
-                today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式,去掉前导零
-
-            self.logger.info(f"🔍 当前日期是 \033[31m{today_str}\033[0m")
-            
-            coin = self.coin_combobox.get()
-            self.logger.info(f"🔍 选择的币种是 \033[31m{coin}\033[0m")
-
-            card = None
-
-            # 获取所有含 "Bitcoin Up or Down on" 的卡片元素
+        """使用Command/Ctrl+Click点击包含今天日期的卡片,打开新标签页（最多重试3次）"""
+        for attempt in range(3):
             try:
-                if coin == 'BTC':
-                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
-                elif coin == 'ETH':
-                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
-                elif coin == 'SOL':
-                    card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                # 获取当前日期字符串,比如 "April 18"
+                if platform.system() == 'Darwin':  # macOS
+                    today_str = datetime.now().strftime("%B %-d")  # macOS格式
+                else:  # Linux (Ubuntu)
+                    today_str = datetime.now().strftime("%B %d").replace(" 0", " ")  # Linux格式,去掉前导零
+
+                self.logger.info(f"🔍 当前日期是 \033[31m{today_str}\033[0m (尝试 {attempt+1}/3)")
                 
-            except (NoSuchElementException, StaleElementReferenceException):
+                coin = self.coin_combobox.get()
+                self.logger.info(f"🔍 选择的币种是 \033[31m{coin}\033[0m")
+
+                card = None
+
+                # 获取含指定币种的卡片元素
                 try:
                     if coin == 'BTC':
-                        card = self._find_element_with_retry(XPathConfig.SEARCH_BTC_BUTTON,timeout=3,silent=True)
+                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
                     elif coin == 'ETH':
-                        card = self._find_element_with_retry(XPathConfig.SEARCH_ETH_BUTTON,timeout=3,silent=True)
+                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
                     elif coin == 'SOL':
-                        card = self._find_element_with_retry(XPathConfig.SEARCH_SOL_BUTTON,timeout=3,silent=True)
-                except NoSuchElementException:
-                    card = None
+                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                    
+                except (NoSuchElementException, StaleElementReferenceException):
+                    try:
+                        if coin == 'BTC':
+                            card = self._find_element_with_retry(XPathConfig.SEARCH_BTC_BUTTON, timeout=3, silent=True)
+                        elif coin == 'ETH':
+                            card = self._find_element_with_retry(XPathConfig.SEARCH_ETH_BUTTON, timeout=3, silent=True)
+                        elif coin == 'SOL':
+                            card = self._find_element_with_retry(XPathConfig.SEARCH_SOL_BUTTON, timeout=3, silent=True)
+                    except NoSuchElementException:
+                        card = None
 
-            self.logger.info(f"🔍 找到的卡片文本: \033[31m{card.text}\033[0m")
+                # 若未找到元素，直接进入重试
+                if not card:
+                    self.logger.warning("❌ 未找到今天日期的卡片元素")
+                else:
+                    self.logger.info(f"🔍 找到的卡片文本: \033[31m{getattr(card, 'text', '')}\033[0m")
 
-            if today_str in card.text:
-                self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card.text}\033[0m")
+                    if today_str in getattr(card, 'text', ''):
+                        self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card.text}\033[0m")
 
-                # 直接点击元素
+                        # 直接点击元素
+                        try:
+                            card.click()
+                        except ElementClickInterceptedException:
+                            # 如果元素被遮挡，使用JavaScript点击
+                            self.logger.info("⚠️ 卡片被遮挡，使用JavaScript点击")
+                            self.driver.execute_script("arguments[0].click();", card)
+                        self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
+
+                        # 等待页面加载完成
+                        WebDriverWait(self.driver, 20).until(
+                            lambda d: d.execute_script("return document.readyState") == "complete"
+                        )
+                        self.logger.info(f"✅ {card.text}页面加载完成")
+                        return True
+                    else:
+                        self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
+
+            except Exception as e:
+                self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
+
+            # 未返回成功则准备下一次重试
+            if attempt < 2:
                 try:
-                    card.click()
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ 卡片被遮挡，使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", card)
-                self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
-
-                # 等待目标URL按钮点击后的页面加载完成
-                WebDriverWait(self.driver, 20).until(
-                    lambda d: d.execute_script("return document.readyState") == "complete"
-                )
-                self.logger.info(f"✅ {card.text}页面加载完成")
-                return True
-            else:
-                self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
-                return False
-
-        except Exception as e:
-            self.logger.error(f"查找并点击今天日期卡片失败: {str(e)}")
-            return False
+                    self.driver.refresh()
+                except Exception as re:
+                    self.logger.warning(f"刷新页面失败: {re}")
+                time.sleep(2)
+        return False
 
     def get_cash_value(self):
         """获取当前CASH值"""
