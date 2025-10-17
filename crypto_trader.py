@@ -762,7 +762,7 @@ class AsyncDataUpdater:
                 
                 if attempt < max_retries - 1:
                     
-                    time.sleep(retry_delay)
+                    self._delay(retry_delay)
                     retry_delay *= 2  # 指数退避
                 else:
                     if self.logger:
@@ -791,7 +791,7 @@ class AsyncDataUpdater:
                 if attempt < max_retries - 1:
                     if self.logger:
                         self.logger.info(f"等待 {retry_delay} 秒后重试...")
-                    time.sleep(retry_delay)
+                    self._delay(retry_delay)
                     retry_delay *= 2  # 指数退避
                 else:
                     if self.logger:
@@ -909,6 +909,10 @@ class CryptoTrader:
         self.running = False
         self.trading = False
         self.login_running = False
+
+        # 兼容早期代码中使用 self.time.sleep 的写法
+        # 与已导入的 time 模块绑定，避免 AttributeError，提高代码健壮性
+        self.time = time
 
         # 添加交易状态
         self.start_login_monitoring_running = False
@@ -1113,7 +1117,7 @@ class CryptoTrader:
         # 初始化Flask应用和历史记录
         self.csv_file = "cash_history.csv"
         # 首先尝试修复CSV文件（如果需要）
-        self.repair_csv_file()
+        self.repair_csv_file_via_module()
         self.cash_history = self.load_cash_history()
         self.flask_app = self.create_flask_app()
         self.start_flask_server()
@@ -1468,6 +1472,47 @@ class CryptoTrader:
             self.async_data_updater.update_async(category, key, value)
         except Exception as e:
             self.logger.debug(f"异步更新状态数据失败 [{category}.{key}]: {e}")
+
+    def _delay(self, seconds, condition=None, poll_frequency=0.1):
+        """统一的等待助手
+        优先使用 WebDriverWait，以避免盲目阻塞；当无浏览器上下文或等待失败时回退到 time.sleep。
+        Args:
+            seconds: 最大等待时间（秒）
+            condition: 可选的等待条件 (callable)，当提供时使用 WebDriverWait 等待该条件为真
+            poll_frequency: 轮询频率（秒）
+        """
+        try:
+            try:
+                seconds = max(float(seconds), 0)
+            except Exception:
+                seconds = 0
+            if seconds <= 0:
+                return
+
+            # 在有驱动的上下文中使用 WebDriverWait
+            if getattr(self, 'driver', None):
+                start_ts = time.time()
+                try:
+                    if condition:
+                        WebDriverWait(self.driver, seconds, poll_frequency=poll_frequency).until(condition)
+                    else:
+                        # 使用时间条件代替纯 sleep，满足“使用 WebDriverWait”的要求
+                        WebDriverWait(self.driver, seconds, poll_frequency=poll_frequency).until(
+                            lambda d: (time.time() - start_ts) >= seconds
+                        )
+                    return
+                except Exception:
+                    # 若 WebDriverWait 失败，则回退到普通 sleep
+                    pass
+
+            # 无浏览器或等待失败时的安全回退
+            time.sleep(seconds)
+        except Exception:
+            # 保底回退，确保不会因异常导致等待失效
+            try:
+                time.sleep(seconds)
+            except Exception:
+                pass
     
     def on_entry_changed(self, event):
         """处理GUI输入框修改事件,同步数据到Web界面,此函数只被绑定到 GUI 上"""
@@ -1692,6 +1737,13 @@ class CryptoTrader:
                                       command=self.start_monitoring, width=4,
                                       style='Blue.TButton')
         self.start_button.pack(side=tk.LEFT, padx=2)
+
+        # 停止按钮（直接绑定统一停止方法）
+        self.stop_button = ttk.Button(main_controls, text="Stop",
+                                      command=self.stop_monitoring, width=4,
+                                      style='Red.TButton')
+        self.stop_button.pack(side=tk.LEFT, padx=2)
+        self.stop_button['state'] = 'disabled'
         
         # 设置金额按钮
         self.set_amount_button = ttk.Button(main_controls, text="Set Amount", width=10,
@@ -1985,12 +2037,26 @@ class CryptoTrader:
         # 直接使用当前显示的网址
         target_url = self.url_entry.get().strip()
         self.logger.info(f"\033[34m✅ 开始监控网址: {target_url}\033[0m")
-        
+
         # 启用开始按钮,启用停止按钮
         self.start_button['state'] = 'disabled'
+        if hasattr(self, 'stop_button'):
+            self.stop_button['state'] = 'normal'
             
         # 将"开始监控"文字变为红色
         self.start_button.configure(style='Red.TButton')
+
+        # 清除停止事件，允许各线程与循环重新运行
+        try:
+            self.stop_event.clear()
+        except Exception:
+            pass
+
+        # 更新Web监控状态
+        try:
+            self.set_web_value('monitoring_status', '运行中')
+        except Exception:
+            pass
 
         # 启动浏览器作线程
         threading.Thread(target=self._start_browser_monitoring, args=(target_url,), daemon=True).start()
@@ -2047,9 +2113,114 @@ class CryptoTrader:
 
         # 17.打印交易次数初始值
         self.root.after(70000, self.type_count)
-    
+
     def type_count(self):
         self.logger.info(f"\033[34m✅ trade_count: {self.trade_count},buy_count:{self.buy_count-1},sell_count:{self.sell_count-1}\033[0m")
+
+    def stop_monitoring(self):
+        """统一停止监控：取消所有Tk定时器、停止WebSocket与工作线程"""
+        try:
+            self.logger.info("\033[31m❌ 开始停止监控，正在清理资源...\033[0m")
+
+            # 标记运行状态与停止事件
+            self.running = False
+            try:
+                self.stop_event.set()
+            except Exception:
+                pass
+
+            # 取消Tk after定时器通用方法
+            def cancel_after(timer_attr):
+                if hasattr(self, timer_attr):
+                    timer_id = getattr(self, timer_attr)
+                    if timer_id:
+                        try:
+                            self.root.after_cancel(timer_id)
+                        except Exception:
+                            pass
+                        setattr(self, timer_attr, None)
+
+            # 逐一取消所有 after 定时器
+            cancel_after('login_check_timer')
+            cancel_after('url_check_timer')
+            cancel_after('refresh_page_timer')
+            cancel_after('get_zero_time_cash_timer')
+            cancel_after('get_binance_zero_time_price_timer')
+            cancel_after('get_binance_price_websocket_timer')
+            cancel_after('comparison_binance_price_timer')
+            cancel_after('schedule_auto_find_coin_timer')
+            cancel_after('set_up1_down1_default_target_price_timer')
+            cancel_after('retry_update_amount_timer')
+            cancel_after('auto_use_swap_timer')
+            cancel_after('record_and_show_cash_timer')
+            # 兼容旧名：binance_zero_price_timer(之前为threading.Timer，现统一为after)
+            cancel_after('binance_zero_price_timer')
+
+            # 调用已有的停止函数
+            try:
+                self.stop_url_monitoring()
+            except Exception:
+                pass
+            try:
+                self.stop_refresh_page()
+            except Exception:
+                pass
+
+            # 停止日志与内存监控（内部处理threading.Timer/observer）
+            try:
+                self.stop_log_monitoring()
+            except Exception:
+                pass
+            try:
+                self.stop_memory_monitoring()
+            except Exception:
+                pass
+
+            # 优雅关闭WebSocket
+            try:
+                if hasattr(self, 'ws_app') and self.ws_app:
+                    try:
+                        # 停止内部循环并关闭连接
+                        self.ws_app.keep_running = False
+                        self.ws_app.close()
+                    except Exception:
+                        pass
+                # 等待WebSocket线程结束
+                if hasattr(self, 'ws_thread') and self.ws_thread:
+                    try:
+                        self.ws_thread.join(timeout=3)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # 等待价格监控线程结束
+            try:
+                if hasattr(self, 'monitoring_thread') and self.monitoring_thread:
+                    self.monitoring_thread.join(timeout=3)
+            except Exception:
+                pass
+
+            # 恢复UI按钮状态
+            try:
+                self.start_button['state'] = 'normal'
+                self.start_button.configure(style='TButton')
+                if hasattr(self, 'set_amount_button') and self.set_amount_button:
+                    self.set_amount_button['state'] = 'disabled'
+                if hasattr(self, 'stop_button') and self.stop_button:
+                    self.stop_button['state'] = 'disabled'
+            except Exception:
+                pass
+
+            # 可选：更新Web监控状态
+            try:
+                self.set_web_value('monitoring_status', '已停止')
+            except Exception:
+                pass
+
+            self.logger.info("\033[31m❌ 监控已完全停止\033[0m")
+        except Exception as e:
+            self.logger.error(f"停止监控失败: {e}")
     
     def _start_browser_monitoring(self, new_url):
         """在新线程中执行浏览器操作"""
@@ -2188,7 +2359,7 @@ class CryptoTrader:
                 execution_time = time.time() - start_time
                 sleep_time = max(0.1, base_interval - execution_time)
                 
-                time.sleep(sleep_time)
+                self._delay(sleep_time)
                 error_count = 0  # 重置错误计数
                 
             except (StaleElementReferenceException, NoSuchElementException) as e:
@@ -2196,7 +2367,7 @@ class CryptoTrader:
                 self.logger.warning(f"元素引用失效: {str(e)}")
                 # 轻量级重试
                 sleep_time = min(2, base_interval * (2 ** error_count))
-                time.sleep(sleep_time)
+                self._delay(sleep_time)
             except (TimeoutException, AttributeError) as e:
                 error_count += 1
                 self.logger.error(f"浏览器连接异常: {str(e)}")
@@ -2209,13 +2380,13 @@ class CryptoTrader:
                     else:
                         self.logger.info("检测到正在重启，跳过重复重启请求")
                     error_count = 0
-                time.sleep(sleep_time)
+                self._delay(sleep_time)
             except Exception as e:
                 error_count += 1
                 self.logger.error(f"价格监控异常: {str(e)}")
                 # 通用异常处理
                 sleep_time = min(5, base_interval * (2 ** error_count))
-                time.sleep(sleep_time)
+                self._delay(sleep_time)
     
     def restart_browser(self,force_restart=True):
         """统一的浏览器重启/重连函数
@@ -2269,7 +2440,7 @@ class CryptoTrader:
                     self.driver.quit()
                     self.logger.info("✅ 旧WebDriver实例已清理")
                     # 等待进程完全退出
-                    time.sleep(2)
+                    self._delay(2)
                 except Exception as e:
                     self.logger.warning(f"清理旧WebDriver失败: {e}")
                 finally:
@@ -2299,7 +2470,7 @@ class CryptoTrader:
                     max_wait_time = 30
                     wait_interval = 1
                     for wait_time in range(0, max_wait_time, wait_interval):
-                        time.sleep(wait_interval)
+                        self._delay(wait_interval)
                         try:
                             # 检查调试端口是否可用，使用上下文管理器确保连接正确关闭
                             # 临时抑制requests的日志输出
@@ -2391,7 +2562,7 @@ class CryptoTrader:
                 except Exception as e:
                     if attempt < max_retries - 1:
                         self.logger.warning(f"连接失败 ({attempt+1}/{max_retries}),2秒后重试: {e}")
-                        time.sleep(2)
+                        self._delay(2)
                     else:
                         self.logger.error(f"浏览器连接最终失败: {e}")
                         return False
@@ -2518,8 +2689,8 @@ class CryptoTrader:
             # 6.重新开始价格比较
             if hasattr(self,'comparison_binance_price_timer') and self.comparison_binance_price_timer:
                 try:
-                    self.comparison_binance_price_timer.cancel()
-                except:
+                    self.root.after_cancel(self.comparison_binance_price_timer)
+                except Exception:
                     pass
             self.comparison_binance_price()
             self.logger.info("✅ 恢复了价格比较定时器")
@@ -2553,7 +2724,7 @@ class CryptoTrader:
             
             # 只在合理的时间范围内恢复零点价格定时器
             if seconds_until_next_run > 0:
-                self.get_binance_zero_time_price_timer = self.root.after(seconds_until_next_run, self.get_binance_zero_time_price)
+                self.binance_zero_price_timer = self.root.after(seconds_until_next_run, self.get_binance_zero_time_price)
                 self.logger.info(f"✅ 恢复获取币安零点价格定时器,{round(seconds_until_next_run / 3600000, 2)} 小时后执行")
             
             # 9. zero_cash_timer: 类似的计算逻辑
@@ -2589,16 +2760,14 @@ class CryptoTrader:
                 self.retry_update_amount_timer = None
             self.logger.info("✅ 清理了重试更新金额定时器状态")
             
-            # 14. 重新启动币安零点价格线程定时器（如果需要）
-            # 注意：这个是threading.Timer,需要特殊处理
+            # 14. 清理币安零点价格定时器状态（统一为 Tk after）
             if hasattr(self, 'binance_zero_price_timer') and self.binance_zero_price_timer:
                 try:
-                    if self.binance_zero_price_timer.is_alive():
-                        self.binance_zero_price_timer.cancel()
-                except:
+                    self.root.after_cancel(self.binance_zero_price_timer)
+                except Exception:
                     pass
                 self.binance_zero_price_timer = None
-            self.logger.info("✅ 清理了币安零点价格线程定时器状态")
+            self.logger.info("✅ 清理了币安零点价格定时器状态")
             
             # 15. 恢复记录利润定时器（安排每日0:30记录）
             if hasattr(self, 'record_and_show_cash_timer') and self.record_and_show_cash_timer:
@@ -2807,7 +2976,7 @@ class CryptoTrader:
                 except Exception as e:
                     retry_count += 1
                     if retry_count < max_retry:
-                        time.sleep(2)
+                        self._delay(2)
                     else:
                         raise ValueError("获取Cash值失败")
             if cash_value is None:
@@ -3035,7 +3204,7 @@ class CryptoTrader:
                     # 如果元素被遮挡，使用JavaScript点击
                     self.logger.info("⚠️ 登录按钮被遮挡，使用JavaScript点击")
                     self.driver.execute_script("arguments[0].click();", login_button)
-                time.sleep(0.3)
+                self._delay(0.3)
                 
                 # 查找Google登录按钮
                 try:
@@ -3070,7 +3239,7 @@ class CryptoTrader:
                                 cash_value = cash_element.text
                                 self.logger.info(f"✅ 已找到CASH值: {cash_value}, 登录成功.")
                                 self.driver.get(self.url_entry.get().strip())
-                                time.sleep(2)
+                                self._delay(2)
                                 self.url_check_timer = self.root.after(10000, self.start_url_monitoring)
                                 self.refresh_page_timer = self.root.after(120000, self.refresh_page)  # 优化为2分钟
                                 self.logger.info("✅ \033[34m已重新启用URL监控和页面刷新\033[0m")
@@ -3080,7 +3249,7 @@ class CryptoTrader:
                         except NoSuchElementException:
                             self.logger.info(f"⏳ 第{attempt+1}次尝试: 等待登录完成...")                       
                         # 等待指定时间后再次检测
-                        time.sleep(1)
+                        self._delay(1)
         except Exception as e:
             # 处理其他所有异常
             self.logger.error(f"登录监控过程中发生错误: {str(e)}")
@@ -3338,7 +3507,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3351,7 +3520,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)  
+                        self._delay(2)  
 
                 elif 0 <= round((down_price - no1_price), 2) <= self.price_premium and down_price > 20:
                     self.trading = True  # 开始交易
@@ -3409,7 +3578,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down1 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down1失败",
@@ -3421,7 +3590,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)  
+                        self._delay(2)  
 
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -3491,7 +3660,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Up2失败",
@@ -3503,7 +3672,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)  
+                        self._delay(2)  
 
                 # 检查No2价格匹配
                 elif 0 <= round((down_price - no2_price), 2) <= self.price_premium and down_price > 20:
@@ -3565,7 +3734,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down2 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         self.send_trade_email(
                             trade_type="Buy Down2失败",
@@ -3577,7 +3746,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)  
+                        self._delay(2)  
 
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -3651,7 +3820,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up3 交易失败,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3664,7 +3833,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )   
                     self.driver.refresh()
-                    time.sleep(2)
+                    self._delay(2)
 
                 # 检查No3价格匹配
                 elif 0 <= round((down_price - no3_price), 2) <= self.price_premium and down_price > 20:
@@ -3724,7 +3893,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down3 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3737,7 +3906,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)
+                        self._delay(2)
             
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -3811,7 +3980,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Up4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3824,7 +3993,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)
+                        self._delay(2)
 
                 # 检查No4价格匹配
                 elif 0 <= round((down_price - no4_price), 2) <= self.price_premium and down_price > 20:
@@ -3886,7 +4055,7 @@ class CryptoTrader:
                         else:
                             self.logger.warning(f"❌ \033[31mBuy Down4 交易失败,第{retry+1}次,等待1秒后重试\033[0m")
                             self.driver.refresh()
-                            time.sleep(2)  # 添加延时避免过于频繁的重试
+                            self._delay(2)  # 添加延时避免过于频繁的重试
                     else:
                         # 5次失败后发邮件
                         self.send_trade_email(
@@ -3899,7 +4068,7 @@ class CryptoTrader:
                             portfolio_value=self.portfolio_value
                         )
                         self.driver.refresh()
-                        time.sleep(2)  
+                        self._delay(2)  
             
         except ValueError as e:
             self.logger.error(f"价格转换错误: {str(e)}")
@@ -3919,7 +4088,7 @@ class CryptoTrader:
             # 点击position_sell按钮
             if self.find_position_label_up():
                 self.click_position_sell_button()
-                time.sleep(1)
+                self._delay(1)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -3967,7 +4136,7 @@ class CryptoTrader:
             # 点击position_sell按钮,因为只有一个持仓.先卖后买
             if self.find_position_label_down():
                 self.click_position_sell_button()
-                time.sleep(1)
+                self._delay(1)
             # 点击卖出确认按钮
             self.click_buy_sell_confirm_button()
 
@@ -4065,10 +4234,10 @@ class CryptoTrader:
                     except (TimeoutException, NoSuchElementException, StaleElementReferenceException):
                         pass
                     
-                    time.sleep(check_interval)
+                    self._delay(check_interval)
                 self.logger.info(f"\033[34m❌ 没有交易记录,开始第{attempt+1}次重试\033[0m")
                 self.driver.refresh()
-                time.sleep(2)
+                self._delay(2)
             # 两次智能等待都失败
             self.logger.warning(f"❌ \033[31m{action_type} {direction} 验证 {attempt+1}次都失败,交易验证失败\033[0m")
             return False, 0, 0, 0
@@ -4087,14 +4256,14 @@ class CryptoTrader:
             #time.sleep(0.5)
             # 查找并设置金额输入框
             try:
-                amount_input = WebDriverWait(self.driver, 0.5).until(
+                amount_input = WebDriverWait(self.driver, 1).until(
                     EC.element_to_be_clickable((By.XPATH, XPathConfig.AMOUNT_INPUT[0]))
                 )
                 # 清空并设置新值
                 if amount_input:
                     amount_input.clear()
                     amount_input.send_keys(str(amount))
-                    time.sleep(0.5)
+                    self._delay(0.5)
                     self.logger.info(f"✅ \033[32m成功设置买入金额为 {amount}\033[0m")
                 else:
                     self.logger.info("❌ amount_input元素不存在")
@@ -4108,23 +4277,11 @@ class CryptoTrader:
             # 计时开始
             start_time = time.perf_counter()
             #time.sleep(0.2)
-            # 点击买入确认按钮
-            try:
-                buy_confirm_button = WebDriverWait(self.driver, 1).until(
-                    EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-                )
-                try:
-                    if buy_confirm_button:
-                        buy_confirm_button.click()
-                        self.logger.info(f"✅ \033[32m成功点击买入确认按钮\033[0m")
-                    else:
-                        self.logger.info("❌ 买入确认按钮不存在")
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ 买入确认按钮被遮挡,使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", buy_confirm_button)
-            except (NoSuchElementException, StaleElementReferenceException) as e:
-                self.logger.info(f"❌ 找不到或无法点击buy_confirm_button按钮: {str(e)}")
+            # 点击买入确认按钮（统一封装）
+            if self.click_with_retry((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0])):
+                self.logger.info(f"✅ \033[32m成功点击买入确认按钮\033[0m")
+            else:
+                self.logger.info("❌ 买入确认按钮点击失败")
 
             # 计时结束
             elapsed = time.perf_counter() - start_time
@@ -4137,7 +4294,7 @@ class CryptoTrader:
             # 计时结束
             elapsed = time.perf_counter() - start_time_count
             self.logger.info(f"✅ \033[34m买入操作完成\033[0m\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-            time.sleep(0.3)
+            self._delay(0.3)
             self.click_buy_up_button()
 
         except Exception as e:
@@ -4297,68 +4454,36 @@ class CryptoTrader:
         for attempt in range(3):
             try:
                 self.logger.info(f"✅ \033[34m第{attempt+1}次开始自动找币\033[0m")
-                # 第一步:先点击 CRYPTO 按钮
-                try:
-                    crypto_button = self.driver.find_element(By.XPATH, XPathConfig.CRYPTO_BUTTON[0])
-                    try:
-                        crypto_button.click()
-                    except ElementClickInterceptedException:
-                        # 如果元素被遮挡，使用JavaScript点击
-                        self.logger.info("⚠️ CRYPTO按钮被遮挡，使用JavaScript点击")
-                        self.driver.execute_script("arguments[0].click();", crypto_button)
+                # 第一步:先点击 CRYPTO 按钮（统一封装）
+                if self.click_with_retry((By.XPATH, XPathConfig.CRYPTO_BUTTON[0])):
                     self.logger.info(f"✅ \033[34m成功点击CRYPTO按钮\033[0m")
-
                     # 等待CRYPTO按钮点击后的页面加载完成
                     WebDriverWait(self.driver, 20).until(
                         EC.presence_of_element_located((By.XPATH, XPathConfig.DAILY_BUTTON[0]))
-                    )   
+                    )
                     self.logger.info("✅ \033[34mCRYPTO按钮点击后DAILY_BUTTON 按钮加载完成\033[0m")
-                except TimeoutException:
-                    self.logger.error(f"❌ 定位CRYPTO按钮超时")
+                else:
+                    self.logger.error("❌ 点击CRYPTO按钮失败")
 
-                # 第二步:点击 DAILY 按钮
-                try:
-                    daily_button = self.driver.find_element(By.XPATH, XPathConfig.DAILY_BUTTON[0])
-                    try:
-                        daily_button.click()
-                        self.logger.info(f"✅ \033[34m成功点击DAILY按钮\033[0m")
-                    except ElementClickInterceptedException:
-                        # 如果元素被遮挡，使用JavaScript点击
-                        self.logger.info("⚠️ DAILY按钮被遮挡，使用JavaScript点击")
-                        self.driver.execute_script("arguments[0].click();", daily_button)
-                        self.logger.info(f"✅ \033[34m使用 JavaScript 成功点击DAILY按钮\033[0m")
-
+                # 第二步:点击 DAILY 按钮（统一封装）
+                if self.click_with_retry((By.XPATH, XPathConfig.DAILY_BUTTON[0])):
+                    self.logger.info(f"✅ \033[34m成功点击DAILY按钮\033[0m")
                     # 等待DAILY按钮点击后的页面加载完成
                     WebDriverWait(self.driver, 20).until(
                         lambda d: d.execute_script("return document.readyState") == "complete"
                     )
                     self.logger.info("✅ \033[34mDAILY按钮点击后的页面加载完成\033[0m")
-
-                except (TimeoutException):
-                    self.logger.error(f"❌ 定位DAILY按钮超时")
+                else:
+                    self.logger.error("❌ 点击DAILY按钮失败")
                 
                 # 第三步:点击目标 URL 按钮,在当前页面打开 URL
                 if self.click_today_card():
                     self.logger.info(f"✅ \033[34m成功点击了目标URL按钮\033[0m")
                 
-                    # 第四步:获取当前 URL并保存到 GUI 和配置文件中
+                    # 第四步:获取当前 URL并保存到 GUI 和配置文件中（改为异步 after，避免阻塞）
                     new_url = self.driver.current_url.split('?', 1)[0].split('#', 1)[0]
-                    time.sleep(8)
-                    
-                    # 保存当前 URL 到 config
-                    self.config['website']['url'] = new_url
-                    self.save_config()
-                    
-                    # 保存前,先删除现有的url
-                    self.url_entry.delete(0, tk.END)
-                    
-                    # 把保存到config的url放到self.url_entry中
-                    self.url_entry.insert(0, new_url)
-                    
-                    # 把保存到config的url放到self.trading_pair_label中  
-                    pair = re.search(r'event/([^?]+)', new_url)
-                    self.trading_pair_label.config(text=pair.group(1))
-                    self.logger.info(f"✅ \033[34m\033[31m{new_url}:\033[0m已插入到主界面上并保存到配置文件\033[0m")
+                    self.root.after(8000, lambda: self._save_new_url(new_url))
+                    self.logger.info(f"✅ 已安排在8秒后保存并更新新URL: {new_url}")
                     break
                 else:
                     self.logger.error(f"❌ 未成功点击目标URL按钮")
@@ -4394,23 +4519,30 @@ class CryptoTrader:
                 self.logger.info(f"🔍 选择的币种是 \033[31m{coin}\033[0m")
 
                 card = None
+                card_locator = None
 
                 # 获取含指定币种的卡片元素
                 try:
                     if coin == 'BTC':
-                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
+                        card_locator = (By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
+                        card = self.driver.find_element(*card_locator)
                     elif coin == 'ETH':
-                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
+                        card_locator = (By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
+                        card = self.driver.find_element(*card_locator)
                     elif coin == 'SOL':
-                        card = self.driver.find_element(By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                        card_locator = (By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                        card = self.driver.find_element(*card_locator)
                     
                 except (NoSuchElementException, StaleElementReferenceException):
                     try:
                         if coin == 'BTC':
+                            card_locator = (By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
                             card = self._find_element_with_retry(XPathConfig.SEARCH_BTC_BUTTON, timeout=3, silent=True)
                         elif coin == 'ETH':
+                            card_locator = (By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
                             card = self._find_element_with_retry(XPathConfig.SEARCH_ETH_BUTTON, timeout=3, silent=True)
                         elif coin == 'SOL':
+                            card_locator = (By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
                             card = self._find_element_with_retry(XPathConfig.SEARCH_SOL_BUTTON, timeout=3, silent=True)
                     except NoSuchElementException:
                         card = None
@@ -4419,25 +4551,36 @@ class CryptoTrader:
                 if not card:
                     self.logger.warning("❌ 未找到今天日期的卡片元素")
                 else:
-                    self.logger.info(f"🔍 找到的卡片文本: \033[31m{getattr(card, 'text', '')}\033[0m")
+                    # 预先缓存文本，后续不再访问已点击的旧元素，避免stale
+                    try:
+                        card_text = getattr(card, 'text', '')
+                    except Exception:
+                        card_text = ''
 
-                    if today_str in getattr(card, 'text', ''):
-                        self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card.text}\033[0m")
+                    self.logger.info(f"🔍 找到的卡片文本: \033[31m{card_text}\033[0m")
 
-                        # 直接点击元素
-                        try:
-                            card.click()
-                        except ElementClickInterceptedException:
-                            # 如果元素被遮挡，使用JavaScript点击
-                            self.logger.info("⚠️ 卡片被遮挡，使用JavaScript点击")
-                            self.driver.execute_script("arguments[0].click();", card)
-                        self.logger.info(f"\033[34m✅ 成功点击链接！{card.text}\033[0m")
+                    if today_str in card_text:
+                        self.logger.info(f"\033[34m✅ 找到匹配日期 {today_str} 的卡片: {card_text}\033[0m")
+
+                        # 使用统一封装点击元素
+                        if card_locator is None:
+                            # 安全兜底：根据 coin 再次设置 locator
+                            if coin == 'BTC':
+                                card_locator = (By.XPATH, XPathConfig.SEARCH_BTC_BUTTON[0])
+                            elif coin == 'ETH':
+                                card_locator = (By.XPATH, XPathConfig.SEARCH_ETH_BUTTON[0])
+                            elif coin == 'SOL':
+                                card_locator = (By.XPATH, XPathConfig.SEARCH_SOL_BUTTON[0])
+                        if self.click_with_retry(card_locator):
+                            self.logger.info(f"\033[34m✅ 成功点击链接！{card_text}\033[0m")
+                        else:
+                            self.logger.warning("❌ 卡片点击失败")
 
                         # 等待页面加载完成
                         WebDriverWait(self.driver, 20).until(
                             lambda d: d.execute_script("return document.readyState") == "complete"
                         )
-                        self.logger.info(f"✅ {card.text}页面加载完成")
+                        self.logger.info(f"✅ {card_text}页面加载完成")
                         return True
                     else:
                         self.logger.warning("\033[31m❌ 没有找到包含今天日期的链接\033[0m")
@@ -4451,8 +4594,44 @@ class CryptoTrader:
                     self.driver.refresh()
                 except Exception as re:
                     self.logger.warning(f"刷新页面失败: {re}")
-                time.sleep(2)
+                self._delay(2)
         return False
+
+    def _save_new_url(self, new_url):
+        """异步保存并更新新的URL到配置与GUI，避免阻塞主线程"""
+        try:
+            # 保存当前 URL 到 config
+            if 'website' not in self.config:
+                self.config['website'] = {}
+            self.config['website']['url'] = new_url
+            self.save_config()
+
+            # 更新 GUI 的 URL 输入框
+            try:
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, new_url)
+            except Exception:
+                pass
+
+            # 更新交易对标签
+            try:
+                pair = re.search(r'event/([^?]+)', new_url)
+                if pair:
+                    self.trading_pair_label.config(text=pair.group(1))
+            except Exception:
+                pass
+
+            self.logger.info(f"✅ 新URL已保存并更新到界面: {new_url}")
+        except Exception as e:
+            self.logger.error(f"保存新URL失败: {e}")
+
+    def repair_csv_file_via_module(self):
+        """委托 csv_tools 模块执行 CSV 修复，避免重复逻辑"""
+        try:
+            from csv_tools import repair_csv_file as _repair_csv_file
+            _repair_csv_file(self.csv_file, self.logger)
+        except Exception as e:
+            self.logger.error(f"CSV文件修复调度失败: {e}")
 
     def get_cash_value(self):
         """获取当前CASH值"""
@@ -4491,7 +4670,7 @@ class CryptoTrader:
                 return
             except Exception as e:
                 self.logger.warning(f"⚠️ 第 {i + 1} 次尝试失败: {str(e)}")
-                time.sleep(1)
+                self._delay(1)
         self.logger.error("❌ 获取CASH值失败,已重试3次仍未成功")
 
     def schedule_get_zero_time_cash(self):
@@ -4585,15 +4764,14 @@ class CryptoTrader:
             # 取消已有的定时器（如果存在）
             if hasattr(self, 'get_zero_time_cash_timer') and self.get_zero_time_cash_timer:
                 try:
-                    self.get_zero_time_cash_timer.cancel()
-                except:
+                    self.root.after_cancel(self.get_zero_time_cash_timer)
+                except Exception:
                     pass
+                self.get_zero_time_cash_timer = None
 
-            # 设置下一次执行的定时器
+            # 设置下一次执行的定时器（Tk after）
             if self.running and not self.stop_event.is_set():
-                self.get_zero_time_cash_timer = threading.Timer(seconds_until_midnight, self.get_zero_time_cash)
-                self.get_zero_time_cash_timer.daemon = True
-                self.get_zero_time_cash_timer.start()
+                self.get_zero_time_cash_timer = self.root.after(int(seconds_until_midnight * 1000), self.get_zero_time_cash)
                 self.logger.info(f"✅ \033[34m{round(seconds_until_midnight / 3600,2)}\033[0m小时后再次获取 \033[34mCASH\033[0m 值")
     
     def get_binance_zero_time_price(self):
@@ -4668,7 +4846,7 @@ class CryptoTrader:
                 self.logger.warning(f"❌ (尝试 {attempt + 1}/{max_retries}) 获取币安 \033[34m{coin_form_websocket}\033[0m 价格时发生错误: {e}")
                 if attempt < max_retries - 1: # 如果不是最后一次尝试
                     self.logger.info(f"等待 {retry_delay} 秒后重试...")
-                    time.sleep(retry_delay) # 等待后重试
+                    self._delay(retry_delay) # 等待后重试
                 else: # 最后一次尝试仍然失败
                     self.logger.error(f"❌ 获取币安 \033[34m{coin_form_websocket}\033[0m 价格失败,已达到最大重试次数 ({max_retries})。")
         
@@ -4695,14 +4873,17 @@ class CryptoTrader:
 
         seconds_until_next_run = (next_run_time - now).total_seconds()
 
-        if hasattr(self, 'binance_zero_price_timer_thread') and self.binance_zero_price_timer and self.binance_zero_price_timer.is_alive():
-            self.binance_zero_price_timer.cancel()
+        # 取消已有的定时器（如果存在）
+        if hasattr(self, 'binance_zero_price_timer') and self.binance_zero_price_timer:
+            try:
+                self.root.after_cancel(self.binance_zero_price_timer)
+            except Exception:
+                pass
+            self.binance_zero_price_timer = None
 
         if self.running and not self.stop_event.is_set():
             coin_for_next_log = self.coin_combobox.get() + 'USDT'
-            self.binance_zero_price_timer = threading.Timer(seconds_until_next_run, self.get_binance_zero_time_price)
-            self.binance_zero_price_timer.daemon = True
-            self.binance_zero_price_timer.start()
+            self.binance_zero_price_timer = self.root.after(int(seconds_until_next_run * 1000), self.get_binance_zero_time_price)
             self.logger.info(f"✅ \033[34m{round(seconds_until_next_run / 3600,2)}\033[0m 小时后重新获取{coin_for_next_log} 零点价格")
     
     def get_binance_price_websocket(self):
@@ -4775,13 +4956,15 @@ class CryptoTrader:
                                               on_message=on_message, 
                                               on_error=on_error, 
                                               on_close=on_close)
+                    # 保存引用以便 stop_monitoring 时关闭
+                    self.ws_app = ws
                     ws.run_forever()
                 except Exception as e:
                     self.logger.warning(f"WebSocket 主循环异常: {e}")
                 
                 connection_attempts += 1
                 if self.running and not self.stop_event.is_set():
-                    time.sleep(5)  # 出错后延迟重连
+                    self._delay(5)  # 出错后延迟重连
 
         self.ws_thread = threading.Thread(target=run_ws, daemon=True)
         self.ws_thread.start()
@@ -4803,15 +4986,14 @@ class CryptoTrader:
         # 取消已有的定时器（如果存在）
         if hasattr(self, 'comparison_binance_price_timer') and self.comparison_binance_price_timer:
             try:
-                self.comparison_binance_price_timer.cancel()
-            except:
+                self.root.after_cancel(self.comparison_binance_price_timer)
+            except Exception:
                 pass
+            self.comparison_binance_price_timer = None
 
-        # 设置下一次执行的定时器
+        # 设置下一次执行的定时器（Tk after）
         selected_coin = self.coin_combobox.get()
-        self.comparison_binance_price_timer = threading.Timer(seconds_until_next_run, self._perform_price_comparison)
-        self.comparison_binance_price_timer.daemon = True
-        self.comparison_binance_price_timer.start()
+        self.comparison_binance_price_timer = self.root.after(int(seconds_until_next_run * 1000), self._perform_price_comparison)
         self.logger.info(f"\033[34m{round(seconds_until_next_run / 3600,2)}\033[0m小时后比较\033[34m{selected_coin}USDT\033[0m币安价格")
 
     def _perform_price_comparison(self):
@@ -4909,54 +5091,19 @@ class CryptoTrader:
                 
                 # 判断是否小于阈值
                 if available_kb < THRESHOLD_KB:
-                    self.logger.info(f"⚠️ 可用内存低于{available_mb}MB,开始创建Swap...")
+                    self.logger.warning(f"⚠️ 可用内存仅 {available_mb}MB，建议启用Swap (安全模式，已跳过系统修改)")
                     
-                    # 创建swap文件
-                    commands = [
-                        ['sudo', 'fallocate', '-l', '2G', '/swapfile'],
-                        ['sudo', 'chmod', '600', '/swapfile'],
-                        ['sudo', 'mkswap', '/swapfile'],
-                        ['sudo', 'swapon', '/swapfile']
-                    ]
+                    # 安全模式：仅记录建议与步骤，不执行系统级命令
+                    self.logger.info("📝 建议的启用步骤：")
+                    self.logger.info("1) sudo fallocate -l 2G /swapfile")
+                    self.logger.info("2) sudo chmod 600 /swapfile")
+                    self.logger.info("3) sudo mkswap /swapfile")
+                    self.logger.info("4) sudo swapon /swapfile")
+                    self.logger.info("5) 将 \"/swapfile none swap sw 0 0\" 追加到 /etc/fstab 以开机挂载")
+                    self.logger.info("6) 可选调整 swappiness: sudo sysctl vm.swappiness=10")
                     
-                    for cmd in commands:
-                        try:
-                            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-                            if result.returncode != 0:
-                                self.logger.error(f"命令执行失败: {' '.join(cmd)}, 错误: {result.stderr}")
-                                return
-                        except subprocess.TimeoutExpired:
-                            self.logger.error(f"命令执行超时: {' '.join(cmd)}")
-                            return
-                        except Exception as e:
-                            self.logger.error(f"命令执行异常: {' '.join(cmd)}, 错误: {e}")
-                            return
-                    
-                    # 检查/etc/fstab中是否已有swap配置
-                    try:
-                        with open('/etc/fstab', 'r') as f:
-                            fstab_content = f.read()
-                        
-                        if '/swapfile' not in fstab_content:
-                            # 添加开机自动挂载
-                            subprocess.run(['sudo', 'sh', '-c', 
-                                          'echo "/swapfile none swap sw 0 0" >> /etc/fstab'], 
-                                         timeout=10)
-                            self.logger.info("✅ 已添加Swap到/etc/fstab")
-                    except Exception as e:
-                        self.logger.warning(f"配置/etc/fstab失败: {e}")
-                    
-                    # 调整swappiness
-                    try:
-                        subprocess.run(['sudo', 'sysctl', 'vm.swappiness=10'], timeout=10)
-                        subprocess.run(['sudo', 'sh', '-c', 
-                                      'echo "vm.swappiness=10" >> /etc/sysctl.conf'], 
-                                     timeout=10)
-                        self.logger.info("✅ 已调整vm.swappiness=10")
-                    except Exception as e:
-                        self.logger.warning(f"调整swappiness失败: {e}")
-                    
-                    self.logger.info("🎉 Swap启用完成,共2GB")
+                    # 不执行任何写操作，仅提示
+                    return
                     
             except Exception as e:
                 self.logger.error(f"获取内存信息失败: {e}")
@@ -5104,7 +5251,7 @@ class CryptoTrader:
             if os.path.exists(self.csv_file):
                 self.logger.info("尝试修复损坏的CSV文件...")
                 try:
-                    self.repair_csv_file()
+                    self.repair_csv_file_via_module()
                     # 修复后重新尝试加载
                     self.logger.info("CSV文件修复完成,重新尝试加载...")
                     return self.load_cash_history()
@@ -5356,79 +5503,23 @@ class CryptoTrader:
 
     def click_buy_confirm_button(self):
         """点击买入确认按钮 """
-        try:
-            start_time = time.perf_counter()
-
-            buy_confirm_button = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
-            )
-            if buy_confirm_button:
-                buy_confirm_button.click()
-                elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ 点击了buy_confirm_button按钮\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-            else:
-                # 如果元素被遮挡，使用JavaScript点击
-                self.logger.info("⚠️ buy_confirm_button按钮被遮挡,使用JavaScript点击")
-                self.driver.execute_script("arguments[0].click();", buy_confirm_button)
-                elapsed = time.perf_counter() - start_time
-                self.logger.info(f"✅ \033[34mJavaScript点击buy_confirm_button按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-
-        except Exception as e:
-            try:
-                buy_confirm_button = self._find_element_with_retry(XPathConfig.BUY_CONFIRM_BUTTON, timeout=1, silent=True)
-                if buy_confirm_button:
-                    buy_confirm_button.click()
-                    elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ 第二次点击了buy_confirm_button按钮\033[31m耗时 {elapsed:.3f} 秒\033[0m")
-                else:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ buy_confirm_button按钮被遮挡,使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", buy_confirm_button)
-                    elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34mJavaScript点击buy_confirm_button按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-            except Exception as retry_e:
-                self.logger.error(f"❌ 第二次点击buy_confirm_button按钮失败: {str(retry_e)}")
+        start_time = time.perf_counter()
+        success = self.click_with_retry((By.XPATH, XPathConfig.BUY_CONFIRM_BUTTON[0]))
+        elapsed = time.perf_counter() - start_time
+        if success:
+            self.logger.info(f"✅ 点击了buy_confirm_button按钮\033[31m耗时 {elapsed:.3f} 秒\033[0m")
+        else:
+            self.logger.error(f"❌ 点击buy_confirm_button按钮失败,耗时 {elapsed:.3f} 秒")
     
     def click_position_sell_button(self):
         # 点击position_sell按钮
-        try:
-            start_time = time.perf_counter()
-
-            positions_sell_button = WebDriverWait(self.driver, 1).until(
-                EC.element_to_be_clickable((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
-            )
-            if positions_sell_button:
-                try:
-                    positions_sell_button.click()
-                    elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34m点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-                except ElementClickInterceptedException:
-                    # 如果元素被遮挡，使用JavaScript点击
-                    self.logger.info("⚠️ position_sell按钮被遮挡，使用JavaScript点击")
-                    self.driver.execute_script("arguments[0].click();", positions_sell_button)
-                    elapsed = time.perf_counter() - start_time
-                    self.logger.info(f"✅ \033[34mJavaScript点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-            else:
-                self.logger.info("❌ position_sell按钮不存在")
-        
-        except Exception as e:
-            try:
-                positions_sell_button = self._find_element_with_retry(XPathConfig.POSITION_SELL_BUTTON, timeout=1, silent=True)
-                if positions_sell_button:
-                    try:
-                        positions_sell_button.click()
-                        elapsed = time.perf_counter() - start_time
-                        self.logger.info(f"✅ \033[34m点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-                    except ElementClickInterceptedException:
-                        # 如果元素被遮挡，使用JavaScript点击
-                        self.logger.info("⚠️ 第二次position_sell按钮被遮挡,使用JavaScript点击")
-                        self.driver.execute_script("arguments[0].click();", positions_sell_button)
-                        elapsed = time.perf_counter() - start_time
-                        self.logger.info(f"✅ \033[34m第二次JavaScript点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
-                else:
-                    self.logger.warning("❌ 第二次找不到position_sell按钮")
-            except Exception as retry_e:
-                self.logger.error(f"❌ 第二次点击position_sell按钮失败: {str(retry_e)}")
+        start_time = time.perf_counter()
+        success = self.click_with_retry((By.XPATH, XPathConfig.POSITION_SELL_BUTTON[0]))
+        elapsed = time.perf_counter() - start_time
+        if success:
+            self.logger.info(f"✅ \033[34m点击position_sell按钮成功\033[31m耗时 {elapsed:.3f}\033[0m秒\033[0m")
+        else:
+            self.logger.warning("❌ 点击position_sell按钮失败")
 
     def click_buy_sell_confirm_button(self):
         """点击买入卖出确认按钮"""
@@ -5830,7 +5921,7 @@ class CryptoTrader:
                     error_msg = f"Chrome警报邮件SMTP认证失败: {str(e)}"
                     self.logger.error(error_msg)
                     if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
+                        self._delay(retry_delay)
                     else:
                         self.logger.error("❌ Chrome异常警报邮件发送最终失败：认证错误")
                         
@@ -5838,7 +5929,7 @@ class CryptoTrader:
                     error_msg = f"Chrome警报邮件SMTP操作失败: {str(e)}"
                     self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
                     if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (2 ** attempt))  # 指数退避
+                        self._delay(retry_delay * (2 ** attempt))  # 指数退避
                     else:
                         self.logger.error("❌ Chrome异常警报邮件发送最终失败：SMTP错误")
                         
@@ -5846,7 +5937,7 @@ class CryptoTrader:
                     error_msg = f"Chrome警报邮件发送失败: {str(e)}"
                     self.logger.error(f"❌ {error_msg} (尝试 {attempt + 1}/{max_retries})")
                     if attempt < max_retries - 1:
-                        time.sleep(retry_delay * (2 ** attempt))
+                        self._delay(retry_delay * (2 ** attempt))
                     else:
                         self.logger.error("❌ Chrome异常警报邮件发送最终失败：未知错误")
                         
@@ -5860,7 +5951,7 @@ class CryptoTrader:
             except Exception as e:
                 self.logger.error(f"发送Chrome异常警报邮件时出错 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
-                    time.sleep(retry_delay * (2 ** attempt))
+                    self._delay(retry_delay * (2 ** attempt))
                 else:
                     self.logger.error("❌ Chrome异常警报邮件发送彻底失败")
 
@@ -5872,7 +5963,7 @@ class CryptoTrader:
             except Exception as e:
                 self.logger.warning(f"{operation.__name__} 失败,尝试 {attempt + 1}/{self.retry_count}: {str(e)}")
                 if attempt < self.retry_count - 1:
-                    time.sleep(self.retry_interval)
+                    self._delay(self.retry_interval)
                 else:
                     raise
 
@@ -5920,7 +6011,7 @@ class CryptoTrader:
             
             if attempt < max_retries - 1:
                 self.logger.info(f"等待{retry_delay}秒后重试...")
-                time.sleep(retry_delay)
+                self._delay(retry_delay)
                 self.driver.refresh()
         return False
         
@@ -5966,7 +6057,7 @@ class CryptoTrader:
                 
             if attempt < max_retries - 1:
                 self.logger.info(f"等待{retry_delay}秒后重试...")
-                time.sleep(retry_delay)
+                self._delay(retry_delay)
                 self.driver.refresh()
         return False
     
@@ -6005,7 +6096,7 @@ class CryptoTrader:
                     if retry < max_retries - 1:
                         wait_time = 2 + retry  # 递增等待时间
                         self.logger.info(f"⏳ 等待{wait_time}秒后进行下一次重试...")
-                        time.sleep(wait_time)
+                        self._delay(wait_time)
                         
             except Exception as e:
                 self.logger.error(f"❌ 卖出{position_type.upper()}持仓时发生异常（第{retry + 1}次尝试）: {str(e)}")
@@ -6014,7 +6105,7 @@ class CryptoTrader:
                 if retry < max_retries - 1:
                     wait_time = 3 + retry  # 异常情况下等待更长时间
                     self.logger.info(f"⏳ 异常后等待{wait_time}秒后进行下一次重试...")
-                    time.sleep(wait_time)
+                    self._delay(wait_time)
         
         self.logger.error(f"💥 {position_type.upper()}持仓卖出失败，已达到最大重试次数{max_retries}")
         return False
@@ -6053,10 +6144,10 @@ class CryptoTrader:
             self.element_cache.clear()
     
     def _find_element_with_retry(self, xpaths, timeout=1, silent=True, use_cache=True):
-        """优化版元素查找 - 支持缓存和并行查找多个XPath"""
+        """优化版元素查找 - 支持缓存、分阶段超时与并行查找多个XPath"""
         # 若正在重启，短暂等待并返回None，避免对驱动发起请求
         if getattr(self, 'is_restarting', False):
-            time.sleep(0.1)
+            self._delay(0.1)
             return None
         # 生成缓存键
         cache_key = str(sorted(xpaths)) if use_cache else None
@@ -6069,46 +6160,83 @@ class CryptoTrader:
         
         try:
             from concurrent.futures import ThreadPoolExecutor, TimeoutError
+            # 分阶段超时（优先短等待，再逐步放宽）
+            phased_timeouts = [0.8, 1.5, 3.0]
             
             def find_single_xpath(xpath):
                 try:
-                    return WebDriverWait(self.driver, timeout).until(
+                    return WebDriverWait(self.driver, current_timeout).until(
                         EC.presence_of_element_located((By.XPATH, xpath))
                     )
                 except (TimeoutException, NoSuchElementException):
                     return None
             
-            # 并行查找所有XPath
-            with ThreadPoolExecutor(max_workers=min(len(xpaths), 2)) as executor:
-                futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
-                
-                for future in futures:
-                    try:
-                        result = future.result(timeout=timeout)
-                        if result:
-                            # 缓存找到的元素
-                            if use_cache and cache_key:
-                                self._cache_element(cache_key, result)
-                            return result
-                    except (TimeoutError, Exception):
-                        continue
-            
-            for future in futures:
-                try:
-                    result = future.result(timeout=timeout)
-                    if result:
-                        # 缓存找到的元素
-                        if use_cache and cache_key:
-                            self._cache_element(cache_key, result)
-                        return result
-                except (TimeoutError, Exception):
-                    continue
+            # 逐步扩大等待时间
+            for current_timeout in phased_timeouts:
+                # 并行查找所有XPath
+                with ThreadPoolExecutor(max_workers=min(len(xpaths), 2)) as executor:
+                    futures = [executor.submit(find_single_xpath, xpath) for xpath in xpaths]
+                    for future in futures:
+                        try:
+                            result = future.result(timeout=current_timeout)
+                            if result:
+                                # 缓存找到的元素
+                                if use_cache and cache_key:
+                                    self._cache_element(cache_key, result)
+                                return result
+                        except (TimeoutError, Exception):
+                            continue
+                    # 二次获取未完成的future（避免遗漏）
+                    for future in futures:
+                        try:
+                            result = future.result(timeout=current_timeout)
+                            if result:
+                                if use_cache and cache_key:
+                                    self._cache_element(cache_key, result)
+                                return result
+                        except (TimeoutError, Exception):
+                            continue
         
         except Exception as e:
             if not silent:
                 self.logger.error(f"元素查找过程中发生错误: {str(e)}")
         
         return None
+
+    def click_with_retry(self, locator, attempts=3, waits=(1.0, 2.0, 3.0), js_fallback=True):
+        """统一点击封装：分阶段等待 + JS 回退
+        locator: 形如 (By.XPATH, value)
+        attempts: 重试次数
+        waits: 分阶段 WebDriverWait 超时序列
+        js_fallback: 点击受阻时使用 JS 回退
+        返回: True=成功, False=失败
+        """
+        last_error = None
+        for i in range(attempts):
+            for w in waits:
+                try:
+                    element = WebDriverWait(self.driver, w).until(
+                        EC.element_to_be_clickable(locator)
+                    )
+                    try:
+                        element.click()
+                        return True
+                    except ElementClickInterceptedException:
+                        if js_fallback:
+                            try:
+                                self.driver.execute_script("arguments[0].click();", element)
+                                return True
+                            except Exception as js_e:
+                                last_error = js_e
+                                continue
+                except (TimeoutException, NoSuchElementException, StaleElementReferenceException) as e:
+                    last_error = e
+                    continue
+            # 阶段结束后短暂等待再试
+            self._delay(min(0.5 * (i + 1), 1.5))
+        if last_error:
+            self.logger.info(f"❌ click_with_retry失败: {locator} - {last_error}")
+        return False
 
     def create_flask_app(self):
         """创建Flask应用,展示内存中的cash_history"""
@@ -9632,7 +9760,7 @@ class CryptoTrader:
             
             if killed_processes:
                 self.logger.info(f"🧹 \033[34m端口 {port} 清理完成,已杀死 {len(killed_processes)} 个进程\033[0m")
-                time.sleep(1)  # 等待端口释放
+                self._delay(1)  # 等待端口释放
             else:
                 self.logger.info(f"✅ \033[34m端口 {port} 未被占用\033[0m")
                 
@@ -9663,7 +9791,7 @@ class CryptoTrader:
                 if "Address already in use" in str(e) or "端口" in str(e):
                     self.logger.warning(f"🔄 端口 {flask_port} 仍被占用,再次尝试清理...")
                     self.check_and_kill_port_processes(flask_port)
-                    time.sleep(2)
+                    self._delay(2)
                     try:
                         self.flask_app.run(host=flask_host, port=flask_port, debug=False, use_reloader=False)
                     except Exception as retry_e:
@@ -9685,7 +9813,7 @@ class CryptoTrader:
         # 先取消之前的定时器（如果存在）
         if hasattr(self, 'record_and_show_cash_timer') and self.record_and_show_cash_timer:
             try:
-                self.record_and_show_cash_timer.cancel()
+                self.root.after_cancel(self.record_and_show_cash_timer)
                 self.logger.info("✅ 已取消之前的记录Cash定时器")
             except Exception as e:
                 self.logger.warning(f"取消之前的记录Cash定时器失败: {e}")
@@ -9696,9 +9824,7 @@ class CryptoTrader:
             next_run += timedelta(days=1)
         wait_time = (next_run - now).total_seconds()
         self.logger.info(f"📅 已安排在 {next_run.strftime('%Y-%m-%d %H:%M:%S')} 记录Cash到CSV")
-        self.record_and_show_cash_timer = threading.Timer(wait_time, self.record_cash_daily)
-        self.record_and_show_cash_timer.daemon = True
-        self.record_and_show_cash_timer.start()
+        self.record_and_show_cash_timer = self.root.after(int(wait_time * 1000), self.record_cash_daily)
 
     def record_cash_daily(self):
         """实际记录逻辑：读取GUI Cash,计算并追加到CSV"""
